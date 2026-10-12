@@ -1,3 +1,30 @@
+use HyperionFlow::{
+    connector::{
+        connector_trait::Connector,
+        kafka_connector::{KafkaConfiguration, KafkaConsumer},
+        postgres_connector::{PostgreSQLConfiguration, PostgreSQLConnector},
+    },
+    deserializer::KafkaDeserializer,
+    source::Source,
+    tracing::init_tracing,
+};
+
 fn main() {
-    println!("Hello, world!");
+    init_tracing();
+
+    let kafka_config = KafkaConfiguration {
+        host: "localhost".to_string(),
+        port: 9092,
+        topic: "test".to_string(),
+        group: "test".to_string(),
+    };
+    let mut external = KafkaConsumer::connect(kafka_config);
+
+    let postgre_config = PostgreSQLConfiguration {
+        host: "localhost".to_string(),
+        port: 5432,
+    };
+    let mut internal = PostgreSQLConnector::connect(postgre_config);
+
+    let source = Source::new(external, internal, KafkaDeserializer::default());
 }

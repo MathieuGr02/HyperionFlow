@@ -1,6 +1,12 @@
-use crate::connector::connector_trait::{Connector, EventReaderConnector};
+use crate::{
+    connector::{
+        connector_trait::{Connector, EventConnector},
+        kafka::kafka_error::KafkaConsumerError,
+        message_batch::EventMessageBatch,
+    },
+    message::{DataMessage, EventMessage},
+};
 use kafka::consumer::{Consumer, Message};
-use thiserror::Error;
 
 #[derive(Debug)]
 pub struct KafkaConfiguration {
@@ -33,14 +39,19 @@ impl From<&Message<'_>> for KafkaMessage {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum KafkaConsumerError {
-    #[error("Unable to connect to Kafka with host={host:?}, port={port:?}")]
-    ConnectionError { host: String, port: u16 },
-    #[error("Unable to mark message set as consumed")]
-    ConsumerError,
-    #[error("Unable to commit consumed messages")]
-    CommitError,
+impl KafkaMessage {
+    pub fn split_event_message(self) -> (EventMessage, DataMessage) {
+        let event_message = EventMessage {
+            key: self.key.clone(),
+            offset: self.offset,
+        };
+        let data_message = DataMessage {
+            key: self.key,
+            value: self.value,
+        };
+
+        (event_message, data_message)
+    }
 }
 
 impl Connector for KafkaConsumer {
@@ -66,15 +77,22 @@ impl Connector for KafkaConsumer {
     }
 }
 
-impl EventReaderConnector for KafkaConsumer {
-    type Output = Vec<KafkaMessage>;
+impl EventConnector for KafkaConsumer {
+    fn fetch(&mut self) -> Result<EventMessageBatch, Self::Error> {
+        let mut event_messages = Vec::new();
+        let mut data_messages = Vec::new();
 
-    fn fetch(&mut self) -> Result<Self::Output, Self::Error> {
-        let mut data = Vec::new();
         for ms in self.client.poll().unwrap().iter() {
             for m in ms.messages() {
-                let message = KafkaMessage::from(m);
-                data.push(message);
+                let key_vec = m.key.to_vec();
+                event_messages.push(EventMessage {
+                    key: key_vec.clone(),
+                    offset: m.offset,
+                });
+                data_messages.push(DataMessage {
+                    key: key_vec,
+                    value: m.value.to_vec(),
+                });
             }
 
             self.client
@@ -82,10 +100,25 @@ impl EventReaderConnector for KafkaConsumer {
                 .map_err(|e| KafkaConsumerError::ConsumerError)?;
         }
 
+        Ok(EventMessageBatch {
+            events: event_messages,
+            data: data_messages,
+        })
+    }
+
+    fn push(&mut self) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    fn fetch_commit(&mut self) -> Result<(), Self::Error> {
         self.client
             .commit_consumed()
             .map_err(|e| KafkaConsumerError::CommitError)?;
 
-        Ok(data)
+        Ok(())
+    }
+
+    fn push_commit(&mut self) -> Result<(), Self::Error> {
+        todo!()
     }
 }

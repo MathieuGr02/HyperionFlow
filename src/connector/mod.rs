@@ -1,3 +1,4 @@
 pub mod connector_trait;
-pub mod kafka_connector;
-pub mod postgres_connector;
+pub mod kafka;
+pub mod message_batch;
+pub mod store;

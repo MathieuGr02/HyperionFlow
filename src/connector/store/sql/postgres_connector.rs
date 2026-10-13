@@ -1,7 +1,10 @@
-use postgres::{Client, NoTls, types::ToSql};
+use postgres::{Client, NoTls};
 use thiserror::Error;
 
-use crate::connector::connector_trait::{Connector, StoreConnector, StoreWriter};
+use crate::connector::{
+    connector_trait::{Connector, StoreConnector},
+    store::sql::record::Record,
+};
 
 #[derive(Debug)]
 pub struct PostgreSQLConfiguration {
@@ -45,6 +48,16 @@ impl Connector for PostgreSQLConnector {
     }
 }
 
-impl StoreConnector for PostgreSQLConnector {}
+impl StoreConnector for PostgreSQLConnector {
+    type Input = Record;
+    type Output = ();
 
-impl StoreWriter for PostgreSQLConnector {}
+    fn execute(&self) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    fn write(&self, data: Self::Input) -> Result<Self::Output, Self::Error> {
+        self.client.query_raw()
+        todo!()
+    }
+}

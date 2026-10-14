@@ -1,0 +1,19 @@
+[package]
+name = "hyperion-client"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+sql = ["dep:hyperion-sql"]
+kafka = ["dep:hyperion-kafka"]
+all = ["sql", "kafka"]
+
+[dependencies]
+hyperion-core = { path = "../hyperion-core" }
+hyperion-sql = { path = "../hyperion-sql", optional = true }
+hyperion-kafka = { path = "../hyperion-kafka", optional = true }
+
+
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

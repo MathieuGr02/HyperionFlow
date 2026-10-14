@@ -1,12 +1,13 @@
+use std::process::Output;
+
 use tracing::error;
 
 use crate::{
     connector::{
         connector_trait::{EventConnector, StoreConnector},
-        store::sql::schema::Schema,
+        message_batch::{DeserializedMessage, MessageBatch, RawMessage},
     },
     deserializer::Deserializer,
-    message::DataMessage,
     sender::Sender,
     wal::WAL,
 };
@@ -18,15 +19,13 @@ pub struct Source<E, I, D> {
     internal_connector: I,
     sender: Sender,
     wal: WAL,
-
-    schema: Option<Schema>,
 }
 
 impl<E: EventConnector, I: StoreConnector, D: Deserializer> Source<E, I, D>
 where
     E: EventConnector,
-    I: StoreConnector,
-    D: Deserializer<Input = Vec<DataMessage>, Output = I::Input>,
+    I: StoreConnector<Input = DeserializedMessage>,
+    D: Deserializer<Input = RawMessage, Output = DeserializedMessage>,
 {
     pub fn new(external: E, internal: I, deserializer: D) -> Self {
         Source {
@@ -35,26 +34,14 @@ where
             internal_connector: internal,
             sender: Sender::default(),
             wal: WAL::default(),
-            schema: None,
         }
     }
 
-    pub fn set_schema(&mut self) {}
-
-    pub fn detect_schema(&self, table: String) -> Option<&Schema> {
-        None
-    }
-
     pub fn run(&mut self) {
-        let schema = match self.schema.as_ref() {
-            Some(schema) => schema,
-            None => self.detect_schema("test".to_string()).unwrap(),
-        };
-
         loop {
             let res = self.external_connector.fetch();
 
-            let output = match res {
+            let batch = match res {
                 Ok(data) => data,
                 Err(error) => {
                     error!("{}", error);
@@ -62,12 +49,29 @@ where
                 }
             };
 
-            let deserialized_data = self.deserializer.deserialize(output.data);
-            self.sender.send(output.events);
+            let res = self.deserializer.deserialize_batch(batch.messages);
 
-            //self.internal_connector.execute(data);
+            let batch = match res {
+                Ok(batch) => batch,
+                Err(error) => {
+                    error!("{}", error);
+                    continue;
+                }
+            };
 
-            self.external_connector.fetch_commit();
+            let res = self
+                .internal_connector
+                .execute_batch("INSERT INTO test (id, name) VALUES ( $1, $2 )", batch);
+
+            match res {
+                Err(error) => {
+                    error!("{}", error);
+                    continue;
+                }
+                _ => println!(""),
+            };
+
+            let res = self.external_connector.fetch_commit();
         }
     }
 }

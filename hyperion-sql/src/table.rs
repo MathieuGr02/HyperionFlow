@@ -1,5 +1,6 @@
 #[derive(Debug)]
-pub struct Schema {
+pub struct Table {
+    pub name: String,
     pub columns: Vec<Column>,
 }
 

@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub enum Value {
     Null,
     Boolean(bool),

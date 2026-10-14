@@ -4,5 +4,3 @@ pub mod sender;
 pub mod source;
 pub mod tracing;
 pub mod wal;
-
-pub mod message;

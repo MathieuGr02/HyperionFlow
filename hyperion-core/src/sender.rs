@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::message::EventMessage;
+use crate::connector::message_batch::EventMessage;
 
 #[derive(Debug, Default)]
 pub struct Sender {}

@@ -1,0 +1,13 @@
+[package]
+name = "hyperion-kafka"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+hyperion-core = { path = "../hyperion-core" }
+
+kafka = "0.10.0"
+
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

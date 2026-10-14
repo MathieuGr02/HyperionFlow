@@ -1,4 +1,4 @@
-pub mod postgres_connector;
 pub mod record;
+pub mod stores;
 pub mod table;
-pub mod value;
+pub mod types;

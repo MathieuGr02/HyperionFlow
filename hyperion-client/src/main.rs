@@ -1,12 +1,9 @@
-use hyperion_core::{
-    connector::connector_trait::Connector, deserializer::JsonDeserializer, source::Source,
-    tracing::init_tracing,
-};
+use hyperion_core::connector_trait::Connector;
+use hyperion_core::{deserializer::JsonDeserializer, source::Source, tracing::init_tracing};
 use hyperion_kafka::kafka_connector::{KafkaConfiguration, KafkaConsumer};
-use hyperion_sql::{
-    postgres_connector::{PostgreSQLConfiguration, PostgreSQLConnector},
-    table::{Column, DataType, Table},
-};
+use hyperion_sql::stores::postgres::{PostgreSQLConfiguration, PostgreSQLConnector};
+use hyperion_sql::table::{Column, Table};
+use hyperion_sql::types::ValueType;
 
 fn main() {
     init_tracing();
@@ -18,23 +15,15 @@ fn main() {
         group: "test".to_string(),
         partition: 1,
     };
-    let mut external = KafkaConsumer::connect(kafka_config).unwrap();
+    let external = KafkaConsumer::connect(kafka_config).unwrap();
 
-    let table = Table {
-        name: "test".to_string(),
-        columns: vec![
-            Column {
-                name: "id".to_string(),
-                data_type: DataType::Integer,
-                nullable: false,
-            },
-            Column {
-                name: "name".to_string(),
-                data_type: DataType::Text,
-                nullable: false,
-            },
+    let table = Table::new(
+        "test",
+        vec![
+            Column::new("id", ValueType::Integer, false),
+            Column::new("name", ValueType::Text, false),
         ],
-    };
+    );
 
     let postgre_config = PostgreSQLConfiguration {
         host: "localhost".to_string(),

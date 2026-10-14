@@ -1,4 +1,4 @@
-use crate::connector::data_format::{DataFormat, ValueDataFormat};
+use crate::data_format::DataFormat;
 
 #[derive(Debug)]
 pub struct MessageBatch {
@@ -30,7 +30,7 @@ pub struct RawMessage {
 #[derive(Debug)]
 pub struct DeserializedMessage {
     pub key: Option<Vec<u8>>,
-    pub value: ValueDataFormat,
+    pub value: DataFormat,
     pub position: SourceEventPosition,
 }
 

@@ -1,10 +1,7 @@
-use std::collections::HashMap;
-
-use serde_json::Value;
 use thiserror::Error;
 
-use crate::connector::{
-    data_format::ValueDataFormat,
+use crate::{
+    data_format::DataFormat,
     message_batch::{DeserializedMessage, RawMessage},
 };
 
@@ -34,7 +31,7 @@ impl Deserializer for JsonDeserializer {
             serde_json::from_slice(&item.value).map_err(|e| JsonDeserializationError::Empty)?;
         Ok(DeserializedMessage {
             key: item.key,
-            value: ValueDataFormat::Json(data),
+            value: DataFormat::Json(data),
             position: item.position,
         })
     }

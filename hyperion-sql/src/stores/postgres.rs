@@ -1,50 +1,44 @@
 use postgres::{
     Client, NoTls,
-    types::{ToSql, Type, to_sql_checked},
+    types::{IsNull, ToSql, Type, private::BytesMut, to_sql_checked},
 };
+use std::error::Error;
 use thiserror::Error;
 
-use hyperion_core::connector::{
+use hyperion_core::{
     connector_trait::{Connector, StoreConnector},
     message_batch::DeserializedMessage,
 };
 
-use crate::{table::Table, value::Value};
+use crate::{record::Record, table::Table, types::Value};
 
 impl ToSql for Value {
     fn to_sql(
         &self,
-        ty: &postgres::types::Type,
-        out: &mut postgres::types::private::BytesMut,
-    ) -> Result<postgres::types::IsNull, Box<dyn std::error::Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
+        ty: &Type,
+        out: &mut BytesMut,
+    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
         match self {
-            Value::Null => Ok(postgres::types::IsNull::Yes),
-            Value::Boolean(bool) => bool.to_sql(ty, out),
-            Value::Float(float) => float.to_sql(ty, out),
-            Value::Integer(integer) => integer.to_sql(ty, out),
-            Value::Text(text) => text.to_sql(ty, out),
+            Value::Null => Ok(IsNull::Yes),
+            Value::Bool(v) => v.to_sql(ty, out),
+            Value::Integer(v) => match *ty {
+                Type::INT2 => i16::try_from(*v)?.to_sql(ty, out),
+                Type::INT4 => i32::try_from(*v)?.to_sql(ty, out),
+                Type::INT8 => v.to_sql(ty, out),
+                _ => v.to_sql(ty, out),
+            },
+            Value::Float(v) => v.to_sql(ty, out),
+            Value::Text(v) => v.to_sql(ty, out),
         }
     }
 
-    fn accepts(ty: &postgres::types::Type) -> bool
-    where
-        Self: Sized,
-    {
-        [
-            Type::BOOL,
-            Type::INT2,
-            Type::INT4,
-            Type::INT8,
-            Type::FLOAT4,
-            Type::FLOAT8,
-            Type::TEXT,
-            Type::VARCHAR,
-        ]
-        .iter()
-        .any(|accepted| accepted == ty)
+    fn accepts(ty: &Type) -> bool {
+        <bool as ToSql>::accepts(ty)
+            || <i16 as ToSql>::accepts(ty)
+            || <i32 as ToSql>::accepts(ty)
+            || <i64 as ToSql>::accepts(ty)
+            || <f64 as ToSql>::accepts(ty)
+            || <String as ToSql>::accepts(ty)
     }
 
     to_sql_checked!();
@@ -107,17 +101,32 @@ impl Connector for PostgreSQLConnector {
 }
 
 impl StoreConnector for PostgreSQLConnector {
-    type Input = DeserializedMessage;
     type Output = ();
 
-    fn execute(&mut self, query: &str, input: Self::Input) -> Result<Self::Output, Self::Error> {
+    fn execute(
+        &mut self,
+        query: &str,
+        input: DeserializedMessage,
+    ) -> Result<Self::Output, Self::Error> {
+        let decoder = self.config.table.get_decoder();
+        let record = Record::decode(input.value, decoder);
+        let params: Vec<&(dyn ToSql + Sync)> = record
+            .data
+            .iter()
+            .map(|v| v as &(dyn ToSql + Sync))
+            .collect();
+        dbg!(&query, &params);
+        let res = self.client.execute(query, &params);
+        if let Err(error) = res {
+            dbg!(error);
+        }
         Ok(())
     }
 
     fn execute_batch(
         &mut self,
         query: &str,
-        input: Vec<Self::Input>,
+        input: Vec<DeserializedMessage>,
     ) -> Result<Self::Output, Self::Error> {
         input
             .into_iter()

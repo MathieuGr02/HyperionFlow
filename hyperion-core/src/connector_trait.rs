@@ -1,4 +1,4 @@
-use crate::connector::message_batch::MessageBatch;
+use crate::message_batch::{DeserializedMessage, MessageBatch};
 
 pub trait Connector
 where
@@ -19,13 +19,16 @@ pub trait EventConnector: Connector {
 }
 
 pub trait StoreConnector: Connector {
-    type Input;
     type Output;
 
-    fn execute(&mut self, query: &str, input: Self::Input) -> Result<Self::Output, Self::Error>;
+    fn execute(
+        &mut self,
+        query: &str,
+        input: DeserializedMessage,
+    ) -> Result<Self::Output, Self::Error>;
     fn execute_batch(
         &mut self,
         query: &str,
-        input: Vec<Self::Input>,
+        input: Vec<DeserializedMessage>,
     ) -> Result<Self::Output, Self::Error>;
 }

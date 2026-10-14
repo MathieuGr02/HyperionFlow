@@ -1,8 +1,8 @@
-use hyperion_core::connector::{
+use hyperion_core::{
     connector_trait::{Connector, EventConnector},
     message_batch::{MessageBatch, RawMessage, SourceEventPosition},
 };
-use kafka::consumer::{Consumer, Message};
+use kafka::consumer::Consumer;
 
 use crate::kafka_error::KafkaConsumerError;
 

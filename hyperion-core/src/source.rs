@@ -1,13 +1,9 @@
-use std::process::Output;
-
 use tracing::error;
 
 use crate::{
-    connector::{
-        connector_trait::{EventConnector, StoreConnector},
-        message_batch::{DeserializedMessage, MessageBatch, RawMessage},
-    },
+    connector_trait::{EventConnector, StoreConnector},
     deserializer::Deserializer,
+    message_batch::{DeserializedMessage, RawMessage},
     sender::Sender,
     wal::WAL,
 };
@@ -24,7 +20,7 @@ pub struct Source<E, I, D> {
 impl<E: EventConnector, I: StoreConnector, D: Deserializer> Source<E, I, D>
 where
     E: EventConnector,
-    I: StoreConnector<Input = DeserializedMessage>,
+    I: StoreConnector,
     D: Deserializer<Input = RawMessage, Output = DeserializedMessage>,
 {
     pub fn new(external: E, internal: I, deserializer: D) -> Self {
@@ -68,7 +64,7 @@ where
                     error!("{}", error);
                     continue;
                 }
-                _ => println!(""),
+                _ => {}
             };
 
             let res = self.external_connector.fetch_commit();

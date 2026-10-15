@@ -1,12 +1,13 @@
 use hyperion_core::{
-    connector_trait::{Connector, EventConnector},
+    connector_trait::EventConnector,
     message_batch::{MessageBatch, RawMessage, SourceEventPosition},
 };
 use kafka::consumer::Consumer;
+use serde::Deserialize;
 
 use crate::kafka_error::KafkaConsumerError;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct KafkaConfiguration {
     pub host: String,
     pub port: u16,
@@ -15,17 +16,22 @@ pub struct KafkaConfiguration {
     pub partition: i32,
 }
 
+impl TryInto<KafkaConsumer> for KafkaConfiguration {
+    type Error = KafkaConsumerError;
+
+    fn try_into(self) -> Result<KafkaConsumer, Self::Error> {
+        KafkaConsumer::connect(self)
+    }
+}
+
 #[derive(Debug)]
 pub struct KafkaConsumer {
     configuration: KafkaConfiguration,
     client: Consumer,
 }
 
-impl Connector for KafkaConsumer {
-    type Config = KafkaConfiguration;
-    type Error = KafkaConsumerError;
-
-    fn connect(config: KafkaConfiguration) -> Result<Self, Self::Error> {
+impl KafkaConsumer {
+    fn connect(config: KafkaConfiguration) -> Result<Self, KafkaConsumerError> {
         let connection_string = format!("{}:{}", config.host, config.port);
         let client = Consumer::from_hosts(vec![connection_string])
             .with_topic(config.topic.to_owned())
@@ -45,6 +51,8 @@ impl Connector for KafkaConsumer {
 }
 
 impl EventConnector for KafkaConsumer {
+    type Error = KafkaConsumerError;
+
     fn fetch(&mut self) -> Result<MessageBatch, Self::Error> {
         let mut messages = Vec::new();
 

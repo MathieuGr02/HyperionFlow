@@ -8,29 +8,43 @@ use crate::{
     wal::WAL,
 };
 
+#[derive(Debug, thiserror::Error)]
+pub enum ConnectorError {
+    #[error("Kafka error: {0}")]
+    #[cfg(feature = "kafka")]
+    Kafka(#[from] KafkaError),
+
+    #[error("PostgreSQL error: {0}")]
+    #[cfg(feature = "sql")]
+    Postgres(#[from] PostgreSQLError),
+
+    #[error("Other connector error: {0}")]
+    Other(String),
+}
+
 #[derive(Debug)]
 pub struct Source<E, I, D> {
-    external_connector: E,
-    deserializer: D,
-    internal_connector: I,
+    external_connector: Box<dyn EventConnector<Error = ConnectorError>>,
+    deserializer: Box<dyn Deserializer<Input = RawMessage, Output = DeserializedMessage>>,
+    internal_connector: Box<dyn StoreConnector<Error = ConnectorError>>,
     sender: Sender,
     wal: WAL,
 }
 
-impl<E: EventConnector, I: StoreConnector, D: Deserializer> Source<E, I, D>
+impl<E, I, D> Source<E, I, D>
 where
     E: EventConnector,
     I: StoreConnector,
     D: Deserializer<Input = RawMessage, Output = DeserializedMessage>,
 {
-    pub fn new(external: E, internal: I, deserializer: D) -> Self {
-        Source {
+    pub fn new(external: E, internal: I, deserializer: D) -> Result<Self, ()> {
+        Ok(Source {
             external_connector: external,
-            deserializer: deserializer,
             internal_connector: internal,
+            deserializer: deserializer,
             sender: Sender::default(),
             wal: WAL::default(),
-        }
+        })
     }
 
     pub fn run(&mut self) {
@@ -55,9 +69,7 @@ where
                 }
             };
 
-            let res = self
-                .internal_connector
-                .execute_batch("INSERT INTO test (id, name) VALUES ( $1, $2 )", batch);
+            let res = self.internal_connector.execute_batch(batch);
 
             match res {
                 Err(error) => {

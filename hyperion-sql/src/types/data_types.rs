@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::types::{Bool, Float, Integer, Text};
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum ValueType {
     Null,
     Bool,
@@ -9,7 +11,7 @@ pub enum ValueType {
     Float,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum Value {
     Null,
     Bool(bool),

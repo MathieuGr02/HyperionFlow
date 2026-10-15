@@ -1,3 +1,4 @@
+use serde::Deserialize;
 use thiserror::Error;
 
 use crate::{
@@ -5,13 +6,18 @@ use crate::{
     message_batch::{DeserializedMessage, RawMessage},
 };
 
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("")]
+    Empty,
+}
+
 pub trait Deserializer {
     type Input;
     type Output;
-    type Error: std::fmt::Display;
 
-    fn deserialize(&self, item: Self::Input) -> Result<Self::Output, Self::Error>;
-    fn deserialize_batch(&self, items: Vec<Self::Input>) -> Result<Vec<Self::Output>, Self::Error>;
+    fn deserialize(&self, item: Self::Input) -> Result<Self::Output, Error>;
+    fn deserialize_batch(&self, items: Vec<Self::Input>) -> Result<Vec<Self::Output>, Error>;
 }
 
 #[derive(Debug, Error)]
@@ -20,15 +26,15 @@ pub enum JsonDeserializationError {
     Empty,
 }
 
+#[derive(Debug, Deserialize)]
 pub struct JsonDeserializer;
+
 impl Deserializer for JsonDeserializer {
     type Input = RawMessage;
     type Output = DeserializedMessage;
-    type Error = JsonDeserializationError;
 
-    fn deserialize(&self, item: Self::Input) -> Result<Self::Output, Self::Error> {
-        let data =
-            serde_json::from_slice(&item.value).map_err(|e| JsonDeserializationError::Empty)?;
+    fn deserialize(&self, item: Self::Input) -> Result<Self::Output, Error> {
+        let data = serde_json::from_slice(&item.value).map_err(|e| Error::Empty)?;
         Ok(DeserializedMessage {
             key: item.key,
             value: DataFormat::Json(data),
@@ -36,7 +42,7 @@ impl Deserializer for JsonDeserializer {
         })
     }
 
-    fn deserialize_batch(&self, items: Vec<Self::Input>) -> Result<Vec<Self::Output>, Self::Error> {
+    fn deserialize_batch(&self, items: Vec<Self::Input>) -> Result<Vec<Self::Output>, Error> {
         items
             .into_iter()
             .map(|item| self.deserialize(item))

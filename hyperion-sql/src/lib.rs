@@ -1,3 +1,4 @@
+pub mod query_builder;
 pub mod record;
 pub mod stores;
 pub mod table;

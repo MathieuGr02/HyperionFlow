@@ -1,0 +1,29 @@
+[[sources]]
+
+[sources.external]
+type = "kafka"
+host = "localhost"
+port = 9092
+topic = "test"
+group = "test"
+partition = 1
+
+[sources.internal]
+type = "postgres"
+
+[sources.internal.connection]
+host = "localhost"
+port = 5432
+user = "postgres"
+dbname = "postgres"
+password = "postgres"
+
+[sources.internal.table]
+name = "test"
+columns = [
+    { "name" = "id", "data_type" = "Integer", nullable = false },
+    { "name" = "name", "data_type": "Text", nullable = false }
+]
+
+[sources.deserializer]
+type = "json"

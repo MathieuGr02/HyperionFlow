@@ -1,5 +1,5 @@
 use hyperion_core::{
-    connector_trait::EventConnector,
+    connector_trait::{ConnectorError, EventConnector},
     message_batch::{MessageBatch, RawMessage, SourceEventPosition},
 };
 use kafka::consumer::Consumer;
@@ -31,7 +31,7 @@ pub struct KafkaConsumer {
 }
 
 impl KafkaConsumer {
-    fn connect(config: KafkaConfiguration) -> Result<Self, KafkaConsumerError> {
+    pub fn connect(config: KafkaConfiguration) -> Result<Self, KafkaConsumerError> {
         let connection_string = format!("{}:{}", config.host, config.port);
         let client = Consumer::from_hosts(vec![connection_string])
             .with_topic(config.topic.to_owned())
@@ -51,15 +51,13 @@ impl KafkaConsumer {
 }
 
 impl EventConnector for KafkaConsumer {
-    type Error = KafkaConsumerError;
-
-    fn fetch(&mut self) -> Result<MessageBatch, Self::Error> {
+    fn fetch(&mut self) -> Result<MessageBatch, ConnectorError> {
         let mut messages = Vec::new();
 
         for ms in self
             .client
             .poll()
-            .map_err(|e| KafkaConsumerError::PollingError)?
+            .map_err(|e| KafkaConsumerError::PollingError.into())?
             .iter()
         {
             for m in ms.messages() {
@@ -76,25 +74,25 @@ impl EventConnector for KafkaConsumer {
 
             self.client
                 .consume_messageset(ms)
-                .map_err(|e| KafkaConsumerError::ConsumerError)?;
+                .map_err(|e| KafkaConsumerError::ConsumerError.into())?;
         }
 
         Ok(MessageBatch { messages })
     }
 
-    fn push(&mut self) -> Result<(), Self::Error> {
+    fn push(&mut self) -> Result<(), ConnectorError> {
         todo!()
     }
 
-    fn fetch_commit(&mut self) -> Result<(), Self::Error> {
+    fn fetch_commit(&mut self) -> Result<(), ConnectorError> {
         self.client
             .commit_consumed()
-            .map_err(|e| KafkaConsumerError::CommitError)?;
+            .map_err(|e| KafkaConsumerError::CommitError.into())?;
 
         Ok(())
     }
 
-    fn push_commit(&mut self) -> Result<(), Self::Error> {
+    fn push_commit(&mut self) -> Result<(), ConnectorError> {
         todo!()
     }
 }

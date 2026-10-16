@@ -1,32 +1,29 @@
+use thiserror::Error;
+
 use crate::message_batch::{DeserializedMessage, MessageBatch};
 
-pub trait StoreConnector {
-    type Output;
-    type Error: std::fmt::Display;
+#[derive(Debug, Error)]
+pub enum ConnectorError {}
 
-    fn execute(&mut self, input: DeserializedMessage) -> Result<Self::Output, Self::Error>;
-    fn execute_batch(
-        &mut self,
-        input: Vec<DeserializedMessage>,
-    ) -> Result<Vec<Self::Output>, Self::Error> {
+pub trait StoreConnector {
+    fn execute(&mut self, input: DeserializedMessage) -> Result<(), ConnectorError>;
+    fn execute_batch(&mut self, input: Vec<DeserializedMessage>) -> Result<(), ConnectorError> {
         input.into_iter().map(|d| self.execute(d)).collect()
     }
 }
 
-pub trait StoreWriter: StoreConnector {
-    fn compile() -> Result<(), Self::Error>;
+pub trait StoreWriter: StoreConnector + std::fmt::Debug {
+    fn compile() -> Result<(), ConnectorError>;
 }
 
 pub trait StoreOperator: StoreConnector {
-    fn compile() -> Result<(), Self::Error>;
+    fn compile() -> Result<(), ConnectorError>;
 }
 
-pub trait EventConnector {
-    type Error: std::fmt::Display;
+pub trait EventConnector: std::fmt::Debug {
+    fn fetch(&mut self) -> Result<MessageBatch, ConnectorError>;
+    fn fetch_commit(&mut self) -> Result<(), ConnectorError>;
 
-    fn fetch(&mut self) -> Result<MessageBatch, Self::Error>;
-    fn fetch_commit(&mut self) -> Result<(), Self::Error>;
-
-    fn push(&mut self) -> Result<(), Self::Error>;
-    fn push_commit(&mut self) -> Result<(), Self::Error>;
+    fn push(&mut self) -> Result<(), ConnectorError>;
+    fn push_commit(&mut self) -> Result<(), ConnectorError>;
 }

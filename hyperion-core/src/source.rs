@@ -8,25 +8,11 @@ use crate::{
     wal::WAL,
 };
 
-#[derive(Debug, thiserror::Error)]
-pub enum ConnectorError {
-    #[error("Kafka error: {0}")]
-    #[cfg(feature = "kafka")]
-    Kafka(#[from] KafkaError),
-
-    #[error("PostgreSQL error: {0}")]
-    #[cfg(feature = "sql")]
-    Postgres(#[from] PostgreSQLError),
-
-    #[error("Other connector error: {0}")]
-    Other(String),
-}
-
 #[derive(Debug)]
 pub struct Source<E, I, D> {
-    external_connector: Box<dyn EventConnector<Error = ConnectorError>>,
-    deserializer: Box<dyn Deserializer<Input = RawMessage, Output = DeserializedMessage>>,
-    internal_connector: Box<dyn StoreConnector<Error = ConnectorError>>,
+    external_connector: E,
+    deserializer: D,
+    internal_connector: I,
     sender: Sender,
     wal: WAL,
 }

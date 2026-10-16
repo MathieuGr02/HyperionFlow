@@ -6,7 +6,10 @@ use serde::Deserialize;
 use std::error::Error;
 use thiserror::Error;
 
-use hyperion_core::{connector_trait::StoreConnector, message_batch::DeserializedMessage};
+use hyperion_core::{
+    connector_trait::{ConnectorError, StoreConnector},
+    message_batch::DeserializedMessage,
+};
 
 use crate::{
     query_builder::Query, record::Record, stores::postgres::PostgreSQLError::QueryError,
@@ -80,11 +83,14 @@ pub enum PostgreSQLError {
     QueryError(String),
 }
 
-impl StoreConnector for PostgreSQLConnector {
-    type Error = PostgreSQLError;
-    type Output = ();
+impl Into<ConnectorError> for PostgreSQLError {
+    fn into(self) -> ConnectorError {
+        todo!()
+    }
+}
 
-    fn execute(&mut self, input: DeserializedMessage) -> Result<Self::Output, Self::Error> {
+impl StoreConnector for PostgreSQLConnector {
+    fn execute(&mut self, input: DeserializedMessage) -> Result<(), ConnectorError> {
         let decoder = self.config.table.get_decoder();
         let record = Record::decode(input.value, decoder);
         let params: Vec<&(dyn ToSql + Sync)> = record
@@ -101,7 +107,7 @@ impl StoreConnector for PostgreSQLConnector {
 }
 
 impl PostgreSQLConnector {
-    fn connect(cfg: PostgreSQLConfiguration) -> Result<Self, PostgreSQLError> {
+    pub fn connect(cfg: PostgreSQLConfiguration) -> Result<Self, PostgreSQLError> {
         let mut client_config = Client::configure();
         client_config
             .host(&cfg.connection.host)

@@ -1,3 +1,4 @@
+use hyperion_core::connector_trait::ConnectorError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -10,4 +11,10 @@ pub enum KafkaConsumerError {
     ConsumerError,
     #[error("Unable to commit consumed messages")]
     CommitError,
+}
+
+impl Into<ConnectorError> for KafkaConsumerError {
+    fn into(self) -> ConnectorError {
+        todo!()
+    }
 }

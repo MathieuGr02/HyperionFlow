@@ -3,7 +3,7 @@ use thiserror::Error;
 
 use crate::{
     data_format::DataFormat,
-    message_batch::{DeserializedMessage, RawMessage},
+    message::{DeserializedMessage, RawMessage},
 };
 
 #[derive(Debug, Error)]
@@ -18,6 +18,19 @@ pub trait Deserializer {
 
     fn deserialize(&self, item: Self::Input) -> Result<Self::Output, Error>;
     fn deserialize_batch(&self, items: Vec<Self::Input>) -> Result<Vec<Self::Output>, Error>;
+}
+
+impl<T: Deserializer + ?Sized> Deserializer for Box<T> {
+    type Input = T::Input;
+    type Output = T::Output;
+
+    fn deserialize(&self, item: Self::Input) -> Result<Self::Output, Error> {
+        (**self).deserialize(item)
+    }
+
+    fn deserialize_batch(&self, items: Vec<Self::Input>) -> Result<Vec<Self::Output>, Error> {
+        (**self).deserialize_batch(items)
+    }
 }
 
 #[derive(Debug, Error)]

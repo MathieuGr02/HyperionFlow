@@ -1,11 +1,11 @@
 use tracing::error;
 
 use crate::{
-    connector_trait::{EventConnector, StoreConnector},
+    components::{
+        connector_trait::EventConnector, sender::Sender, wal::WAL, writer_trait::StoreWriter,
+    },
     deserializer::Deserializer,
-    message_batch::{DeserializedMessage, RawMessage},
-    sender::Sender,
-    wal::WAL,
+    message::{DeserializedMessage, RawMessage},
 };
 
 #[derive(Debug)]
@@ -20,7 +20,7 @@ pub struct Source<E, I, D> {
 impl<E, I, D> Source<E, I, D>
 where
     E: EventConnector,
-    I: StoreConnector,
+    I: StoreWriter,
     D: Deserializer<Input = RawMessage, Output = DeserializedMessage>,
 {
     pub fn new(external: E, internal: I, deserializer: D) -> Result<Self, ()> {
@@ -55,7 +55,7 @@ where
                 }
             };
 
-            let res = self.internal_connector.execute_batch(batch);
+            let res = self.internal_connector.write_batch(batch);
 
             match res {
                 Err(error) => {

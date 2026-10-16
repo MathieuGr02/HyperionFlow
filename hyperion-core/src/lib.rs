@@ -1,10 +1,7 @@
-pub mod connector_trait;
+pub mod components;
 pub mod data_format;
 pub mod deserializer;
 pub mod language;
-pub mod message_batch;
+pub mod message;
 pub mod query;
-pub mod sender;
-pub mod source;
 pub mod tracing;
-pub mod wal;

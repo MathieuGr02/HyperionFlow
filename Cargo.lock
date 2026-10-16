@@ -18,6 +18,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.104"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
+
+[[package]]
 name = "async-trait"
 version = "0.1.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -308,20 +314,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hyperion-client"
-version = "0.1.0"
-dependencies = [
- "hyperion-core",
- "hyperion-kafka",
- "hyperion-sql",
- "serde",
- "thiserror 2.0.21",
- "toml",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "hyperion-core"
 version = "0.1.0"
 dependencies = [
@@ -340,6 +332,21 @@ dependencies = [
  "kafka",
  "serde",
  "thiserror 2.0.21",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "hyperion-manager"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "hyperion-core",
+ "hyperion-kafka",
+ "hyperion-sql",
+ "serde",
+ "thiserror 2.0.21",
+ "toml",
  "tracing",
  "tracing-subscriber",
 ]

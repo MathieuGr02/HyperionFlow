@@ -1,4 +1,5 @@
 [[sources]]
+name = "test"
 
 [sources.external]
 type = "kafka"
@@ -22,7 +23,7 @@ password = "postgres"
 name = "test"
 columns = [
     { "name" = "id", "data_type" = "Integer", nullable = false },
-    { "name" = "name", "data_type": "Text", nullable = false }
+    { "name" = "name", "data_type" = "Text", nullable = false }
 ]
 
 [sources.deserializer]

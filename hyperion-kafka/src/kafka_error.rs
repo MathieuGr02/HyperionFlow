@@ -1,4 +1,4 @@
-use hyperion_core::connector_trait::ConnectorError;
+use hyperion_core::components::connector_trait::ConnectorError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

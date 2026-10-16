@@ -1,6 +1,6 @@
 use hyperion_core::{
-    connector_trait::{ConnectorError, EventConnector},
-    message_batch::{MessageBatch, RawMessage, SourceEventPosition},
+    components::connector_trait::{ConnectorError, EventConnector},
+    message::{MessageBatch, RawMessage, SourceEventPosition},
 };
 use kafka::consumer::Consumer;
 use serde::Deserialize;

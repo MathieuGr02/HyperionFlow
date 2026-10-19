@@ -1,6 +1,6 @@
 use hyperion_core::data_format::DataFormat;
 
-use crate::{row_decoder::RowDecoder, types::Value};
+use crate::{data_types::Value, row_decoder::RowDecoder};
 
 pub struct Record {
     pub data: Vec<Value>,

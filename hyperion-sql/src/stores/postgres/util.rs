@@ -2,7 +2,7 @@ use std::error::Error;
 
 use postgres::types::{IsNull, ToSql, Type, private::BytesMut, to_sql_checked};
 
-use crate::types::Value;
+use crate::data_types::Value;
 
 impl ToSql for Value {
     fn to_sql(

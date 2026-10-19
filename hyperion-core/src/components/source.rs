@@ -1,3 +1,8 @@
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
+
 use tracing::error;
 
 use crate::{
@@ -5,7 +10,6 @@ use crate::{
         connector_trait::EventConnector, sender::Sender, wal::WAL, writer_trait::StoreWriter,
     },
     deserializer::Deserializer,
-    message::{DeserializedMessage, RawMessage},
 };
 
 #[derive(Debug)]
@@ -21,7 +25,7 @@ impl<E, I, D> Source<E, I, D>
 where
     E: EventConnector,
     I: StoreWriter,
-    D: Deserializer<Input = RawMessage, Output = DeserializedMessage>,
+    D: Deserializer,
 {
     pub fn new(external: E, internal: I, deserializer: D) -> Result<Self, ()> {
         Ok(Source {
@@ -33,8 +37,12 @@ where
         })
     }
 
-    pub fn run(&mut self) {
+    pub fn source_loop(&mut self, shutdown: Arc<AtomicBool>) {
         loop {
+            if shutdown.load(Ordering::SeqCst) {
+                return;
+            }
+
             let res = self.external_connector.fetch();
 
             let batch = match res {

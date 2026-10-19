@@ -1,9 +1,12 @@
 use thiserror::Error;
 
-use crate::{components::connector_trait::StoreConnector, message::DeserializedMessage};
+use crate::message::DeserializedMessage;
 
 #[derive(Debug, Error)]
-pub enum WriteError {}
+pub enum WriteError {
+    #[error("Error {0}")]
+    Custom(String),
+}
 
 pub trait StoreWriter {
     fn write(&mut self, item: DeserializedMessage) -> Result<(), WriteError>;

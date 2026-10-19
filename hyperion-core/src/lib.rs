@@ -5,3 +5,4 @@ pub mod language;
 pub mod message;
 pub mod query;
 pub mod tracing;
+pub mod validation_error;

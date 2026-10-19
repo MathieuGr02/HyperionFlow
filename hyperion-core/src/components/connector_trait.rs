@@ -6,19 +6,23 @@ use crate::message::{DeserializedMessage, MessageBatch};
 pub enum ConnectorError {}
 
 pub trait StoreConnector {
-    fn execute(&mut self, input: DeserializedMessage) -> Result<(), ConnectorError>;
-    fn execute_batch(&mut self, input: Vec<DeserializedMessage>) -> Result<(), ConnectorError> {
-        input.into_iter().map(|d| self.execute(d)).collect()
+    fn execute(&mut self, query: &str, input: DeserializedMessage) -> Result<(), ConnectorError>;
+    fn execute_batch(
+        &mut self,
+        query: &str,
+        input: Vec<DeserializedMessage>,
+    ) -> Result<(), ConnectorError> {
+        input.into_iter().map(|d| self.execute(query, d)).collect()
     }
 }
 
 impl<T: StoreConnector + ?Sized> StoreConnector for Box<T> {
-    fn execute(&mut self, input: DeserializedMessage) -> Result<(), ConnectorError> {
-        (**self).execute(input)
+    fn execute(&mut self, query: &str, input: DeserializedMessage) -> Result<(), ConnectorError> {
+        (**self).execute(query, input)
     }
 }
 
-pub trait EventConnector: std::fmt::Debug {
+pub trait EventConnector {
     fn fetch(&mut self) -> Result<MessageBatch, ConnectorError>;
     fn fetch_commit(&mut self) -> Result<(), ConnectorError>;
 

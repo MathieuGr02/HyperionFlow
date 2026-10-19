@@ -1,6 +1,7 @@
 use hyperion_core::{
     components::connector_trait::{ConnectorError, EventConnector},
     message::{MessageBatch, RawMessage, SourceEventPosition},
+    validation_error::{Validatable, ValidationError},
 };
 use kafka::consumer::Consumer;
 use serde::Deserialize;
@@ -14,6 +15,16 @@ pub struct KafkaConfiguration {
     pub topic: String,
     pub group: String,
     pub partition: i32,
+}
+
+impl Validatable for KafkaConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        Self::key_empty("host", &self.host)?;
+        Self::key_empty("topic", &self.topic)?;
+        Self::key_empty("group", &self.group)?;
+
+        Ok(())
+    }
 }
 
 impl TryInto<KafkaConsumer> for KafkaConfiguration {

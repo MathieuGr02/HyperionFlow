@@ -13,24 +13,8 @@ pub enum Error {
 }
 
 pub trait Deserializer {
-    type Input;
-    type Output;
-
-    fn deserialize(&self, item: Self::Input) -> Result<Self::Output, Error>;
-    fn deserialize_batch(&self, items: Vec<Self::Input>) -> Result<Vec<Self::Output>, Error>;
-}
-
-impl<T: Deserializer + ?Sized> Deserializer for Box<T> {
-    type Input = T::Input;
-    type Output = T::Output;
-
-    fn deserialize(&self, item: Self::Input) -> Result<Self::Output, Error> {
-        (**self).deserialize(item)
-    }
-
-    fn deserialize_batch(&self, items: Vec<Self::Input>) -> Result<Vec<Self::Output>, Error> {
-        (**self).deserialize_batch(items)
-    }
+    fn deserialize(&self, item: RawMessage) -> Result<DeserializedMessage, Error>;
+    fn deserialize_batch(&self, items: Vec<RawMessage>) -> Result<Vec<DeserializedMessage>, Error>;
 }
 
 #[derive(Debug, Error)]
@@ -43,10 +27,7 @@ pub enum JsonDeserializationError {
 pub struct JsonDeserializer;
 
 impl Deserializer for JsonDeserializer {
-    type Input = RawMessage;
-    type Output = DeserializedMessage;
-
-    fn deserialize(&self, item: Self::Input) -> Result<Self::Output, Error> {
+    fn deserialize(&self, item: RawMessage) -> Result<DeserializedMessage, Error> {
         let data = serde_json::from_slice(&item.value).map_err(|e| Error::Empty)?;
         Ok(DeserializedMessage {
             key: item.key,
@@ -55,7 +36,7 @@ impl Deserializer for JsonDeserializer {
         })
     }
 
-    fn deserialize_batch(&self, items: Vec<Self::Input>) -> Result<Vec<Self::Output>, Error> {
+    fn deserialize_batch(&self, items: Vec<RawMessage>) -> Result<Vec<DeserializedMessage>, Error> {
         items
             .into_iter()
             .map(|item| self.deserialize(item))

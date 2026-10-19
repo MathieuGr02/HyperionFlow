@@ -12,7 +12,7 @@ partition = 1
 [sources.internal]
 type = "postgres"
 
-[sources.internal.connection]
+[sources.internal.config]
 host = "localhost"
 port = 5432
 user = "postgres"

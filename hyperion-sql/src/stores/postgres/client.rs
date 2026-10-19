@@ -1,11 +1,12 @@
 use hyperion_core::{
     components::connector_trait::{ConnectorError, StoreConnector},
     message::DeserializedMessage,
+    validation_error::Validatable,
 };
-use postgres::{Client, NoTls, types::ToSql};
+use postgres::{Client, NoTls};
 use serde::Deserialize;
 
-use crate::{record::Record, stores::postgres::error::PostgreSQLError};
+use crate::stores::postgres::error::PostgreSQLError;
 
 #[derive(Debug, Deserialize)]
 pub struct PostgreSQLConfiguration {
@@ -16,14 +17,24 @@ pub struct PostgreSQLConfiguration {
     pub password: String,
 }
 
+impl Validatable for PostgreSQLConfiguration {
+    fn validate(&self) -> Result<(), hyperion_core::validation_error::ValidationError> {
+        Self::key_empty("host", &self.host)?;
+        Self::key_empty("user", &self.user)?;
+        Self::key_empty("dbname", &self.dbname)?;
+        Self::key_empty("password", &self.password)?;
+
+        Ok(())
+    }
+}
+
 pub struct PostgreSQLClient {
-    config: PostgreSQLConfiguration,
-    client: Client,
-    query: String,
+    pub config: PostgreSQLConfiguration,
+    pub pgclient: Client,
 }
 
 impl StoreConnector for PostgreSQLClient {
-    fn execute(&mut self, input: DeserializedMessage) -> Result<(), ConnectorError> {
+    fn execute(&mut self, query: &str, input: DeserializedMessage) -> Result<(), ConnectorError> {
         /*
         let decoder = self.config.table.get_decoder();
         let record = Record::decode(input.value, decoder);
@@ -62,13 +73,12 @@ impl PostgreSQLClient {
 
         Ok(PostgreSQLClient {
             config: cfg,
-            client,
-            query: "INSERT INTO test (id, name) VALUES ( $1, $2 )".to_string(),
+            pgclient: client,
         })
     }
 
     pub fn execute_ddl(&mut self, query: &str) -> Result<(), PostgreSQLError> {
-        self.client
+        self.pgclient
             .execute(query, &[])
             .map_err(|e| PostgreSQLError::ExecuteError(query.to_string()))?;
         Ok(())

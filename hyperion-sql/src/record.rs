@@ -1,8 +1,6 @@
-use std::{collections::HashMap, panic};
-
 use hyperion_core::data_format::DataFormat;
 
-use crate::{table::RowDecoder, types::Value};
+use crate::{row_decoder::RowDecoder, types::Value};
 
 pub struct Record {
     pub data: Vec<Value>,

@@ -1,18 +1,17 @@
 use std::fs;
 
-use hyperion_manager::config::{Config, RuntimeSource};
+use hyperion_manager::{config::Config, engine::Engine};
 
 fn main() -> Result<(), ()> {
+    let mut engine = Engine::init();
+
     let t = fs::read_to_string("config.toml").unwrap();
     let config: Config = toml::from_str(&t).unwrap();
 
-    let mut sources: Vec<RuntimeSource> = config
+    config
         .sources
         .into_iter()
-        .map(|s| s.build_source().unwrap())
-        .collect();
-
-    sources.iter_mut().for_each(|s| s.run());
+        .for_each(|s| engine.setup_source(s).unwrap());
 
     Ok(())
 }

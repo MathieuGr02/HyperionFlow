@@ -7,7 +7,8 @@ use tracing::error;
 
 use crate::{
     components::{
-        connector_trait::EventConnector, sender::Sender, wal::WAL, writer_trait::StoreWriter,
+        checkpoint::Checkpoint, connector_trait::EventConnector, sender::Sender,
+        writer_trait::StoreWriter,
     },
     deserializer::Deserializer,
 };
@@ -18,7 +19,7 @@ pub struct Source<E, I, D> {
     deserializer: D,
     internal_connector: I,
     sender: Sender,
-    wal: WAL,
+    checkpoint: Checkpoint,
 }
 
 impl<E, I, D> Source<E, I, D>
@@ -27,13 +28,18 @@ where
     I: StoreWriter,
     D: Deserializer,
 {
-    pub fn new(external: E, internal: I, deserializer: D) -> Result<Self, ()> {
+    pub fn new(
+        external: E,
+        internal: I,
+        deserializer: D,
+        checkpoint: Checkpoint,
+    ) -> Result<Self, ()> {
         Ok(Source {
             external_connector: external,
             internal_connector: internal,
             deserializer: deserializer,
             sender: Sender::default(),
-            wal: WAL::default(),
+            checkpoint,
         })
     }
 
@@ -53,6 +59,10 @@ where
                 }
             };
 
+            if batch.is_empty() {
+                continue;
+            }
+
             let res = self.deserializer.deserialize_batch(batch.messages);
 
             let batch = match res {
@@ -62,6 +72,8 @@ where
                     continue;
                 }
             };
+            let pos = batch.last().unwrap().position.clone();
+            self.checkpoint.write_checkpoint(pos);
 
             let res = self.internal_connector.write_batch(batch);
 

@@ -13,7 +13,7 @@ use hyperion_sql::{
 };
 use serde::Deserialize;
 
-use crate::config::error::ConfigError;
+use crate::components::error::ComponentConfigError;
 
 pub enum InternalConnector {
     #[cfg(feature = "sql")]
@@ -69,14 +69,14 @@ pub enum StoreConfig {
 }
 
 impl StoreConfig {
-    pub fn validate(&self) -> Result<(), ConfigError> {
+    pub fn validate(&self) -> Result<(), ComponentConfigError> {
         match self {
             Self::Postgres {
                 config: postgres_config,
                 table: _,
             } => postgres_config
                 .validate()
-                .map_err(|error| ConfigError::Invalid {
+                .map_err(|error| ComponentConfigError::Invalid {
                     config_type: "PostgreSQL".into(),
                     error,
                 }),

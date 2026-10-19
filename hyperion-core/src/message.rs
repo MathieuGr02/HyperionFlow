@@ -1,8 +1,16 @@
+use serde::{Deserialize, Serialize};
+
 use crate::data_format::DataFormat;
 
 #[derive(Debug)]
 pub struct MessageBatch {
     pub messages: Vec<RawMessage>,
+}
+
+impl MessageBatch {
+    pub fn is_empty(&self) -> bool {
+        self.messages.is_empty()
+    }
 }
 
 impl From<Vec<RawMessage>> for MessageBatch {
@@ -11,7 +19,7 @@ impl From<Vec<RawMessage>> for MessageBatch {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum SourceEventPosition {
     Kafka {
         topic: String,

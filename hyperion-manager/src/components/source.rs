@@ -1,15 +1,15 @@
-use std::sync::{Arc, atomic::AtomicBool};
-
-use hyperion_core::components::source::Source;
-use hyperion_kafka::kafka_connector::KafkaConsumer;
-use hyperion_sql::{
-    stores::postgres::{client::PostgreSQLClient, writer::PostgreSQLWriter},
-    table::Table,
+use std::{
+    path::PathBuf,
+    sync::{Arc, atomic::AtomicBool},
 };
+
+use hyperion_core::components::{checkpoint::Checkpoint, source::Source};
+use hyperion_kafka::kafka_connector::KafkaConsumer;
+use hyperion_sql::stores::postgres::writer::PostgreSQLWriter;
 use serde::Deserialize;
 
 use crate::{
-    config::{
+    components::{
         deserializer::DeserializerType,
         event::{EventConfig, ExternalConnector},
         store::{InternalWriter, StoreConfig},
@@ -60,10 +60,11 @@ impl SourceConfig {
         Ok(writer)
     }
 
-    pub fn build_source(self) -> Result<(String, RuntimeSource), ()> {
+    pub fn build_source(self, checkpoint_path: &PathBuf) -> Result<(String, RuntimeSource), ()> {
         let external = Self::build_external(self.external)?;
         let internal = Self::build_writer(self.internal)?;
-        let source = RuntimeSource::new(external, internal, self.deserializer)?;
+        let checkpoint = Checkpoint::new(checkpoint_path, self.name.clone());
+        let source = RuntimeSource::new(external, internal, self.deserializer, checkpoint)?;
         Ok((self.name, source))
     }
 }

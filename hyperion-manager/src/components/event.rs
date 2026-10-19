@@ -3,7 +3,7 @@ use hyperion_core::{components::connector_trait::EventConnector, validation_erro
 use hyperion_kafka::kafka_connector::{KafkaConfiguration, KafkaConsumer};
 use serde::Deserialize;
 
-use crate::config::error::ConfigError;
+use crate::components::error::ComponentConfigError;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "type")]
@@ -54,12 +54,14 @@ impl EventConnector for ExternalConnector {
 }
 
 impl EventConfig {
-    pub fn validate(&self) -> Result<(), ConfigError> {
+    pub fn validate(&self) -> Result<(), ComponentConfigError> {
         match self {
-            Self::Kafka(kafka) => kafka.validate().map_err(|error| ConfigError::Invalid {
-                config_type: "kafka".into(),
-                error,
-            }),
+            Self::Kafka(kafka) => kafka
+                .validate()
+                .map_err(|error| ComponentConfigError::Invalid {
+                    config_type: "kafka".into(),
+                    error,
+                }),
         }
     }
 }

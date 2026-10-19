@@ -1,12 +1,12 @@
 use std::fs;
 
-use hyperion_manager::{config::Config, engine::Engine};
+use hyperion_manager::{components::components::ComponentsConfig, engine::Engine};
 
 fn main() -> Result<(), ()> {
     let mut engine = Engine::init();
 
     let t = fs::read_to_string("config.toml").unwrap();
-    let config: Config = toml::from_str(&t).unwrap();
+    let config: ComponentsConfig = toml::from_str(&t).unwrap();
 
     config
         .sources

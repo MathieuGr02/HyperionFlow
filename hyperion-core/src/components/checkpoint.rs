@@ -1,6 +1,5 @@
 use std::{fs, io, path::PathBuf};
 
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::message::SourceEventPosition;
@@ -15,6 +14,7 @@ pub enum CheckpointError {
     IoError(#[from] io::Error),
 }
 
+/// The [Checkpoint] is a logging struct responsible for the atomic logging of the [SourceEventPosition] of an event stream
 #[derive(Debug, Default)]
 pub struct Checkpoint {
     ckpt_tmp_file: PathBuf,
@@ -25,6 +25,7 @@ impl Checkpoint {
     const CHECKPOINT_TMP_EXTENSION: &'static str = "hypckpt.tmp";
     const CHECKPOINT_EXTENSION: &'static str = "hypckpt";
 
+    /// Create new [Checkpoint] which writes the checkpoints file at the location `parent_path`/`name`.hypckpt`.
     pub fn new(parent_path: impl Into<PathBuf>, name: impl Into<String>) -> Self {
         let base_path = parent_path.into();
         let mut file = base_path.join(name.into());
@@ -38,6 +39,9 @@ impl Checkpoint {
         }
     }
 
+    /// Load latest written checkpoint
+    ///
+    /// Reads the file `parent_path`/`name`.hypckpt and returns [SourceEventPosition] on success.
     pub fn load_checkpoint(&self) -> Result<SourceEventPosition, CheckpointError> {
         let ckpt_exists = fs::exists(&self.ckpt_file);
         if matches!(ckpt_exists, Ok(false)) || ckpt_exists.is_err() {
@@ -53,9 +57,14 @@ impl Checkpoint {
         Ok(source_event_position)
     }
 
+    /// Write new checkpoint
+    ///
+    /// Writes to the file `parent_path`/`name`.hypckpt.
     pub fn write_checkpoint(&self, position: SourceEventPosition) -> Result<(), CheckpointError> {
         let s = serde_json::to_string(&position)
             .map_err(|e| CheckpointError::DeserializationError(e))?;
+
+        // First create a tmp file with the new event position and then rename ...hypckpt.tmp to ...hypckpt
         self.write_tmp_file(s)?;
         self.write_file()?;
         Ok(())

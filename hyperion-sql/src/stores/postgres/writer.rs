@@ -1,9 +1,4 @@
-use std::collections::HashMap;
-
-use hyperion_core::{
-    components::writer_trait::{StoreWriter, WriteError},
-    message::DeserializedMessage,
-};
+use hyperion_core::{components::writer_trait::StoreWriter, message::DeserializedMessage};
 use postgres::{Statement, types::ToSql};
 
 use crate::{
@@ -24,22 +19,6 @@ pub struct PostgreSQLWriter {
 }
 
 impl PostgreSQLWriter {
-    fn build_row_decoder(table: &Table) -> RowDecoder {
-        let column_names: Vec<String> = table.columns.iter().map(|c| c.name.clone()).collect();
-        let columns_amount = column_names.len();
-
-        let order: HashMap<String, usize> = column_names
-            .into_iter()
-            .enumerate()
-            .map(|(i, c)| (c, i))
-            .collect();
-
-        RowDecoder {
-            order,
-            columns_amount,
-        }
-    }
-
     fn prepare_insert(
         client: &mut PostgreSQLClient,
         table: &Table,
@@ -66,7 +45,9 @@ impl PostgreSQLWriter {
     pub fn connect(config: PostgreSQLConfiguration, table: Table) -> Result<Self, PostgreSQLError> {
         let mut client = PostgreSQLClient::connect(config)?;
 
-        let decoder = Self::build_row_decoder(&table);
+        let column_names: Vec<String> = table.columns.iter().map(|c| c.name.clone()).collect();
+        let decoder = RowDecoder::new(column_names);
+
         let statement = Self::prepare_insert(&mut client, &table)?;
 
         Ok(PostgreSQLWriter {

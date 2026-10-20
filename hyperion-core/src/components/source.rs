@@ -9,9 +9,8 @@ use tracing::error;
 use crate::{
     components::{
         checkpoint::{Checkpoint, CheckpointError},
+        comm::EventSender,
         event_consumer::{EventConsumer, EventConsumerError},
-        sender::Sender,
-        source,
         store_writer::{StoreWriter, StoreWriterError},
     },
     deserializer::{DeserializationError, Deserializer},
@@ -33,31 +32,33 @@ pub enum SourceError {
 
 /// The [Source] is a generic construct acting as the entry point of data from an external event source into the engine.
 #[derive(Debug)]
-pub struct Source<E, I, D> {
+pub struct Source<E, I, D, ES> {
     external_connector: E,
     deserializer: D,
     internal_connector: I,
-    sender: Sender,
+    sender: ES,
     checkpoint: Checkpoint,
 }
 
-impl<E, I, D> Source<E, I, D>
+impl<E, I, D, ES> Source<E, I, D, ES>
 where
     E: EventConsumer,
     I: StoreWriter,
     D: Deserializer,
+    ES: EventSender,
 {
     pub fn new(
         external: E,
         internal: I,
         deserializer: D,
+        sender: ES,
         checkpoint: Checkpoint,
     ) -> Result<Self, ()> {
         Ok(Source {
             external_connector: external,
             internal_connector: internal,
             deserializer: deserializer,
-            sender: Sender::default(),
+            sender,
             checkpoint,
         })
     }

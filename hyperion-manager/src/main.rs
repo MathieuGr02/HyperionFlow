@@ -8,10 +8,7 @@ fn main() -> Result<(), ()> {
     let t = fs::read_to_string("config.toml").unwrap();
     let config: ComponentsConfig = toml::from_str(&t).unwrap();
 
-    config
-        .sources
-        .into_iter()
-        .for_each(|s| engine.setup_source(s).unwrap());
+    dbg!(&config);
 
     Ok(())
 }

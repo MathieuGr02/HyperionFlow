@@ -1,7 +1,10 @@
-[[sources]]
+[[pipelines]]
 name = "test"
 
-[sources.external]
+[pipelines.source]
+name = "test"
+
+[pipelines.source.external]
 type = "kafka"
 host = "localhost"
 port = 9092
@@ -9,22 +12,22 @@ topic = "test"
 group = "test"
 partition = 1
 
-[sources.internal]
+[pipelines.source.internal]
 type = "postgres"
 
-[sources.internal.config]
+[pipelines.source.internal.config]
 host = "localhost"
 port = 5432
 user = "postgres"
 dbname = "postgres"
 password = "postgres"
 
-[sources.internal.table]
+[pipelines.source.internal.table]
 name = "test"
 columns = [
     { "name" = "id", "data_type" = "Integer", nullable = false },
     { "name" = "name", "data_type" = "Text", nullable = false }
 ]
 
-[sources.deserializer]
+[pipelines.source.deserializer]
 type = "json"

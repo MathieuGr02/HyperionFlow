@@ -1,8 +1,8 @@
 use serde::Deserialize;
 
-use crate::components::source::SourceConfig;
+use crate::components::pipeline::PipelineConfig;
 
 #[derive(Debug, Deserialize)]
 pub struct ComponentsConfig {
-    pub sources: Vec<SourceConfig>,
+    pub pipelines: Vec<PipelineConfig>,
 }

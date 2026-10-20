@@ -5,5 +5,6 @@ pub mod store_operator;
 pub mod store_writer;
 
 pub mod checkpoint;
-pub mod sender;
+pub mod comm;
 pub mod source;
+pub mod task;

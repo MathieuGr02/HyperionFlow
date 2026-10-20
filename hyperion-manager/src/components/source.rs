@@ -1,6 +1,6 @@
 use std::{
     path::PathBuf,
-    sync::{Arc, atomic::AtomicBool},
+    sync::{Arc, atomic::AtomicBool, mpsc},
 };
 
 use hyperion_core::components::{
@@ -13,6 +13,7 @@ use serde::Deserialize;
 
 use crate::{
     components::{
+        comm::EventChannelSender,
         deserializer::DeserializerType,
         event::{EventConfig, ExternalConsumer},
         store::{InternalWriter, StoreConfig},
@@ -28,7 +29,8 @@ pub struct SourceConfig {
     deserializer: DeserializerType,
 }
 
-pub type RuntimeSource = Source<ExternalConsumer, InternalWriter, DeserializerType>;
+pub type RuntimeSource =
+    Source<ExternalConsumer, InternalWriter, DeserializerType, EventChannelSender>;
 
 impl Runnable for RuntimeSource {
     type Output = Result<(), SourceError>;
@@ -63,11 +65,15 @@ impl SourceConfig {
         Ok(writer)
     }
 
-    pub fn build_source(self, checkpoint_path: &PathBuf) -> Result<(String, RuntimeSource), ()> {
+    pub fn build_source(
+        self,
+        checkpoint_path: &PathBuf,
+        sender: EventChannelSender,
+    ) -> Result<(String, RuntimeSource), ()> {
         let external = Self::build_external(self.external)?;
         let internal = Self::build_writer(self.internal)?;
         let checkpoint = Checkpoint::new(checkpoint_path, self.name.clone());
-        let source = RuntimeSource::new(external, internal, self.deserializer, checkpoint)?;
+        let source = RuntimeSource::new(external, internal, self.deserializer, sender, checkpoint)?;
         Ok((self.name, source))
     }
 }

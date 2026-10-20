@@ -3,7 +3,10 @@ use std::{
     sync::{Arc, atomic::AtomicBool},
 };
 
-use hyperion_core::components::{checkpoint::Checkpoint, source::Source};
+use hyperion_core::components::{
+    checkpoint::Checkpoint,
+    source::{Source, SourceError},
+};
 use hyperion_kafka::kafka_connector::KafkaConsumer;
 use hyperion_sql::stores::postgres::writer::PostgreSQLWriter;
 use serde::Deserialize;
@@ -11,7 +14,7 @@ use serde::Deserialize;
 use crate::{
     components::{
         deserializer::DeserializerType,
-        event::{EventConfig, ExternalConnector},
+        event::{EventConfig, ExternalConsumer},
         store::{InternalWriter, StoreConfig},
     },
     run_trait::Runnable,
@@ -25,22 +28,22 @@ pub struct SourceConfig {
     deserializer: DeserializerType,
 }
 
-pub type RuntimeSource = Source<ExternalConnector, InternalWriter, DeserializerType>;
+pub type RuntimeSource = Source<ExternalConsumer, InternalWriter, DeserializerType>;
 
 impl Runnable for RuntimeSource {
-    type Output = Result<(), ()>;
+    type Output = Result<(), SourceError>;
 
     fn run(&mut self, shutdown: Arc<AtomicBool>) -> Self::Output {
-        self.source_loop(shutdown);
+        self.source_loop(shutdown)?;
         Ok(())
     }
 }
 
 impl SourceConfig {
-    fn build_external(config: EventConfig) -> Result<ExternalConnector, ()> {
+    fn build_external(config: EventConfig) -> Result<ExternalConsumer, ()> {
         let external = match config {
             EventConfig::Kafka(kafka) => {
-                ExternalConnector::Kafka(KafkaConsumer::connect(kafka).map_err(|e| ())?)
+                ExternalConsumer::Kafka(KafkaConsumer::connect(kafka).map_err(|e| ())?)
             }
         };
 

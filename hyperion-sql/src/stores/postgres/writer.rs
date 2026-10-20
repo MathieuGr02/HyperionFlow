@@ -1,4 +1,7 @@
-use hyperion_core::{components::writer_trait::StoreWriter, message::DeserializedMessage};
+use hyperion_core::{
+    components::store_writer::{StoreWriter, StoreWriterError},
+    message::DeserializedMessage,
+};
 use postgres::{Statement, types::ToSql};
 
 use crate::{
@@ -37,7 +40,7 @@ impl PostgreSQLWriter {
         let statement = client
             .pgclient
             .prepare(&insert_query)
-            .map_err(|_| PostgreSQLError::QueryError("".into()))?;
+            .map_err(|e| PostgreSQLError::ExecuteError(e.to_string()))?;
 
         Ok(statement)
     }
@@ -60,10 +63,7 @@ impl PostgreSQLWriter {
 }
 
 impl StoreWriter for PostgreSQLWriter {
-    fn write(
-        &mut self,
-        item: DeserializedMessage,
-    ) -> Result<(), hyperion_core::components::writer_trait::WriteError> {
+    fn write(&mut self, item: DeserializedMessage) -> Result<(), StoreWriterError> {
         let record = Record::decode(item.value, &self.decoder);
 
         let params: Vec<&(dyn ToSql + Sync)> = record
@@ -72,14 +72,14 @@ impl StoreWriter for PostgreSQLWriter {
             .map(|v| v as &(dyn ToSql + Sync))
             .collect();
 
-        self.client.pgclient.execute(&self.statement, &params);
+        self.client
+            .pgclient
+            .execute(&self.statement, &params)
+            .map_err(|e| PostgreSQLError::ExecuteError(e.to_string()).into())?;
         Ok(())
     }
 
-    fn write_batch(
-        &mut self,
-        items: Vec<DeserializedMessage>,
-    ) -> Result<(), hyperion_core::components::writer_trait::WriteError> {
+    fn write_batch(&mut self, items: Vec<DeserializedMessage>) -> Result<(), StoreWriterError> {
         items.into_iter().for_each(|item| self.write(item).unwrap());
         Ok(())
     }

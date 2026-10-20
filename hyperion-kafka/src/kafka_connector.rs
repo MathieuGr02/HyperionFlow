@@ -1,7 +1,7 @@
 use hyperion_core::{
-    components::connector_trait::{ConnectorError, EventConnector},
+    components::event_consumer::{EventConsumer, EventConsumerError},
     message::{MessageBatch, RawMessage, SourceEventPosition},
-    validation_error::{Validatable, ValidationError},
+    validatable::{Validatable, ValidationError},
 };
 use kafka::consumer::Consumer;
 use serde::Deserialize;
@@ -52,6 +52,7 @@ impl KafkaConsumer {
             .map_err(|e| KafkaConsumerError::ConnectionError {
                 host: config.host.to_owned(),
                 port: config.port,
+                error: e,
             })?;
 
         Ok(KafkaConsumer {
@@ -61,14 +62,14 @@ impl KafkaConsumer {
     }
 }
 
-impl EventConnector for KafkaConsumer {
-    fn fetch(&mut self) -> Result<MessageBatch, ConnectorError> {
+impl EventConsumer for KafkaConsumer {
+    fn fetch(&mut self) -> Result<MessageBatch, EventConsumerError> {
         let mut messages = Vec::new();
 
         for ms in self
             .client
             .poll()
-            .map_err(|e| KafkaConsumerError::PollingError.into())?
+            .map_err(|e| KafkaConsumerError::PollingError(e).into())?
             .iter()
         {
             for m in ms.messages() {
@@ -85,25 +86,17 @@ impl EventConnector for KafkaConsumer {
 
             self.client
                 .consume_messageset(ms)
-                .map_err(|e| KafkaConsumerError::ConsumerError.into())?;
+                .map_err(|e| KafkaConsumerError::ConsumerError(e).into())?;
         }
 
         Ok(MessageBatch { messages })
     }
 
-    fn push(&mut self) -> Result<(), ConnectorError> {
-        todo!()
-    }
-
-    fn fetch_commit(&mut self) -> Result<(), ConnectorError> {
+    fn commit(&mut self) -> Result<(), EventConsumerError> {
         self.client
             .commit_consumed()
-            .map_err(|e| KafkaConsumerError::CommitError.into())?;
+            .map_err(|e| KafkaConsumerError::CommitError(e).into())?;
 
         Ok(())
-    }
-
-    fn push_commit(&mut self) -> Result<(), ConnectorError> {
-        todo!()
     }
 }

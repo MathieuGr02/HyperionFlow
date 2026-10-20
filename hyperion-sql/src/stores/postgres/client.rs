@@ -1,7 +1,7 @@
 use hyperion_core::{
-    components::connector_trait::{ConnectorError, StoreConnector},
+    components::store_connector::{ConnectorError, StoreConnector},
     message::DeserializedMessage,
-    validation_error::Validatable,
+    validatable::Validatable,
 };
 use postgres::{Client, NoTls};
 use serde::Deserialize;
@@ -18,7 +18,7 @@ pub struct PostgreSQLConfiguration {
 }
 
 impl Validatable for PostgreSQLConfiguration {
-    fn validate(&self) -> Result<(), hyperion_core::validation_error::ValidationError> {
+    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
         Self::key_empty("host", &self.host)?;
         Self::key_empty("user", &self.user)?;
         Self::key_empty("dbname", &self.dbname)?;

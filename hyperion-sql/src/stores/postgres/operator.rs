@@ -1,4 +1,4 @@
-use hyperion_core::components::operator_trait::StoreOperator;
+use hyperion_core::components::store_operator::StoreOperator;
 
 use crate::stores::postgres::client::PostgreSQLClient;
 

@@ -1,4 +1,4 @@
-use hyperion_core::validation_error::ValidationError;
+use hyperion_core::validatable::ValidationError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

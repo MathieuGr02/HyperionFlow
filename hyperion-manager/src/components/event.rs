@@ -1,4 +1,8 @@
-use hyperion_core::{components::connector_trait::EventConnector, validation_error::Validatable};
+use hyperion_core::{
+    components::event_consumer::{EventConsumer, EventConsumerError},
+    message::MessageBatch,
+    validatable::Validatable,
+};
 #[cfg(feature = "kafka")]
 use hyperion_kafka::kafka_connector::{KafkaConfiguration, KafkaConsumer};
 use serde::Deserialize;
@@ -13,42 +17,23 @@ pub enum EventConfig {
     Kafka(KafkaConfiguration),
 }
 
-pub enum ExternalConnector {
+pub enum ExternalConsumer {
     #[cfg(feature = "kafka")]
     Kafka(KafkaConsumer),
 }
 
-impl EventConnector for ExternalConnector {
-    fn fetch(
-        &mut self,
-    ) -> Result<
-        hyperion_core::message::MessageBatch,
-        hyperion_core::components::connector_trait::ConnectorError,
-    > {
+impl EventConsumer for ExternalConsumer {
+    fn fetch(&mut self) -> Result<MessageBatch, EventConsumerError> {
         match self {
-            ExternalConnector::Kafka(kafka) => kafka.fetch(),
+            ExternalConsumer::Kafka(kafka) => kafka.fetch(),
         }
     }
 
-    fn fetch_commit(
+    fn commit(
         &mut self,
-    ) -> Result<(), hyperion_core::components::connector_trait::ConnectorError> {
+    ) -> Result<(), hyperion_core::components::event_consumer::EventConsumerError> {
         match self {
-            ExternalConnector::Kafka(kafka) => kafka.fetch_commit(),
-        }
-    }
-
-    fn push(&mut self) -> Result<(), hyperion_core::components::connector_trait::ConnectorError> {
-        match self {
-            ExternalConnector::Kafka(kafka) => kafka.push(),
-        }
-    }
-
-    fn push_commit(
-        &mut self,
-    ) -> Result<(), hyperion_core::components::connector_trait::ConnectorError> {
-        match self {
-            ExternalConnector::Kafka(kafka) => kafka.push_commit(),
+            ExternalConsumer::Kafka(kafka) => kafka.commit(),
         }
     }
 }

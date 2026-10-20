@@ -8,9 +8,11 @@ use crate::message::SourceEventPosition;
 pub enum CheckpointError {
     #[error("Unable to find checkpoint file {0}")]
     FileNotFound(String),
-    #[error("")]
-    DeserializationError(#[from] serde_json::Error),
-    #[error("")]
+    #[error("Error during serialization {0}")]
+    SerializationError(serde_json::Error),
+    #[error("Error during deserialization {0}")]
+    DeserializationError(serde_json::Error),
+    #[error("{0}")]
     IoError(#[from] io::Error),
 }
 
@@ -50,7 +52,7 @@ impl Checkpoint {
             ));
         }
 
-        let data = fs::read_to_string(&self.ckpt_file).map_err(|e| CheckpointError::IoError(e))?;
+        let data = fs::read_to_string(&self.ckpt_file)?;
         let source_event_position: SourceEventPosition =
             serde_json::from_str(&data).map_err(|e| CheckpointError::DeserializationError(e))?;
 
@@ -61,8 +63,8 @@ impl Checkpoint {
     ///
     /// Writes to the file `parent_path`/`name`.hypckpt.
     pub fn write_checkpoint(&self, position: SourceEventPosition) -> Result<(), CheckpointError> {
-        let s = serde_json::to_string(&position)
-            .map_err(|e| CheckpointError::DeserializationError(e))?;
+        let s =
+            serde_json::to_string(&position).map_err(|e| CheckpointError::SerializationError(e))?;
 
         // First create a tmp file with the new event position and then rename ...hypckpt.tmp to ...hypckpt
         self.write_tmp_file(s)?;
@@ -70,10 +72,12 @@ impl Checkpoint {
         Ok(())
     }
 
+    #[inline]
     fn write_tmp_file(&self, s: String) -> Result<(), io::Error> {
         fs::write(&self.ckpt_tmp_file, s)
     }
 
+    #[inline]
     fn write_file(&self) -> Result<(), io::Error> {
         fs::rename(&self.ckpt_tmp_file, &self.ckpt_file)
     }

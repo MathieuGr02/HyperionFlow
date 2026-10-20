@@ -1,5 +1,6 @@
 use std::fs;
 
+use hyperion_core::components::source::SourceError;
 use thiserror::Error;
 
 use crate::{
@@ -10,13 +11,15 @@ use crate::{
 
 pub struct Engine {
     config: Config,
-    source_manager: ThreadManager<Result<(), ()>>,
+    source_manager: ThreadManager<Result<(), SourceError>>,
 }
 
 #[derive(Debug, Error)]
 pub enum EngineError {
     #[error("Invalid config")]
     Config(#[from] ComponentConfigError),
+    #[error("Source error: {0}")]
+    SourceError(#[from] SourceError),
     #[error("{0}")]
     Custom(String),
 }

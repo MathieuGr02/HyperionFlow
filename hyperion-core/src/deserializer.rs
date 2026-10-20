@@ -7,28 +7,25 @@ use crate::{
 };
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum DeserializationError {
     #[error("")]
     Empty,
 }
 
 pub trait Deserializer {
-    fn deserialize(&self, item: RawMessage) -> Result<DeserializedMessage, Error>;
-    fn deserialize_batch(&self, items: Vec<RawMessage>) -> Result<Vec<DeserializedMessage>, Error>;
-}
-
-#[derive(Debug, Error)]
-pub enum JsonDeserializationError {
-    #[error("")]
-    Empty,
+    fn deserialize(&self, item: RawMessage) -> Result<DeserializedMessage, DeserializationError>;
+    fn deserialize_batch(
+        &self,
+        items: Vec<RawMessage>,
+    ) -> Result<Vec<DeserializedMessage>, DeserializationError>;
 }
 
 #[derive(Debug, Deserialize)]
 pub struct JsonDeserializer;
 
 impl Deserializer for JsonDeserializer {
-    fn deserialize(&self, item: RawMessage) -> Result<DeserializedMessage, Error> {
-        let data = serde_json::from_slice(&item.value).map_err(|e| Error::Empty)?;
+    fn deserialize(&self, item: RawMessage) -> Result<DeserializedMessage, DeserializationError> {
+        let data = serde_json::from_slice(&item.value).map_err(|e| DeserializationError::Empty)?;
         Ok(DeserializedMessage {
             key: item.key,
             value: DataFormat::Json(data),
@@ -36,7 +33,10 @@ impl Deserializer for JsonDeserializer {
         })
     }
 
-    fn deserialize_batch(&self, items: Vec<RawMessage>) -> Result<Vec<DeserializedMessage>, Error> {
+    fn deserialize_batch(
+        &self,
+        items: Vec<RawMessage>,
+    ) -> Result<Vec<DeserializedMessage>, DeserializationError> {
         items
             .into_iter()
             .map(|item| self.deserialize(item))

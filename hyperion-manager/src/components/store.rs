@@ -1,7 +1,7 @@
 use hyperion_core::{
-    components::{connector_trait::StoreConnector, writer_trait::StoreWriter},
+    components::{store_connector::StoreConnector, store_writer::StoreWriter},
     message::DeserializedMessage,
-    validation_error::Validatable,
+    validatable::Validatable,
 };
 #[cfg(feature = "sql")]
 use hyperion_sql::{
@@ -25,7 +25,7 @@ impl StoreConnector for InternalConnector {
         &mut self,
         query: &str,
         input: DeserializedMessage,
-    ) -> Result<(), hyperion_core::components::connector_trait::ConnectorError> {
+    ) -> Result<(), hyperion_core::components::store_connector::ConnectorError> {
         match self {
             Self::Postgres(postgres) => postgres.execute(query, input),
         }
@@ -41,7 +41,7 @@ impl StoreWriter for InternalWriter {
     fn write(
         &mut self,
         item: DeserializedMessage,
-    ) -> Result<(), hyperion_core::components::writer_trait::WriteError> {
+    ) -> Result<(), hyperion_core::components::store_writer::StoreWriterError> {
         match self {
             Self::Postgres(postgres) => postgres.write(item),
         }
@@ -50,7 +50,7 @@ impl StoreWriter for InternalWriter {
     fn write_batch(
         &mut self,
         items: Vec<DeserializedMessage>,
-    ) -> Result<(), hyperion_core::components::writer_trait::WriteError> {
+    ) -> Result<(), hyperion_core::components::store_writer::StoreWriterError> {
         match self {
             Self::Postgres(postgres) => postgres.write_batch(items),
         }

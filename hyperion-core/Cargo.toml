@@ -10,3 +10,4 @@ serde_json = "1.0"
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+time = "0.3.55"

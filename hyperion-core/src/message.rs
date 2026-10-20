@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 use crate::data_format::DataFormat;
 
@@ -33,6 +34,18 @@ pub struct RawMessage {
     pub key: Option<Vec<u8>>,
     pub value: Vec<u8>,
     pub position: SourceEventPosition,
+    pub processing_time: OffsetDateTime,
+}
+
+impl RawMessage {
+    pub fn new(key: Option<Vec<u8>>, value: Vec<u8>, position: SourceEventPosition) -> Self {
+        RawMessage {
+            key,
+            value,
+            position,
+            processing_time: time::OffsetDateTime::now_utc(),
+        }
+    }
 }
 
 #[derive(Debug)]

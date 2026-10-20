@@ -73,15 +73,15 @@ impl EventConsumer for KafkaConsumer {
             .iter()
         {
             for m in ms.messages() {
-                messages.push(RawMessage {
-                    key: Some(m.key.to_vec()),
-                    value: m.value.to_vec(),
-                    position: SourceEventPosition::Kafka {
+                messages.push(RawMessage::new(
+                    Some(m.key.to_vec()),
+                    m.value.to_vec(),
+                    SourceEventPosition::Kafka {
                         topic: self.configuration.topic.clone(),
                         partition: self.configuration.partition,
                         offset: m.offset,
                     },
-                });
+                ));
             }
 
             self.client

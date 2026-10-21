@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::message::DeserializedMessage;
+use crate::message::DataMessage;
 
 #[derive(Debug, Error)]
 pub enum StoreWriterError {
@@ -13,6 +13,6 @@ pub enum StoreWriterError {
 }
 
 pub trait StoreWriter {
-    fn write(&mut self, item: DeserializedMessage) -> Result<(), StoreWriterError>;
-    fn write_batch(&mut self, items: Vec<DeserializedMessage>) -> Result<(), StoreWriterError>;
+    fn write(&mut self, item: DataMessage) -> Result<(), StoreWriterError>;
+    fn write_batch(&mut self, items: Vec<DataMessage>) -> Result<(), StoreWriterError>;
 }

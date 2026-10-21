@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::store_writer::{StoreWriter, StoreWriterError},
-    message::DeserializedMessage,
+    message::{DataMessage, DecodedMessage},
 };
 use postgres::{Statement, types::ToSql};
 
@@ -90,7 +90,7 @@ impl PostgreSQLWriter {
 }
 
 impl StoreWriter for PostgreSQLWriter {
-    fn write(&mut self, item: DeserializedMessage) -> Result<(), StoreWriterError> {
+    fn write(&mut self, item: DataMessage) -> Result<(), StoreWriterError> {
         let record = Record::decode(item.value, &self.decoder);
 
         let params: Vec<&(dyn ToSql + Sync)> = record
@@ -106,7 +106,7 @@ impl StoreWriter for PostgreSQLWriter {
         Ok(())
     }
 
-    fn write_batch(&mut self, items: Vec<DeserializedMessage>) -> Result<(), StoreWriterError> {
+    fn write_batch(&mut self, items: Vec<DataMessage>) -> Result<(), StoreWriterError> {
         items.into_iter().for_each(|item| self.write(item).unwrap());
         Ok(())
     }

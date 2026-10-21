@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::event_consumer::{EventConsumer, EventConsumerError},
-    message::{MessageBatch, RawMessage, SourceEventPosition},
+    message::{EncodedMessage, SourceEventPosition},
     validatable::{Validatable, ValidationError},
 };
 use kafka::consumer::Consumer;
@@ -63,7 +63,7 @@ impl KafkaConsumer {
 }
 
 impl EventConsumer for KafkaConsumer {
-    fn fetch(&mut self) -> Result<MessageBatch, EventConsumerError> {
+    fn fetch(&mut self) -> Result<Vec<EncodedMessage>, EventConsumerError> {
         let mut messages = Vec::new();
 
         for ms in self
@@ -73,7 +73,7 @@ impl EventConsumer for KafkaConsumer {
             .iter()
         {
             for m in ms.messages() {
-                messages.push(RawMessage::new(
+                messages.push(EncodedMessage::new(
                     Some(m.key.to_vec()),
                     m.value.to_vec(),
                     SourceEventPosition::Kafka {
@@ -89,7 +89,7 @@ impl EventConsumer for KafkaConsumer {
                 .map_err(|e| KafkaConsumerError::ConsumerError(e).into())?;
         }
 
-        Ok(MessageBatch { messages })
+        Ok(messages)
     }
 
     fn commit(&mut self) -> Result<(), EventConsumerError> {

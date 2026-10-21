@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::message::MessageBatch;
+use crate::message::EncodedMessage;
 
 #[derive(Debug, Error)]
 pub enum EventConsumerError {
@@ -15,6 +15,6 @@ pub enum EventConsumerError {
 }
 
 pub trait EventConsumer {
-    fn fetch(&mut self) -> Result<MessageBatch, EventConsumerError>;
+    fn fetch(&mut self) -> Result<Vec<EncodedMessage>, EventConsumerError>;
     fn commit(&mut self) -> Result<(), EventConsumerError>;
 }

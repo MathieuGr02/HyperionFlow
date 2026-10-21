@@ -1,6 +1,6 @@
 use hyperion_core::{
     deserializer::{DeserializationError, Deserializer, JsonDeserializer},
-    message::{DeserializedMessage, RawMessage},
+    message::{DecodedMessage, EncodedMessage},
 };
 use serde::Deserialize;
 
@@ -12,7 +12,7 @@ pub enum DeserializerType {
 }
 
 impl Deserializer for DeserializerType {
-    fn deserialize(&self, item: RawMessage) -> Result<DeserializedMessage, DeserializationError> {
+    fn deserialize(&self, item: EncodedMessage) -> Result<DecodedMessage, DeserializationError> {
         match self {
             DeserializerType::Json(json) => json.deserialize(item),
         }
@@ -20,8 +20,8 @@ impl Deserializer for DeserializerType {
 
     fn deserialize_batch(
         &self,
-        items: Vec<RawMessage>,
-    ) -> Result<Vec<DeserializedMessage>, DeserializationError> {
+        items: Vec<EncodedMessage>,
+    ) -> Result<Vec<DecodedMessage>, DeserializationError> {
         match self {
             DeserializerType::Json(json) => json.deserialize_batch(items),
         }

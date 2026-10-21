@@ -8,39 +8,26 @@ use hyperion_core::{
     message::EventMessage,
 };
 
-pub enum MessageType {
-    Single(EventMessage),
-    List(Vec<EventMessage>),
-}
-
 pub struct EventChannelSender {
-    pub sender: SyncSender<EventMessage>,
+    pub sender: SyncSender<Vec<EventMessage>>,
 }
 
 impl EventSender for EventChannelSender {
-    fn send(&self, m: EventMessage) -> Result<(), SenderError> {
+    fn send(&self, m: Vec<EventMessage>) -> Result<(), SenderError> {
         self.sender
             .send(m)
             .map_err(|e| SenderError::Custom(e.to_string()))
     }
-
-    fn send_batch(&self, m: Vec<EventMessage>) -> Result<(), SenderError> {
-        todo!()
-    }
 }
 
 pub struct EventChannelReceiver {
-    pub receiver: Receiver<EventMessage>,
+    pub receiver: Receiver<Vec<EventMessage>>,
 }
 
 impl EventReceiver for EventChannelReceiver {
-    fn receive(&self) -> Result<EventMessage, ReceiverError> {
+    fn receive(&self) -> Result<Vec<EventMessage>, ReceiverError> {
         self.receiver
             .recv()
             .map_err(|e| ReceiverError::Custom(e.to_string()))
-    }
-
-    fn receive_batch(&self) -> Result<Vec<EventMessage>, ReceiverError> {
-        todo!()
     }
 }

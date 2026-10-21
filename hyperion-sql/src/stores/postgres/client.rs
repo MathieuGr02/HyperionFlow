@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::store_connector::{ConnectorError, StoreConnector},
-    message::DeserializedMessage,
+    message::DecodedMessage,
     validatable::Validatable,
 };
 use postgres::{Client, NoTls};
@@ -34,7 +34,7 @@ pub struct PostgreSQLClient {
 }
 
 impl StoreConnector for PostgreSQLClient {
-    fn execute(&mut self, query: &str, input: DeserializedMessage) -> Result<(), ConnectorError> {
+    fn execute(&mut self, query: &str, input: DecodedMessage) -> Result<(), ConnectorError> {
         /*
         let decoder = self.config.table.get_decoder();
         let record = Record::decode(input.value, decoder);

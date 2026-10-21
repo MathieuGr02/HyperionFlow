@@ -1,4 +1,4 @@
-use std::sync::{self, Arc, atomic::AtomicBool};
+use std::sync::{Arc, atomic::AtomicBool};
 
 use hyperion_core::components::{
     component::Component,
@@ -11,6 +11,7 @@ use crate::{
     components::{
         comm::{EventChannelReceiver, EventChannelSender},
         operator::{Operator, OperatorConfig},
+        trigger::TriggerType,
     },
     run_trait::Runnable,
 };
@@ -19,9 +20,10 @@ use crate::{
 pub struct TaskConfig {
     name: String,
     operator: OperatorConfig,
+    trigger: TriggerType,
 }
 
-pub type RuntimeTask = Task<EventChannelSender, EventChannelReceiver, Operator>;
+pub type RuntimeTask = Task<EventChannelSender, EventChannelReceiver, Operator, TriggerType>;
 
 impl Runnable for RuntimeTask {
     type Output = Result<(), TaskError>;
@@ -43,7 +45,7 @@ impl TaskConfig {
                 Operator::Postgres(PostgreSQLOperator::connect(config, query).map_err(|_| ())?)
             }
         };
-        let task = RuntimeTask::new(operator, sender, receiver)?;
+        let task = RuntimeTask::new(operator, sender, receiver, self.trigger)?;
 
         Ok((self.name, task))
     }

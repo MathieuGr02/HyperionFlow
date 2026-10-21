@@ -1,9 +1,6 @@
-use std::{
-    process::Command,
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
 };
 
 use thiserror::Error;
@@ -18,6 +15,7 @@ use crate::{
         store_writer::{StoreWriter, StoreWriterError},
     },
     deserializer::{DeserializationError, Deserializer},
+    message::{DataMessage, EventMessage},
 };
 
 #[derive(Debug, Error)]
@@ -36,31 +34,31 @@ pub enum SourceError {
 
 /// The [Source] is a generic construct acting as the entry point of data from an external event source into the engine.
 #[derive(Debug)]
-pub struct Source<E, I, D, ES> {
-    external_connector: E,
+pub struct Source<C, W, D, S> {
+    consumer: C,
     deserializer: D,
-    internal_connector: I,
-    sender: ES,
+    writer: W,
+    sender: S,
     checkpoint: Checkpoint,
 }
 
-impl<E, I, D, ES> Source<E, I, D, ES>
+impl<C, W, D, S> Source<C, W, D, S>
 where
-    E: EventConsumer,
-    I: StoreWriter,
+    C: EventConsumer,
+    W: StoreWriter,
     D: Deserializer,
-    ES: EventSender,
+    S: EventSender,
 {
     pub fn new(
-        external: E,
-        internal: I,
+        external: C,
+        internal: W,
         deserializer: D,
-        sender: ES,
+        sender: S,
         checkpoint: Checkpoint,
     ) -> Result<Self, ()> {
         Ok(Source {
-            external_connector: external,
-            internal_connector: internal,
+            consumer: external,
+            writer: internal,
             deserializer: deserializer,
             sender,
             checkpoint,
@@ -93,12 +91,12 @@ where
             }
 
             // Fetching of records from external event source
-            let res = self.external_connector.fetch();
+            let res = self.consumer.fetch();
 
             let batch = match res {
                 Ok(data) => data,
-                Err(error) => {
-                    error!("{}", error);
+                Err(e) => {
+                    error!(error = %e, "Unable to fetch data from external source");
                     continue;
                 }
             };
@@ -108,7 +106,7 @@ where
             }
 
             // Deserialization of records
-            let res = self.deserializer.deserialize_batch(batch.messages);
+            let res = self.deserializer.deserialize_batch(batch);
 
             let batch = match res {
                 Ok(batch) => batch,
@@ -117,25 +115,30 @@ where
                     continue;
                 }
             };
+
+            let (data, events): (Vec<DataMessage>, Vec<EventMessage>) =
+                batch.into_iter().map(|m| m.split()).collect();
+
             // Write checkpoint for latest record from external event source
-            let pos = batch.last().unwrap().position.clone();
-            self.checkpoint.write_checkpoint(pos);
+            let pos = events.last().unwrap().position.clone();
+            if let Err(e) = self.checkpoint.write_checkpoint(pos) {
+                error!(error = %e, "Error writing source checkpoint file");
+            }
 
             // Write records to internal data store
-            let res = self.internal_connector.write_batch(batch);
-
-            match res {
-                Err(error) => {
-                    error!("{}", error);
-                    continue;
-                }
-                _ => {}
-            };
+            if let Err(e) = self.writer.write_batch(data) {
+                error!(error = %e, "Store write error");
+            }
 
             // Commit records for external event source
-            let res = self.external_connector.commit();
+            if let Err(e) = self.consumer.commit() {
+                error!(error = %e, "Event commit error");
+            }
 
-            //self.sender.send(m);
+            // Send event messages to next component
+            if let Err(e) = self.sender.send(events) {
+                error!(error = %e, "Sender error");
+            }
         }
 
         source_span.exit();

@@ -9,6 +9,5 @@ pub enum ReceiverError {
 }
 
 pub trait EventReceiver {
-    fn receive(&self) -> Result<EventMessage, ReceiverError>;
-    fn receive_batch(&self) -> Result<Vec<EventMessage>, ReceiverError>;
+    fn receive(&self) -> Result<Vec<EventMessage>, ReceiverError>;
 }

@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::event_consumer::{EventConsumer, EventConsumerError},
-    message::MessageBatch,
+    message::EncodedMessage,
     validatable::Validatable,
 };
 #[cfg(feature = "kafka")]
@@ -23,7 +23,7 @@ pub enum ExternalConsumer {
 }
 
 impl EventConsumer for ExternalConsumer {
-    fn fetch(&mut self) -> Result<MessageBatch, EventConsumerError> {
+    fn fetch(&mut self) -> Result<Vec<EncodedMessage>, EventConsumerError> {
         match self {
             ExternalConsumer::Kafka(kafka) => kafka.fetch(),
         }

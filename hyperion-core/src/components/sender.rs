@@ -9,6 +9,5 @@ pub enum SenderError {
 }
 
 pub trait EventSender {
-    fn send(&self, m: EventMessage) -> Result<(), SenderError>;
-    fn send_batch(&self, m: Vec<EventMessage>) -> Result<(), SenderError>;
+    fn send(&self, m: Vec<EventMessage>) -> Result<(), SenderError>;
 }

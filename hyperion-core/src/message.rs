@@ -3,23 +3,6 @@ use time::OffsetDateTime;
 
 use crate::data_format::DataFormat;
 
-#[derive(Debug)]
-pub struct MessageBatch {
-    pub messages: Vec<RawMessage>,
-}
-
-impl MessageBatch {
-    pub fn is_empty(&self) -> bool {
-        self.messages.is_empty()
-    }
-}
-
-impl From<Vec<RawMessage>> for MessageBatch {
-    fn from(value: Vec<RawMessage>) -> Self {
-        MessageBatch { messages: value }
-    }
-}
-
 ///TODO: Move to generic representation of offset
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum SourceEventPosition {
@@ -31,16 +14,16 @@ pub enum SourceEventPosition {
 }
 
 #[derive(Debug)]
-pub struct RawMessage {
+pub struct EncodedMessage {
     pub key: Option<Vec<u8>>,
     pub value: Vec<u8>,
     pub position: SourceEventPosition,
     pub processing_time: OffsetDateTime,
 }
 
-impl RawMessage {
+impl EncodedMessage {
     pub fn new(key: Option<Vec<u8>>, value: Vec<u8>, position: SourceEventPosition) -> Self {
-        RawMessage {
+        EncodedMessage {
             key,
             value,
             position,
@@ -50,10 +33,31 @@ impl RawMessage {
 }
 
 #[derive(Debug)]
-pub struct DeserializedMessage {
+pub struct DecodedMessage {
     pub key: Option<Vec<u8>>,
     pub value: DataFormat,
     pub position: SourceEventPosition,
+    pub processing_time: OffsetDateTime,
+}
+
+impl DecodedMessage {
+    pub fn split(self) -> (DataMessage, EventMessage) {
+        (
+            DataMessage {
+                key: self.key.clone(),
+                value: self.value,
+            },
+            EventMessage {
+                key: self.key,
+                position: self.position,
+            },
+        )
+    }
+}
+
+pub struct DataMessage {
+    pub key: Option<Vec<u8>>,
+    pub value: DataFormat,
 }
 
 pub struct EventMessage {
@@ -61,7 +65,7 @@ pub struct EventMessage {
     pub position: SourceEventPosition,
 }
 
-impl RawMessage {
+impl EncodedMessage {
     pub fn to_event_message(&self) -> EventMessage {
         EventMessage {
             key: self.key.clone(),

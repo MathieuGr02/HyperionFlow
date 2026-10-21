@@ -12,6 +12,8 @@ use crate::run_trait::Runnable;
 
 #[derive(Debug, Error)]
 pub enum ThreadManagerError {
+    #[error("Name {0} already exists ")]
+    NameConflict(String),
     #[error("Thread config with name {0} not found")]
     ConfigNotFound(String),
     #[error("Thread with name {0} not found")]
@@ -67,7 +69,10 @@ impl<T: Send + 'static> ThreadManager<T> {
         &mut self,
         name: String,
         runnable: impl Runnable<Output = T>,
-    ) -> Result<(), ()> {
+    ) -> Result<(), ThreadManagerError> {
+        if self.configs.contains_key(&name) {
+            return Err(ThreadManagerError::NameConflict(name));
+        }
         self.configs.insert(
             name,
             ThreadConfig {
@@ -78,6 +83,10 @@ impl<T: Send + 'static> ThreadManager<T> {
     }
 
     pub fn start_thread(&mut self, name: &str) -> Result<(), ThreadManagerError> {
+        if self.threads.contains_key(name) {
+            return Err(ThreadManagerError::NameConflict(name.to_owned()));
+        }
+
         let config = self
             .configs
             .remove(name)

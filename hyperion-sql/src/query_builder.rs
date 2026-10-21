@@ -1,7 +1,5 @@
 use thiserror::Error;
 
-use crate::table::Table;
-
 pub enum DML {
     Insert,
 }

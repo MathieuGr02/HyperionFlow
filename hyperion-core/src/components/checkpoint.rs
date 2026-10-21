@@ -22,7 +22,7 @@ pub struct Checkpoint {
     ckpt_tmp_file: PathBuf,
     ckpt_file: PathBuf,
 }
-
+///TODO Memory mapped files?
 impl Checkpoint {
     const CHECKPOINT_TMP_EXTENSION: &'static str = "hypckpt.tmp";
     const CHECKPOINT_EXTENSION: &'static str = "hypckpt";

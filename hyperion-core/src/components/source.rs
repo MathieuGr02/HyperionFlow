@@ -1,16 +1,20 @@
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
+use std::{
+    process::Command,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 
 use thiserror::Error;
-use tracing::error;
+use tracing::{Level, error, span};
 
 use crate::{
     components::{
         checkpoint::{Checkpoint, CheckpointError},
-        comm::EventSender,
+        component::Component,
         event_consumer::{EventConsumer, EventConsumerError},
+        sender::EventSender,
         store_writer::{StoreWriter, StoreWriterError},
     },
     deserializer::{DeserializationError, Deserializer},
@@ -62,16 +66,30 @@ where
             checkpoint,
         })
     }
+}
+
+impl<E, I, D, ES> Component for Source<E, I, D, ES>
+where
+    E: EventConsumer,
+    I: StoreWriter,
+    D: Deserializer,
+    ES: EventSender,
+{
+    type Output = ();
+    type Error = SourceError;
 
     /// The main loop of the [Source] component.
     /// Here, data is continuously consumed from the external [EventConnector], which is then deserialized by the [Deserializer] and written to the data store of the [StoreWriter].
     ///
     /// Additionally, the latest written records are tracked via the [Checkpoint] such that in case of failure, the engine can restart and continue from the last processed set of records.
-    pub fn source_loop(&mut self, shutdown: Arc<AtomicBool>) -> Result<(), SourceError> {
+    fn main_loop(&mut self, shutdown: Arc<AtomicBool>) -> Result<Self::Output, Self::Error> {
+        let source_span = span!(Level::TRACE, "source");
+        let source_span = source_span.entered();
+
         loop {
             // Shutdown hook controlled by external system through atomic boolean
             if shutdown.load(Ordering::SeqCst) {
-                return Ok(());
+                break;
             }
 
             // Fetching of records from external event source
@@ -116,6 +134,11 @@ where
 
             // Commit records for external event source
             let res = self.external_connector.commit();
+
+            //self.sender.send(m);
         }
+
+        source_span.exit();
+        Ok(())
     }
 }

@@ -1,10 +1,10 @@
 use serde::Deserialize;
 
-use crate::components::{operator::OperatorConfig, source::SourceConfig};
+use crate::components::{source::SourceConfig, task::TaskConfig};
 
 #[derive(Debug, Deserialize)]
 pub struct PipelineConfig {
     pub name: String,
     pub source: SourceConfig,
-    pub operator: OperatorConfig,
+    pub task: TaskConfig,
 }

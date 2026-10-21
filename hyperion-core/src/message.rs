@@ -20,6 +20,7 @@ impl From<Vec<RawMessage>> for MessageBatch {
     }
 }
 
+///TODO: Move to generic representation of offset
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum SourceEventPosition {
     Kafka {

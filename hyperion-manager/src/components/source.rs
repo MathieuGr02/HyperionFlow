@@ -1,10 +1,11 @@
 use std::{
     path::PathBuf,
-    sync::{Arc, atomic::AtomicBool, mpsc},
+    sync::{Arc, atomic::AtomicBool},
 };
 
 use hyperion_core::components::{
     checkpoint::Checkpoint,
+    component::Component,
     source::{Source, SourceError},
 };
 use hyperion_kafka::kafka_connector::KafkaConsumer;
@@ -36,7 +37,7 @@ impl Runnable for RuntimeSource {
     type Output = Result<(), SourceError>;
 
     fn run(&mut self, shutdown: Arc<AtomicBool>) -> Self::Output {
-        self.source_loop(shutdown)?;
+        self.main_loop(shutdown)?;
         Ok(())
     }
 }
@@ -65,7 +66,7 @@ impl SourceConfig {
         Ok(writer)
     }
 
-    pub fn build_source(
+    pub fn build(
         self,
         checkpoint_path: &PathBuf,
         sender: EventChannelSender,

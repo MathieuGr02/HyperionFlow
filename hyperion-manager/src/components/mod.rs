@@ -8,3 +8,4 @@ pub mod components;
 pub mod error;
 pub mod operator;
 pub mod pipeline;
+pub mod task;

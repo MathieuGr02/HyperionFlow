@@ -5,6 +5,7 @@ use hyperion_core::{
 use postgres::{Statement, types::ToSql};
 
 use crate::{
+    data_types::ValueType,
     record::Record,
     row_decoder::RowDecoder,
     stores::postgres::{
@@ -22,6 +23,31 @@ pub struct PostgreSQLWriter {
 }
 
 impl PostgreSQLWriter {
+    fn create_table(client: &mut PostgreSQLClient, table: &Table) -> Result<(), PostgreSQLError> {
+        let columns: Vec<String> = table
+            .columns
+            .iter()
+            .filter(|c| c.data_type != ValueType::Null)
+            .map(|c| {
+                let mut s = format!("{} {}", c.name, c.data_type);
+                if !c.nullable {
+                    s = format!("{} {}", s, "NOT NULL")
+                }
+                s
+            })
+            .collect();
+
+        let columns = columns.join(", ");
+        let table_query = format!("CREATE TABLE {} ({})", table.name, columns);
+
+        client
+            .pgclient
+            .batch_execute(&table_query)
+            .map_err(|e| PostgreSQLError::ExecuteError(e.to_string()))?;
+
+        Ok(())
+    }
+
     fn prepare_insert(
         client: &mut PostgreSQLClient,
         table: &Table,
@@ -52,6 +78,7 @@ impl PostgreSQLWriter {
         let decoder = RowDecoder::new(column_names);
 
         let statement = Self::prepare_insert(&mut client, &table)?;
+        Self::create_table(&mut client, &table)?;
 
         Ok(PostgreSQLWriter {
             client,

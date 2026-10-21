@@ -8,9 +8,7 @@ hyperion-core = { path = "../hyperion-core" }
 
 kafka = "0.10.0"
 
-serde = { version = "1.0", features = ["derive"] }
-
-
+serde =  { workspace = true } # { version = "1.0", features = ["derive"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

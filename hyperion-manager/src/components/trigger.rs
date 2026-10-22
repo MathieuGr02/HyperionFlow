@@ -3,14 +3,17 @@ use hyperion_core::{
     message::EventMessage,
 };
 use serde::Deserialize;
+use tracing::trace;
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "type", content = "config")]
+#[serde(deny_unknown_fields)]
 pub enum TriggerType {
     CountTrigger(CountTrigger),
 }
 
 impl Trigger for TriggerType {
-    fn on_event(&mut self, event: EventMessage) -> Result<TriggerAction, TriggerError> {
+    fn on_event(&mut self, event: &EventMessage) -> Result<TriggerAction, TriggerError> {
         match self {
             TriggerType::CountTrigger(trigger) => trigger.on_event(event),
         }
@@ -44,17 +47,19 @@ impl CountTrigger {
 }
 
 impl Trigger for CountTrigger {
-    fn on_event(&mut self, _: EventMessage) -> Result<TriggerAction, TriggerError> {
+    fn on_event(&mut self, _: &EventMessage) -> Result<TriggerAction, TriggerError> {
         self.counter += 1;
 
         if self.counter < self.max {
             return Ok(TriggerAction::Continue);
         }
 
+        trace!("Count trigger fire action");
         Ok(TriggerAction::Fire)
     }
 
     fn reset(&mut self) {
+        trace!("Resetting count trigger");
         self.counter = 0;
     }
 }

@@ -1,4 +1,5 @@
 use hyperion_core::components::store_error::StoreError;
+use postgres::error::DbError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -11,6 +12,12 @@ pub enum PostgreSQLError {
     },
     #[error("Error occured execution of parameterised query {0}")]
     ExecuteError(String),
+}
+
+impl From<&DbError> for PostgreSQLError {
+    fn from(value: &DbError) -> Self {
+        Self::ExecuteError(format!("{}", value.message()))
+    }
 }
 
 impl Into<StoreError> for PostgreSQLError {

@@ -7,10 +7,10 @@ use hyperion_core::{
 use hyperion_kafka::kafka_connector::{KafkaConfiguration, KafkaConsumer};
 use serde::Deserialize;
 
-use crate::components::error::ComponentConfigError;
+use crate::components::error::BuildError;
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "type")]
+#[serde(rename_all = "snake_case", tag = "type", content = "config")]
 #[serde(deny_unknown_fields)]
 pub enum EventConfig {
     #[cfg(feature = "kafka")]
@@ -39,14 +39,12 @@ impl EventConsumer for ExternalConsumer {
 }
 
 impl EventConfig {
-    pub fn validate(&self) -> Result<(), ComponentConfigError> {
+    pub fn validate(&self) -> Result<(), BuildError> {
         match self {
-            Self::Kafka(kafka) => kafka
-                .validate()
-                .map_err(|error| ComponentConfigError::Invalid {
-                    config_type: "kafka".into(),
-                    error,
-                }),
+            Self::Kafka(kafka) => kafka.validate().map_err(|error| BuildError::Invalid {
+                config_type: "kafka".into(),
+                error,
+            }),
         }
     }
 }

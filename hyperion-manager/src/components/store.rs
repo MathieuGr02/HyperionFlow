@@ -6,16 +6,13 @@ use hyperion_core::{
     validatable::Validatable,
 };
 #[cfg(feature = "sql")]
-use hyperion_sql::{
-    stores::postgres::{
-        client::{PostgreSQLClient, PostgreSQLConfiguration},
-        writer::PostgreSQLWriter,
-    },
-    table::Table,
+use hyperion_sql::stores::postgres::{
+    client::{PostgreSQLClient, PostgreSQLConfiguration},
+    writer::PostgreSQLWriter,
 };
 use serde::Deserialize;
 
-use crate::components::error::ComponentConfigError;
+use crate::components::error::BuildError;
 
 pub enum InternalConnector {
     #[cfg(feature = "sql")]
@@ -50,28 +47,20 @@ impl StoreWriter for InternalWriter {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "type")]
+#[serde(rename_all = "snake_case", tag = "type", content = "config")]
 #[serde(deny_unknown_fields)]
 pub enum StoreConfig {
     #[cfg(feature = "sql")]
-    Postgres {
-        config: PostgreSQLConfiguration,
-        table: Table,
-    },
+    Postgres(PostgreSQLConfiguration),
 }
 
 impl StoreConfig {
-    pub fn validate(&self) -> Result<(), ComponentConfigError> {
+    pub fn validate(&self) -> Result<(), BuildError> {
         match self {
-            Self::Postgres {
-                config: postgres_config,
-                table: _,
-            } => postgres_config
-                .validate()
-                .map_err(|error| ComponentConfigError::Invalid {
-                    config_type: "PostgreSQL".into(),
-                    error,
-                }),
+            Self::Postgres(config) => config.validate().map_err(|error| BuildError::Invalid {
+                config_type: "PostgreSQL".into(),
+                error,
+            }),
         }
     }
 }

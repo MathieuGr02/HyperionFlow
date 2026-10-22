@@ -4,10 +4,10 @@ use std::sync::{
 };
 
 use thiserror::Error;
-use tracing::{Level, error, span};
+use tracing::{Level, error, info, span, trace};
 
 use crate::components::{
-    component::Component, receiver::EventReceiver, sender::EventSender,
+    checkpoint::Checkpoint, component::Component, receiver::EventReceiver, sender::EventSender,
     store_operator::StoreOperator, trigger::Trigger,
 };
 
@@ -19,6 +19,7 @@ pub struct Task<ES, ER, O, T> {
     receiver: ER,
     operator: O,
     trigger: T,
+    checkpoint: Checkpoint,
 }
 
 impl<ES, ER, O, T> Task<ES, ER, O, T>
@@ -28,12 +29,19 @@ where
     O: StoreOperator,
     T: Trigger,
 {
-    pub fn new(operator: O, sender: ES, receiver: ER, trigger: T) -> Result<Self, ()> {
+    pub fn new(
+        operator: O,
+        sender: ES,
+        receiver: ER,
+        trigger: T,
+        checkpoint: Checkpoint,
+    ) -> Result<Self, ()> {
         Ok(Task {
             operator,
             sender,
             receiver,
             trigger,
+            checkpoint,
         })
     }
 }
@@ -53,6 +61,7 @@ where
 
         loop {
             if shutdown.load(Ordering::SeqCst) {
+                info!("Shutting down");
                 break;
             }
 
@@ -61,19 +70,25 @@ where
                 Ok(events) => events,
                 Err(e) => {
                     error!(error = %e, "Error receiving event messages");
-                    continue;
+                    break;
                 }
             };
 
             for event in events {
-                let should_fire = self.trigger.on_event(event).is_ok_and(|e| e.fire());
+                let should_fire = self.trigger.on_event(&event).is_ok_and(|e| e.fire());
                 if should_fire {
-                    self.operator.operate();
+                    trace!("Calling operate");
+                    if let Err(e) = self.operator.operate() {
+                        error!(error = %e, "Error while executing task operation");
+                    }
+
                     self.trigger.reset();
+
+                    //if let Err(e) = self.sender.send(vec![event]) {
+                    //    error!(error = %e, "Error while sending event message");
+                    //}
                 }
             }
-
-            //self.sender.send(m);
         }
 
         span.exit();

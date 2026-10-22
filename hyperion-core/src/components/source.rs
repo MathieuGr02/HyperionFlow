@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use thiserror::Error;
-use tracing::{Level, error, span};
+use tracing::{Level, error, info, span, trace};
 
 use crate::{
     components::{
@@ -82,12 +82,10 @@ where
     ///
     /// Additionally, the latest written records are tracked via the [Checkpoint] such that in case of failure, the engine can restart and continue from the last processed set of records.
     fn main_loop(&mut self, shutdown: Arc<AtomicBool>) -> Result<Self::Output, Self::Error> {
-        let source_span = span!(Level::TRACE, "source");
-        let source_span = source_span.entered();
-
         loop {
             // Shutdown hook controlled by external system through atomic boolean
             if shutdown.load(Ordering::SeqCst) {
+                trace!("Shutting down");
                 break;
             }
 
@@ -105,6 +103,8 @@ where
             if batch.is_empty() {
                 continue;
             }
+
+            trace!("Fetched {} items", batch.len());
 
             // Deserialization of records
             let res = self.deserializer.deserialize_batch(batch);
@@ -138,11 +138,10 @@ where
 
             // Send event messages to next component
             if let Err(e) = self.sender.send(events) {
-                error!(error = %e, "Sender error");
+                error!(error = %e, "Error while sending event message");
             }
         }
 
-        source_span.exit();
         Ok(())
     }
 }

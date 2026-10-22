@@ -12,12 +12,10 @@ impl Record {
 
         match format {
             DataFormat::Json(json) => {
-                dbg!(&json);
                 let object = json.as_object().unwrap();
 
                 for (k, v) in object.iter() {
                     if let Some(index) = decoder.get_index(k) {
-                        dbg!(index);
                         data[index] = Value::from(v);
                     }
                 }

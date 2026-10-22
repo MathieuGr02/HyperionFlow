@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 pub enum ValueType {
     Null,
     Bool,
@@ -22,7 +22,7 @@ impl std::fmt::Display for ValueType {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum Value {
     Null,
     Bool(bool),

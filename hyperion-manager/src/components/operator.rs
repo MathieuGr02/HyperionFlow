@@ -7,7 +7,7 @@ use hyperion_sql::stores::postgres::{
 };
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "type")]
+#[serde(rename_all = "snake_case", tag = "type", content = "config")]
 #[serde(deny_unknown_fields)]
 pub enum OperatorConfig {
     #[cfg(feature = "sql")]

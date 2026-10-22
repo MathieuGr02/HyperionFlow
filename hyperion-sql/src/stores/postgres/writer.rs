@@ -2,7 +2,8 @@ use hyperion_core::{
     components::{store_error::StoreError, store_writer::StoreWriter},
     message::DataMessage,
 };
-use postgres::{Statement, types::ToSql};
+use postgres::{Statement, error::DbError, types::ToSql};
+use tracing::info;
 
 use crate::{
     data_types::ValueType,
@@ -38,12 +39,16 @@ impl PostgreSQLWriter {
             .collect();
 
         let columns = columns.join(", ");
-        let table_query = format!("CREATE TABLE {} ({})", table.name, columns);
+        let table_query = format!("CREATE TABLE IF NOT EXISTS {} ({})", table.name, columns);
 
-        client
-            .pgclient
-            .batch_execute(&table_query)
-            .map_err(|e| PostgreSQLError::ExecuteError(e.to_string()))?;
+        let res = client.pgclient.batch_execute(&table_query);
+        if let Err(e) = res {
+            if let Some(e) = e.as_db_error() {
+                return Err(e.into());
+            }
+        }
+
+        info!("Created table {}", table.name);
 
         Ok(())
     }
@@ -63,12 +68,18 @@ impl PostgreSQLWriter {
             &table.name, column_names, values
         );
 
-        let statement = client
-            .pgclient
-            .prepare(&insert_query)
-            .map_err(|e| PostgreSQLError::ExecuteError(e.to_string()))?;
+        let res = client.pgclient.prepare(&insert_query);
+        if let Ok(statement) = res {
+            return Ok(statement);
+        } else if let Err(e) = res {
+            if let Some(e) = e.as_db_error() {
+                return Err(e.into());
+            }
+        }
 
-        Ok(statement)
+        Err(PostgreSQLError::ExecuteError(
+            "Uncaught postgres error".to_string(),
+        ))
     }
 
     pub fn connect(config: PostgreSQLConfiguration, table: Table) -> Result<Self, PostgreSQLError> {
@@ -77,8 +88,8 @@ impl PostgreSQLWriter {
         let column_names: Vec<String> = table.columns.iter().map(|c| c.name.clone()).collect();
         let decoder = RowDecoder::new(column_names);
 
-        let statement = Self::prepare_insert(&mut client, &table)?;
         Self::create_table(&mut client, &table)?;
+        let statement = Self::prepare_insert(&mut client, &table)?;
 
         Ok(PostgreSQLWriter {
             client,
@@ -99,10 +110,13 @@ impl StoreWriter for PostgreSQLWriter {
             .map(|v| v as &(dyn ToSql + Sync))
             .collect();
 
-        self.client
-            .pgclient
-            .execute(&self.statement, &params)
-            .map_err(|e| PostgreSQLError::ExecuteError(e.to_string()).into())?;
+        let res = self.client.pgclient.execute(&self.statement, &params);
+        if let Err(e) = res {
+            if let Some(e) = e.as_db_error() {
+                return Err((PostgreSQLError::from(e)).into());
+            }
+        }
+
         Ok(())
     }
 

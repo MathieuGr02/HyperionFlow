@@ -58,12 +58,6 @@ services:
     ports:
       - "5432:5432"
 
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8000:8080
-
   producer:
     build: ./producer
     depends_on:

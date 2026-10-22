@@ -1,13 +1,14 @@
 use std::{fs, sync::mpsc};
 
 use hyperion_core::components::{source::SourceError, task::TaskError};
+use hyperion_sql::table::Table;
 use thiserror::Error;
-use tracing::error;
+use tracing::{error, info};
 
 use crate::{
     components::{
         comm::{EventChannelReceiver, EventChannelSender},
-        error::ComponentConfigError,
+        error::BuildError,
         pipeline::PipelineConfig,
         source::SourceConfig,
         task::TaskConfig,
@@ -25,7 +26,7 @@ pub struct Engine {
 #[derive(Debug, Error)]
 pub enum EngineError {
     #[error("Invalid config")]
-    InvalidConfig(#[from] ComponentConfigError),
+    InvalidConfig(#[from] BuildError),
     #[error("Source error: {0}")]
     SourceError(#[from] SourceError),
     #[error("{0}")]
@@ -66,10 +67,21 @@ impl Engine {
     }
 
     pub fn setup_pipeline(&mut self, mut config: PipelineConfig) -> Result<(), ()> {
+        info!("Building pipeline {}", config.name);
+
         let (source_sender, task_receiver) = Self::build_channel(self.config.channel_size)?;
-        let (task_sender, _) = Self::build_channel(self.config.channel_size)?;
-        self.setup_source(config.source, source_sender);
-        self.setup_task(config.task, task_receiver, task_sender);
+        let (task_sender, sink_receiver) = Self::build_channel(self.config.channel_size)?;
+
+        let res = source_sender.sender.send(vec![]);
+        if let Err(e) = res {
+            panic!("{:?}", e);
+        }
+        if let Err(e) = self.setup_source(config.source, source_sender, config.table.clone()) {
+            error!(error = %e, "Error setting up source");
+        }
+        if let Err(e) = self.setup_task(config.task, task_receiver, task_sender, config.table) {
+            error!(error = %e, "Error setting up task");
+        }
         Ok(())
     }
 
@@ -77,15 +89,18 @@ impl Engine {
         &mut self,
         config: SourceConfig,
         sender: EventChannelSender,
+        table: Table,
     ) -> Result<(), EngineError> {
         let (name, source) = config
-            .build(&self.config.checkpoint_path, sender)
-            .map_err(|_| EngineError::Custom("".to_string()))?;
+            .build(&self.config.checkpoint_path, sender, table)
+            .map_err(|e| EngineError::Custom(e.to_string()))?;
 
         if let Err(e) = self.source_manager.add_config(name.clone(), source) {
             error!(error = %e, "Failed to add config");
             return Err(EngineError::Custom(e.to_string()));
         }
+
+        info!("Starting source thread {}", name);
         if let Err(e) = self.source_manager.start_thread(&name) {
             error!(error = %e, "Failed to start thread");
             return Err(EngineError::Custom(e.to_string()));
@@ -99,14 +114,17 @@ impl Engine {
         config: TaskConfig,
         receiver: EventChannelReceiver,
         sender: EventChannelSender,
+        table: Table,
     ) -> Result<(), EngineError> {
         let (name, task) = config
-            .build(receiver, sender)
-            .map_err(|_| EngineError::Custom("".to_string()))?;
+            .build(&self.config.checkpoint_path, receiver, sender, table)
+            .map_err(|e| EngineError::Custom(e.to_string()))?;
 
         if let Err(e) = self.task_manager.add_config(name.clone(), task) {
             error!(error = %e, "Failed to add config");
         }
+
+        info!("Starting task thread {}", name);
         if let Err(e) = self.task_manager.start_thread(&name) {
             error!(error = %e, "Failed to start thread");
         }

@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use crate::data_types::ValueType;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Column {
     pub name: String,
     pub data_type: ValueType,
@@ -20,7 +20,7 @@ impl Column {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Table {
     pub name: String,
     pub columns: Vec<Column>,

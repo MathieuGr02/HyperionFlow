@@ -5,7 +5,7 @@ use hyperion_core::{
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "type")]
+#[serde(rename_all = "snake_case", tag = "type", content = "config")]
 #[serde(deny_unknown_fields)]
 pub enum DeserializerType {
     Json(JsonDeserializer),

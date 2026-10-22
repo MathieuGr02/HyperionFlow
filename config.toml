@@ -1,45 +1,38 @@
 [[pipelines]]
 name = "test"
 
-[pipelines.source]
-name = "test"
-
-[pipelines.source.external]
-type = "kafka"
-host = "localhost"
-port = 9092
-topic = "test"
-group = "test"
-partition = 1
-
-[pipelines.source.internal]
-type = "postgres"
-
-[pipelines.source.internal.config]
-host = "localhost"
-port = 5432
-user = "postgres"
-dbname = "postgres"
-password = "postgres"
-
-[pipelines.source.internal.table]
-name = "test"
+[pipelines.table]
+name = "test_source"
 columns = [
     { "name" = "id", "data_type" = "Integer", nullable = false },
     { "name" = "name", "data_type" = "Text", nullable = false }
 ]
 
+[pipelines.source]
+name = "test"
+
+[pipelines.source.external]
+type = "kafka"
+config = { host = "localhost", port = 9092, topic = "test", group = "test", partition = 1 }
+
+[pipelines.source.internal]
+type = "postgres"
+config = {host = "localhost", port = 5432, user = "postgres", dbname = "postgres", password = "postgres" }
+
 [pipelines.source.deserializer]
 type = "json"
+config = { }
 
+[pipelines.task]
+name = "test_task"
 
-[pipelines.operator]
+[pipelines.task.operator]
 type = "postgres"
-query = "SELECT name FROM test"
 
-[pipelines.operator.config]
-host = "localhost"
-port = 5432
-user = "postgres"
-dbname = "postgres"
-password = "postgres"
+[pipelines.task.operator.config]
+query = "SELECT name FROM test_source"
+config = { host = "localhost", port = 5432, user = "postgres", dbname = "postgres", password = "postgres" }
+
+[pipelines.task.trigger]
+type = "count_trigger"
+config = { max = 10 }

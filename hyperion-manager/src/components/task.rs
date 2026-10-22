@@ -1,15 +1,20 @@
-use std::sync::{Arc, atomic::AtomicBool};
+use std::{
+    path::PathBuf,
+    sync::{Arc, atomic::AtomicBool},
+};
 
 use hyperion_core::components::{
+    checkpoint::Checkpoint,
     component::Component,
     task::{Task, TaskError},
 };
-use hyperion_sql::stores::postgres::operator::PostgreSQLOperator;
+use hyperion_sql::{stores::postgres::operator::PostgreSQLOperator, table::Table};
 use serde::Deserialize;
 
 use crate::{
     components::{
         comm::{EventChannelReceiver, EventChannelSender},
+        error::BuildError,
         operator::{Operator, OperatorConfig},
         trigger::TriggerType,
     },
@@ -37,15 +42,20 @@ impl Runnable for RuntimeTask {
 impl TaskConfig {
     pub fn build(
         self,
+        checkpoint_path: &PathBuf,
         receiver: EventChannelReceiver,
         sender: EventChannelSender,
-    ) -> Result<(String, RuntimeTask), ()> {
+        table: Table,
+    ) -> Result<(String, RuntimeTask), BuildError> {
         let operator = match self.operator {
-            OperatorConfig::Postgres { config, query } => {
-                Operator::Postgres(PostgreSQLOperator::connect(config, query).map_err(|_| ())?)
-            }
+            OperatorConfig::Postgres { config, query } => Operator::Postgres(
+                PostgreSQLOperator::connect(config, table, query)
+                    .map_err(|e| BuildError::ConnectError(e.to_string()))?,
+            ),
         };
-        let task = RuntimeTask::new(operator, sender, receiver, self.trigger)?;
+        let checkpoint = Checkpoint::new(checkpoint_path, self.name.clone());
+        let task = RuntimeTask::new(operator, sender, receiver, self.trigger, checkpoint)
+            .map_err(|_| BuildError::ConnectError("Error building runtime task".to_string()))?;
 
         Ok((self.name, task))
     }

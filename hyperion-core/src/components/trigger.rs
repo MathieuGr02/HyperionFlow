@@ -18,6 +18,6 @@ impl TriggerAction {
 pub enum TriggerError {}
 
 pub trait Trigger {
-    fn on_event(&mut self, event: EventMessage) -> Result<TriggerAction, TriggerError>;
+    fn on_event(&mut self, event: &EventMessage) -> Result<TriggerAction, TriggerError>;
     fn reset(&mut self);
 }

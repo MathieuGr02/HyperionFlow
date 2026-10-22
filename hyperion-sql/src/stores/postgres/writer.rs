@@ -10,8 +10,7 @@ use crate::{
     record::Record,
     row_decoder::RowDecoder,
     stores::postgres::{
-        client::{PostgreSQLClient, PostgreSQLConfiguration},
-        error::PostgreSQLError,
+        client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
     },
     table::Table,
 };

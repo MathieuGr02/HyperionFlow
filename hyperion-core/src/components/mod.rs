@@ -6,6 +6,8 @@ pub mod store_operator;
 pub mod store_writer;
 
 pub mod checkpoint;
+
+pub mod sink;
 pub mod source;
 pub mod task;
 

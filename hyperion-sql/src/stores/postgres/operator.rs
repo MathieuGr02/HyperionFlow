@@ -4,8 +4,7 @@ use tracing::info;
 
 use crate::{
     stores::postgres::{
-        client::{PostgreSQLClient, PostgreSQLConfiguration},
-        error::PostgreSQLError,
+        client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
     },
     table::Table,
 };

@@ -82,6 +82,10 @@ where
                         error!(error = %e, "Error while executing task operation");
                     }
 
+                    if let Err(e) = self.checkpoint.write_checkpoint(event.position) {
+                        error!(error = %e, "Error writing task checkpoint file");
+                    }
+
                     self.trigger.reset();
 
                     //if let Err(e) = self.sender.send(vec![event]) {

@@ -1,28 +1,6 @@
-use hyperion_core::validatable::Validatable;
 use postgres::{Client, NoTls};
-use serde::Deserialize;
 
-use crate::stores::postgres::error::PostgreSQLError;
-
-#[derive(Debug, Deserialize)]
-pub struct PostgreSQLConfiguration {
-    pub host: String,
-    pub port: u16,
-    pub user: String,
-    pub dbname: String,
-    pub password: String,
-}
-
-impl Validatable for PostgreSQLConfiguration {
-    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
-        Self::key_empty("host", &self.host)?;
-        Self::key_empty("user", &self.user)?;
-        Self::key_empty("dbname", &self.dbname)?;
-        Self::key_empty("password", &self.password)?;
-
-        Ok(())
-    }
-}
+use crate::stores::postgres::{config::PostgreSQLConfiguration, error::PostgreSQLError};
 
 pub struct PostgreSQLClient {
     pub config: PostgreSQLConfiguration,
@@ -52,12 +30,5 @@ impl PostgreSQLClient {
             config: cfg,
             pgclient: client,
         })
-    }
-
-    pub fn execute_ddl(&mut self, query: &str) -> Result<(), PostgreSQLError> {
-        self.pgclient
-            .execute(query, &[])
-            .map_err(|e| PostgreSQLError::ExecuteError(query.to_string()))?;
-        Ok(())
     }
 }

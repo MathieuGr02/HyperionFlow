@@ -1,6 +1,10 @@
 use thiserror::Error;
 
 pub trait Validatable {
+    /// Check if key's value is empty.
+    ///
+    /// - key: The name of the key
+    /// - value: The actual value of the key
     fn key_empty(key: &str, value: &str) -> Result<(), ValidationError> {
         if value.is_empty() {
             return Err(ValidationError::InvalidValue {

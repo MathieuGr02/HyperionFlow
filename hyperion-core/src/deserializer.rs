@@ -8,6 +8,8 @@ use crate::{
 
 #[derive(Debug, Error)]
 pub enum DeserializationError {
+    #[error("Parsing error: {0}")]
+    ParsingError(String),
     #[error("")]
     Empty,
 }
@@ -25,7 +27,8 @@ pub struct JsonDeserializer;
 
 impl Deserializer for JsonDeserializer {
     fn deserialize(&self, item: EncodedMessage) -> Result<DecodedMessage, DeserializationError> {
-        let data = serde_json::from_slice(&item.value).map_err(|e| DeserializationError::Empty)?;
+        let data = serde_json::from_slice(&item.value)
+            .map_err(|e| DeserializationError::ParsingError(e.to_string()))?;
         Ok(DecodedMessage {
             key: item.key,
             value: DataFormat::Json(data),

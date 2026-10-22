@@ -1,12 +1,11 @@
 use hyperion_core::{
     components::{store_error::StoreError, store_writer::StoreWriter},
-    message::{DataMessage, DecodedMessage},
+    message::DataMessage,
     validatable::Validatable,
 };
 #[cfg(feature = "sql")]
 use hyperion_sql::stores::postgres::{
-    client::{PostgreSQLClient, PostgreSQLConfiguration},
-    writer::PostgreSQLWriter,
+    client::PostgreSQLClient, config::PostgreSQLConfiguration, writer::PostgreSQLWriter,
 };
 use serde::Deserialize;
 

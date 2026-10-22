@@ -4,7 +4,7 @@ use hyperion_core::{
     validatable::Validatable,
 };
 #[cfg(feature = "kafka")]
-use hyperion_kafka::kafka_connector::{KafkaConfiguration, KafkaConsumer};
+use hyperion_kafka::{config::KafkaConfiguration, consumer::KafkaConsumer};
 use serde::Deserialize;
 
 use crate::components::error::BuildError;

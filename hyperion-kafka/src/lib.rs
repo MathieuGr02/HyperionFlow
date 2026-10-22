@@ -1,2 +1,4 @@
-pub mod kafka_connector;
-pub mod kafka_error;
+pub mod config;
+pub mod consumer;
+pub mod error;
+pub mod producer;

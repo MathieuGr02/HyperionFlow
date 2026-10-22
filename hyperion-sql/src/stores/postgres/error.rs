@@ -12,6 +12,8 @@ pub enum PostgreSQLError {
     },
     #[error("Error occured execution of parameterised query {0}")]
     ExecuteError(String),
+    #[error("Error occured during query {0}")]
+    QueryError(String),
 }
 
 impl From<&DbError> for PostgreSQLError {
@@ -27,6 +29,7 @@ impl Into<StoreError> for PostgreSQLError {
                 StoreError::ConnectionError(format!("{}:{} {}", host, port, error))
             }
             Self::ExecuteError(error) => StoreError::WriteError(error),
+            Self::QueryError(error) => StoreError::Custom(error.to_string()),
         }
     }
 }

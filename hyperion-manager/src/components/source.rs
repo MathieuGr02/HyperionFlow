@@ -8,7 +8,7 @@ use hyperion_core::components::{
     component::Component,
     source::{Source, SourceError},
 };
-use hyperion_kafka::kafka_connector::KafkaConsumer;
+use hyperion_kafka::consumer::KafkaConsumer;
 use hyperion_sql::{stores::postgres::writer::PostgreSQLWriter, table::Table};
 use serde::Deserialize;
 

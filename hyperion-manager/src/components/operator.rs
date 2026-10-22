@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 #[cfg(feature = "sql")]
 use hyperion_sql::stores::postgres::{
-    client::PostgreSQLConfiguration, operator::PostgreSQLOperator,
+    config::PostgreSQLConfiguration, operator::PostgreSQLOperator,
 };
 
 #[derive(Debug, Deserialize)]

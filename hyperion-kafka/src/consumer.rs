@@ -1,39 +1,10 @@
 use hyperion_core::{
     components::event_consumer::{EventConsumer, EventConsumerError},
     message::{EncodedMessage, SourceEventPosition},
-    validatable::{Validatable, ValidationError},
 };
 use kafka::consumer::Consumer;
-use serde::Deserialize;
 
-use crate::kafka_error::KafkaConsumerError;
-
-#[derive(Debug, Deserialize)]
-pub struct KafkaConfiguration {
-    pub host: String,
-    pub port: u16,
-    pub topic: String,
-    pub group: String,
-    pub partition: i32,
-}
-
-impl Validatable for KafkaConfiguration {
-    fn validate(&self) -> Result<(), ValidationError> {
-        Self::key_empty("host", &self.host)?;
-        Self::key_empty("topic", &self.topic)?;
-        Self::key_empty("group", &self.group)?;
-
-        Ok(())
-    }
-}
-
-impl TryInto<KafkaConsumer> for KafkaConfiguration {
-    type Error = KafkaConsumerError;
-
-    fn try_into(self) -> Result<KafkaConsumer, Self::Error> {
-        KafkaConsumer::connect(self)
-    }
-}
+use crate::{config::KafkaConfiguration, error::KafkaConsumerError};
 
 #[derive(Debug)]
 pub struct KafkaConsumer {

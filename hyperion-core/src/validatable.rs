@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 pub trait Validatable {
-    /// Check if key's value is empty.
+    /// Check if key's value is an empty string
     ///
     /// - key: The name of the key
     /// - value: The actual value of the key

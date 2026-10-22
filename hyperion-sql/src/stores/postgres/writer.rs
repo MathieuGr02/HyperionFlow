@@ -2,7 +2,7 @@ use hyperion_core::{
     components::{store_error::StoreError, store_writer::StoreWriter},
     message::DataMessage,
 };
-use postgres::{Statement, error::DbError, types::ToSql};
+use postgres::{Statement, types::ToSql};
 use tracing::info;
 
 use crate::{

@@ -1,8 +1,4 @@
-use hyperion_core::{
-    components::{store_connector::StoreConnector, store_error::StoreError},
-    message::DecodedMessage,
-    validatable::Validatable,
-};
+use hyperion_core::validatable::Validatable;
 use postgres::{Client, NoTls};
 use serde::Deserialize;
 
@@ -31,25 +27,6 @@ impl Validatable for PostgreSQLConfiguration {
 pub struct PostgreSQLClient {
     pub config: PostgreSQLConfiguration,
     pub pgclient: Client,
-}
-
-impl StoreConnector for PostgreSQLClient {
-    fn execute(&mut self, query: &str, input: DecodedMessage) -> Result<(), StoreError> {
-        /*
-        let decoder = self.config.table.get_decoder();
-        let record = Record::decode(input.value, decoder);
-        let params: Vec<&(dyn ToSql + Sync)> = record
-            .data
-            .iter()
-            .map(|v| v as &(dyn ToSql + Sync))
-            .collect();
-        let res = self.client.execute(&self.query, &params);
-        if let Err(error) = res {
-            dbg!(error, &self.query);
-        }
-        */
-        Ok(())
-    }
 }
 
 impl PostgreSQLClient {

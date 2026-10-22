@@ -1,7 +1,5 @@
 use hyperion_core::{
-    components::{
-        store_connector::StoreConnector, store_error::StoreError, store_writer::StoreWriter,
-    },
+    components::{store_error::StoreError, store_writer::StoreWriter},
     message::{DataMessage, DecodedMessage},
     validatable::Validatable,
 };
@@ -17,14 +15,6 @@ use crate::components::error::BuildError;
 pub enum InternalConnector {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLClient),
-}
-
-impl StoreConnector for InternalConnector {
-    fn execute(&mut self, query: &str, input: DecodedMessage) -> Result<(), StoreError> {
-        match self {
-            Self::Postgres(postgres) => postgres.execute(query, input),
-        }
-    }
 }
 
 pub enum InternalWriter {

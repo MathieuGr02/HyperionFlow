@@ -13,4 +13,5 @@ pub mod task;
 pub mod receiver;
 pub mod sender;
 
+pub mod store_error;
 pub mod trigger;

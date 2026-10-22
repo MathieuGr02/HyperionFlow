@@ -1,4 +1,4 @@
-use hyperion_core::components::{store_connector::ConnectorError, store_writer::StoreWriterError};
+use hyperion_core::components::store_error::StoreError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -13,13 +13,13 @@ pub enum PostgreSQLError {
     ExecuteError(String),
 }
 
-impl Into<StoreWriterError> for PostgreSQLError {
-    fn into(self) -> StoreWriterError {
+impl Into<StoreError> for PostgreSQLError {
+    fn into(self) -> StoreError {
         match self {
             Self::ConnectionError { host, port, error } => {
-                StoreWriterError::ConnectionError(format!("{}:{} {}", host, port, error))
+                StoreError::ConnectionError(format!("{}:{} {}", host, port, error))
             }
-            Self::ExecuteError(error) => StoreWriterError::WriteError(error),
+            Self::ExecuteError(error) => StoreError::WriteError(error),
         }
     }
 }

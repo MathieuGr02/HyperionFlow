@@ -1,5 +1,7 @@
 use hyperion_core::{
-    components::{store_connector::StoreConnector, store_writer::StoreWriter},
+    components::{
+        store_connector::StoreConnector, store_error::StoreError, store_writer::StoreWriter,
+    },
     message::{DataMessage, DecodedMessage},
     validatable::Validatable,
 };
@@ -21,11 +23,7 @@ pub enum InternalConnector {
 }
 
 impl StoreConnector for InternalConnector {
-    fn execute(
-        &mut self,
-        query: &str,
-        input: DecodedMessage,
-    ) -> Result<(), hyperion_core::components::store_connector::ConnectorError> {
+    fn execute(&mut self, query: &str, input: DecodedMessage) -> Result<(), StoreError> {
         match self {
             Self::Postgres(postgres) => postgres.execute(query, input),
         }
@@ -38,19 +36,13 @@ pub enum InternalWriter {
 }
 
 impl StoreWriter for InternalWriter {
-    fn write(
-        &mut self,
-        item: DataMessage,
-    ) -> Result<(), hyperion_core::components::store_writer::StoreWriterError> {
+    fn write(&mut self, item: DataMessage) -> Result<(), StoreError> {
         match self {
             Self::Postgres(postgres) => postgres.write(item),
         }
     }
 
-    fn write_batch(
-        &mut self,
-        items: Vec<DataMessage>,
-    ) -> Result<(), hyperion_core::components::store_writer::StoreWriterError> {
+    fn write_batch(&mut self, items: Vec<DataMessage>) -> Result<(), StoreError> {
         match self {
             Self::Postgres(postgres) => postgres.write_batch(items),
         }

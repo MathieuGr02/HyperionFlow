@@ -12,7 +12,8 @@ use crate::{
         component::Component,
         event_consumer::{EventConsumer, EventConsumerError},
         sender::EventSender,
-        store_writer::{StoreWriter, StoreWriterError},
+        store_error::StoreError,
+        store_writer::StoreWriter,
     },
     deserializer::{DeserializationError, Deserializer},
     message::{DataMessage, EventMessage},
@@ -27,7 +28,7 @@ pub enum SourceError {
     #[error("Checkpoint error: {0}")]
     CheckpointError(#[from] CheckpointError),
     #[error("Write error: {0}")]
-    WriteError(#[from] StoreWriterError),
+    WriteError(#[from] StoreError),
     #[error("Commit error: {0}")]
     CommitError(#[source] EventConsumerError),
 }

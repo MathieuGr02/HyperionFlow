@@ -1,26 +1,10 @@
 use thiserror::Error;
 
-use crate::message::DecodedMessage;
-
-#[derive(Debug, Error)]
-pub enum ConnectorError {}
-
-#[derive(Debug, Error)]
-pub enum StoreError {}
+use crate::{components::store_error::StoreError, message::DecodedMessage};
 
 pub trait StoreConnector {
-    fn execute(&mut self, query: &str, input: DecodedMessage) -> Result<(), ConnectorError>;
-    fn execute_batch(
-        &mut self,
-        query: &str,
-        input: Vec<DecodedMessage>,
-    ) -> Result<(), ConnectorError> {
+    fn execute(&mut self, query: &str, input: DecodedMessage) -> Result<(), StoreError>;
+    fn execute_batch(&mut self, query: &str, input: Vec<DecodedMessage>) -> Result<(), StoreError> {
         input.into_iter().map(|d| self.execute(query, d)).collect()
-    }
-}
-
-impl<T: StoreConnector + ?Sized> StoreConnector for Box<T> {
-    fn execute(&mut self, query: &str, input: DecodedMessage) -> Result<(), ConnectorError> {
-        (**self).execute(query, input)
     }
 }

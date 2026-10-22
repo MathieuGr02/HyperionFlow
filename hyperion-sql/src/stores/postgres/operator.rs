@@ -1,4 +1,4 @@
-use hyperion_core::components::store_operator::StoreOperator;
+use hyperion_core::components::{store_error::StoreError, store_operator::StoreOperator};
 use postgres::Statement;
 
 use crate::stores::postgres::{
@@ -41,7 +41,12 @@ impl PostgreSQLOperator {
 }
 
 impl StoreOperator for PostgreSQLOperator {
-    fn operate(&self) {
-        todo!()
+    fn operate(&mut self) -> Result<(), StoreError> {
+        self.client
+            .pgclient
+            .execute(&self.statement, &[])
+            .map_err(|e| PostgreSQLError::ExecuteError(e.to_string()).into())?;
+
+        Ok(())
     }
 }

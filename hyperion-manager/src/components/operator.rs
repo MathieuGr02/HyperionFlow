@@ -1,4 +1,4 @@
-use hyperion_core::components::store_operator::StoreOperator;
+use hyperion_core::components::{store_error::StoreError, store_operator::StoreOperator};
 use serde::Deserialize;
 
 #[cfg(feature = "sql")]
@@ -23,7 +23,7 @@ pub enum Operator {
 }
 
 impl StoreOperator for Operator {
-    fn operate(&self) {
+    fn operate(&mut self) -> Result<(), StoreError> {
         match self {
             Operator::Postgres(postgres) => postgres.operate(),
         }

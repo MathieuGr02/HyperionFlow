@@ -10,8 +10,6 @@ use crate::{
 pub enum DeserializationError {
     #[error("Parsing error: {0}")]
     ParsingError(String),
-    #[error("")]
-    Empty,
 }
 
 pub trait Deserializer {
@@ -33,7 +31,7 @@ impl Deserializer for JsonDeserializer {
             key: item.key,
             value: DataFormat::Json(data),
             position: item.position,
-            processing_time: item.processing_time,
+            processing_time: item.ingestion_time,
         })
     }
 

@@ -18,7 +18,7 @@ pub struct EncodedMessage {
     pub key: Option<Vec<u8>>,
     pub value: Vec<u8>,
     pub position: SourceEventPosition,
-    pub processing_time: OffsetDateTime,
+    pub ingestion_time: OffsetDateTime,
 }
 
 impl EncodedMessage {
@@ -27,7 +27,7 @@ impl EncodedMessage {
             key,
             value,
             position,
-            processing_time: time::OffsetDateTime::now_utc(),
+            ingestion_time: time::OffsetDateTime::now_utc(),
         }
     }
 }

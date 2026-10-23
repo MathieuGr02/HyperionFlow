@@ -1,8 +1,8 @@
-use hyperion_core::components::event_consumer::EventConsumerError;
+use hyperion_core::components::event_error::EventError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum KafkaConsumerError {
+pub enum KafkaError {
     #[error("Error during polling: {0}")]
     PollingError(#[source] kafka::Error),
     #[error("Unable to connect to Kafka with host={host:?}, port={port:?}")]
@@ -18,21 +18,15 @@ pub enum KafkaConsumerError {
     CommitError(#[source] kafka::Error),
 }
 
-impl Into<EventConsumerError> for KafkaConsumerError {
-    fn into(self) -> EventConsumerError {
+impl Into<EventError> for KafkaError {
+    fn into(self) -> EventError {
         match self {
-            KafkaConsumerError::PollingError(error) => {
-                EventConsumerError::FetchError(error.to_string())
+            KafkaError::PollingError(error) => EventError::FetchError(error.to_string()),
+            KafkaError::ConnectionError { host, port, error } => {
+                EventError::ConnectionError(format!("{}:{} {}", host, port, error))
             }
-            KafkaConsumerError::ConnectionError { host, port, error } => {
-                EventConsumerError::ConnectionError(format!("{}:{} {}", host, port, error))
-            }
-            KafkaConsumerError::ConsumerError(error) => {
-                EventConsumerError::FetchError(error.to_string())
-            }
-            KafkaConsumerError::CommitError(error) => {
-                EventConsumerError::CommitError(error.to_string())
-            }
+            KafkaError::ConsumerError(error) => EventError::FetchError(error.to_string()),
+            KafkaError::CommitError(error) => EventError::CommitError(error.to_string()),
         }
     }
 }

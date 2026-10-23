@@ -1,13 +1,13 @@
-pub mod deserializer;
-pub mod event;
-pub mod source;
-pub mod store;
-
 pub mod comm;
 pub mod components;
+pub mod deserializer;
+pub mod engine;
 pub mod error;
+pub mod event;
 pub mod operator;
 pub mod pipeline;
+pub mod sink;
+pub mod source;
+pub mod store;
 pub mod task;
-
 pub mod trigger;

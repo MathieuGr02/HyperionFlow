@@ -1,5 +1,5 @@
 use hyperion_core::{
-    components::event_consumer::{EventConsumer, EventConsumerError},
+    components::{event_consumer::EventConsumer, event_error::EventError},
     message::EncodedMessage,
     validatable::Validatable,
 };
@@ -7,7 +7,7 @@ use hyperion_core::{
 use hyperion_kafka::{config::KafkaConfiguration, consumer::KafkaConsumer};
 use serde::Deserialize;
 
-use crate::components::error::BuildError;
+use crate::config::error::BuildError;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "type", content = "config")]
@@ -23,15 +23,13 @@ pub enum ExternalConsumer {
 }
 
 impl EventConsumer for ExternalConsumer {
-    fn fetch(&mut self) -> Result<Vec<EncodedMessage>, EventConsumerError> {
+    fn fetch(&mut self) -> Result<Vec<EncodedMessage>, EventError> {
         match self {
             ExternalConsumer::Kafka(kafka) => kafka.fetch(),
         }
     }
 
-    fn commit(
-        &mut self,
-    ) -> Result<(), hyperion_core::components::event_consumer::EventConsumerError> {
+    fn commit(&mut self) -> Result<(), EventError> {
         match self {
             ExternalConsumer::Kafka(kafka) => kafka.commit(),
         }

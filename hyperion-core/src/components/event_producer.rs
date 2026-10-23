@@ -1,12 +1,6 @@
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum EventProducerError {
-    #[error("{0}")]
-    Custom(String),
-}
+use crate::components::event_error::EventError;
 
 pub trait EventProducer {
-    fn push(&mut self) -> Result<(), EventProducerError>;
-    fn commit(&mut self) -> Result<(), EventProducerError>;
+    fn push(&mut self) -> Result<(), EventError>;
+    fn commit(&mut self) -> Result<(), EventError>;
 }

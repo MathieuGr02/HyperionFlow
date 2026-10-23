@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::components::pipeline::PipelineConfig;
+use crate::config::pipeline::PipelineConfig;
 
 #[derive(Debug, Deserialize)]
 pub struct ComponentsConfig {

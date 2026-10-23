@@ -9,7 +9,7 @@ use hyperion_sql::stores::postgres::{
 };
 use serde::Deserialize;
 
-use crate::components::error::BuildError;
+use crate::config::error::BuildError;
 
 pub enum InternalConnector {
     #[cfg(feature = "sql")]

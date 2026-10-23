@@ -8,7 +8,7 @@ use std::{
 };
 use thiserror::Error;
 
-use crate::run_trait::Runnable;
+use crate::runtime::runnable::Runnable;
 
 #[derive(Debug, Error)]
 pub enum ThreadManagerError {

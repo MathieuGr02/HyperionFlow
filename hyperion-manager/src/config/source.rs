@@ -1,26 +1,19 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, atomic::AtomicBool},
-};
+use std::path::PathBuf;
 
-use hyperion_core::components::{
-    checkpoint::Checkpoint,
-    component::Component,
-    source::{Source, SourceError},
-};
+use hyperion_core::components::checkpoint::Checkpoint;
 use hyperion_kafka::consumer::KafkaConsumer;
 use hyperion_sql::{stores::postgres::writer::PostgreSQLWriter, table::Table};
 use serde::Deserialize;
 
 use crate::{
-    components::{
+    config::{
         comm::EventChannelSender,
         deserializer::DeserializerType,
         error::BuildError,
         event::{EventConfig, ExternalConsumer},
         store::{InternalWriter, StoreConfig},
     },
-    run_trait::Runnable,
+    runtime::source::RuntimeSource,
 };
 
 #[derive(Debug, Deserialize)]
@@ -29,18 +22,6 @@ pub struct SourceConfig {
     external: EventConfig,
     internal: StoreConfig,
     deserializer: DeserializerType,
-}
-
-pub type RuntimeSource =
-    Source<ExternalConsumer, InternalWriter, DeserializerType, EventChannelSender>;
-
-impl Runnable for RuntimeSource {
-    type Output = Result<(), SourceError>;
-
-    fn run(&mut self, shutdown: Arc<AtomicBool>) -> Self::Output {
-        self.main_loop(shutdown)?;
-        Ok(())
-    }
 }
 
 impl SourceConfig {

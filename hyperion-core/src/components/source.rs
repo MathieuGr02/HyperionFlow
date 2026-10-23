@@ -10,7 +10,8 @@ use crate::{
     components::{
         checkpoint::{Checkpoint, CheckpointError},
         component::Component,
-        event_consumer::{EventConsumer, EventConsumerError},
+        event_consumer::EventConsumer,
+        event_error::EventError,
         sender::EventSender,
         store_error::StoreError,
         store_writer::StoreWriter,
@@ -22,7 +23,7 @@ use crate::{
 #[derive(Debug, Error)]
 pub enum SourceError {
     #[error("Fetch error: {0}")]
-    FetchError(#[source] EventConsumerError),
+    FetchError(#[source] EventError),
     #[error("Deserialization error: {0}")]
     DeserializationError(#[from] DeserializationError),
     #[error("Checkpoint error: {0}")]
@@ -30,7 +31,7 @@ pub enum SourceError {
     #[error("Write error: {0}")]
     WriteError(#[from] StoreError),
     #[error("Commit error: {0}")]
-    CommitError(#[source] EventConsumerError),
+    CommitError(#[source] EventError),
 }
 
 /// The [Source] is a generic construct acting as the entry point of data from an external event source into the engine.

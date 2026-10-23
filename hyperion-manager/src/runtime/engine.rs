@@ -6,15 +6,15 @@ use thiserror::Error;
 use tracing::{error, info};
 
 use crate::{
-    components::{
+    config::{
         comm::{EventChannelReceiver, EventChannelSender},
+        engine::EngineConfig,
         error::BuildError,
         pipeline::PipelineConfig,
         source::SourceConfig,
         task::TaskConfig,
     },
-    config::EngineConfig,
-    thread_manager::ThreadManager,
+    runtime::thread_manager::ThreadManager,
 };
 
 pub struct Engine {

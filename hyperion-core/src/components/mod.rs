@@ -17,3 +17,5 @@ pub mod sender;
 
 pub mod store_error;
 pub mod trigger;
+
+pub mod event_error;

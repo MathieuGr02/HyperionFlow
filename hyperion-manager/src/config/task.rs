@@ -1,24 +1,17 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, atomic::AtomicBool},
-};
+use std::path::PathBuf;
 
-use hyperion_core::components::{
-    checkpoint::Checkpoint,
-    component::Component,
-    task::{Task, TaskError},
-};
+use hyperion_core::components::checkpoint::Checkpoint;
 use hyperion_sql::{stores::postgres::operator::PostgreSQLOperator, table::Table};
 use serde::Deserialize;
 
 use crate::{
-    components::{
+    config::{
         comm::{EventChannelReceiver, EventChannelSender},
         error::BuildError,
         operator::{Operator, OperatorConfig},
         trigger::TriggerType,
     },
-    run_trait::Runnable,
+    runtime::task::RuntimeTask,
 };
 
 #[derive(Debug, Deserialize)]
@@ -26,17 +19,6 @@ pub struct TaskConfig {
     name: String,
     operator: OperatorConfig,
     trigger: TriggerType,
-}
-
-pub type RuntimeTask = Task<EventChannelSender, EventChannelReceiver, Operator, TriggerType>;
-
-impl Runnable for RuntimeTask {
-    type Output = Result<(), TaskError>;
-
-    fn run(&mut self, shutdown: Arc<AtomicBool>) -> Self::Output {
-        self.main_loop(shutdown);
-        Ok(())
-    }
 }
 
 impl TaskConfig {

@@ -2,7 +2,10 @@ use hyperion_core::{
     components::{store_error::StoreError, store_writer::StoreWriter},
     message::data::DataMessage,
 };
-use postgres::{Statement, types::ToSql};
+use postgres::{
+    Statement,
+    types::{ToSql, Type},
+};
 use tracing::info;
 
 use crate::{
@@ -72,18 +75,7 @@ impl PostgreSQLWriter {
             &table.name, column_names, values
         );
 
-        let res = client.pgclient.prepare(&insert_query);
-        if let Ok(statement) = res {
-            return Ok(statement);
-        } else if let Err(e) = res {
-            if let Some(e) = e.as_db_error() {
-                return Err(e.into());
-            }
-        }
-
-        Err(PostgreSQLError::ExecuteError(
-            "Uncaught postgres error".to_string(),
-        ))
+        client.prepare_statement(&insert_query)
     }
 
     pub fn connect(
@@ -112,11 +104,15 @@ impl StoreWriter<serde_json::Value> for PostgreSQLWriter {
     fn write(&mut self, item: DataMessage<serde_json::Value>) -> Result<(), StoreError> {
         let record = Record::decode(item.value, &self.decoder);
 
-        let params: Vec<&(dyn ToSql + Sync)> = record
+        let mut params: Vec<&(dyn ToSql + Sync)> = record
             .data
             .iter()
             .map(|v| v as &(dyn ToSql + Sync))
             .collect();
+
+        let key: Option<&Vec<u8>> = item.key.as_ref();
+
+        params.push(&key);
 
         let res = self.client.pgclient.execute(&self.statement, &params);
         if let Err(e) = res {

@@ -1,4 +1,4 @@
-use postgres::{Client, NoTls};
+use postgres::{Client, NoTls, Statement};
 
 use crate::stores::postgres::{config::PostgreSQLConfiguration, error::PostgreSQLError};
 
@@ -8,6 +8,7 @@ pub struct PostgreSQLClient {
 }
 
 impl PostgreSQLClient {
+    /// Connect client to the PostgreSQL database
     pub fn connect(cfg: PostgreSQLConfiguration) -> Result<Self, PostgreSQLError> {
         let mut client_config = Client::configure();
         client_config
@@ -30,5 +31,21 @@ impl PostgreSQLClient {
             config: cfg,
             pgclient: client,
         })
+    }
+
+    /// Prepare a SQL query as a statement
+    pub fn prepare_statement(&mut self, query: &str) -> Result<Statement, PostgreSQLError> {
+        let res = self.pgclient.prepare(query);
+        if let Ok(statement) = res {
+            return Ok(statement);
+        } else if let Err(e) = res
+            && let Some(e) = e.as_db_error()
+        {
+            return Err(PostgreSQLError::from(e));
+        }
+
+        Err(PostgreSQLError::ExecuteError(
+            "Uncaught postgres error".to_string(),
+        ))
     }
 }

@@ -44,31 +44,21 @@ impl PostgreSQLOperator {
             "CREATE MATERIALIZED VIEW IF NOT EXISTS {} AS {}",
             view_name, query
         );
-
         let res = client.pgclient.execute(&create_materialized_view, &[]);
+        if let Err(e) = res {
+            if let Some(e) = e.as_db_error() {
+                return Err(e.into());
+            }
 
-        if let Err(e) = res
-            && let Some(e) = e.as_db_error()
-        {
-            return Err(e.into());
+            return Err(PostgreSQLError::ExecuteError(
+                "Uncaught postgres error".to_string(),
+            ));
         }
 
         info!("Created materialized view {}", view_name);
 
         let refresh_materialized_view = format!("REFRESH MATERIALIZED VIEW {}", view_name);
-
-        let res = client.pgclient.prepare(&refresh_materialized_view);
-        if let Ok(statement) = res {
-            return Ok(statement);
-        } else if let Err(e) = res {
-            if let Some(e) = e.as_db_error() {
-                return Err(PostgreSQLError::from(e));
-            }
-        }
-
-        Err(PostgreSQLError::ExecuteError(
-            "Uncaught postgres error".to_string(),
-        ))
+        client.prepare_statement(&refresh_materialized_view)
     }
 }
 

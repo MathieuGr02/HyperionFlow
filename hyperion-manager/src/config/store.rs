@@ -9,7 +9,7 @@ use hyperion_sql::stores::postgres::{
 };
 use serde::Deserialize;
 
-use crate::{config::error::BuildError, runtime::messages::format::DataFormat};
+use crate::config::error::BuildError;
 
 pub enum InternalConnector {
     #[cfg(feature = "sql")]
@@ -21,8 +21,8 @@ pub enum InternalWriter {
     Postgres(PostgreSQLWriter),
 }
 
-impl<T> StoreWriter<T> for InternalWriter {
-    fn write(&mut self, item: DataMessage<T>) -> Result<(), StoreError> {
+impl StoreWriter<serde_json::Value> for InternalWriter {
+    fn write(&mut self, item: DataMessage<serde_json::Value>) -> Result<(), StoreError> {
         match self {
             Self::Postgres(postgres) => postgres.write(item),
         }

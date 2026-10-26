@@ -1,7 +1,8 @@
 use std::fs;
 
-use hyperion_manager::tracing::init_tracing;
-use hyperion_manager::{components::components::ComponentsConfig, engine::Engine};
+use hyperion_manager::{
+    config::components::ComponentsConfig, runtime::engine::Engine, tracing::init_tracing,
+};
 use tracing::debug;
 
 fn main() -> Result<(), ()> {

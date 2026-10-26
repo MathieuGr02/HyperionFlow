@@ -17,7 +17,7 @@ use crate::{
         store_writer::StoreWriter,
     },
     deserializer::{DeserializationError, Deserializer},
-    message::{DataMessage, EventMessage},
+    message::{data::DataMessage, decoded::DecodedMessage, event::EventMessage},
 };
 
 #[derive(Debug, Error)]
@@ -47,8 +47,8 @@ pub struct Source<C, W, D, S> {
 impl<C, W, D, S> Source<C, W, D, S>
 where
     C: EventConsumer,
-    W: StoreWriter,
     D: Deserializer,
+    W: StoreWriter<D::Output>,
     S: EventSender,
 {
     pub fn new(
@@ -68,12 +68,12 @@ where
     }
 }
 
-impl<E, I, D, ES> Component for Source<E, I, D, ES>
+impl<C, W, D, S> Component for Source<C, W, D, S>
 where
-    E: EventConsumer,
-    I: StoreWriter,
+    C: EventConsumer,
     D: Deserializer,
-    ES: EventSender,
+    W: StoreWriter<D::Output>,
+    S: EventSender,
 {
     type Output = ();
     type Error = SourceError;
@@ -107,23 +107,37 @@ where
 
             trace!("Fetched {} items", batch.len());
 
-            // Deserialization of records
-            let res = self.deserializer.deserialize_batch(batch);
+            let batch: Vec<_> = batch
+                .into_iter()
+                .map(|item| {
+                    let value = self.deserializer.deserialize(item.value).unwrap();
+                    DecodedMessage {
+                        key: item.key,
+                        value: value,
+                        position: item.position,
+                        ingestion_time: item.ingestion_time,
+                    }
+                })
+                .collect();
 
-            let batch = match res {
+            // Deserialization of records
+            //let res = self.deserializer.deserialize_batch(batch);
+
+            /*let batch = match res {
                 Ok(batch) => batch,
                 Err(error) => {
                     error!("{}", error);
                     continue;
                 }
             };
+            */
 
-            let (data, events): (Vec<DataMessage>, Vec<EventMessage>) =
+            let (data, events): (Vec<DataMessage<_>>, Vec<EventMessage>) =
                 batch.into_iter().map(|m| m.split()).collect();
 
             // Write checkpoint for latest record from external event source
-            let pos = events.last().unwrap().position.clone();
-            if let Err(e) = self.checkpoint.write_checkpoint(pos) {
+            let latest_position = &events.last().unwrap().position;
+            if let Err(e) = self.checkpoint.write_checkpoint(latest_position) {
                 error!(error = %e, "Error writing source checkpoint file");
             }
 

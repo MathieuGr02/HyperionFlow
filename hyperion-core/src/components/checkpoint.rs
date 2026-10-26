@@ -2,16 +2,16 @@ use std::{fs, io, path::PathBuf};
 
 use thiserror::Error;
 
-use crate::message::SourceEventPosition;
+use crate::message::position::Position;
 
 #[derive(Debug, Error)]
 pub enum CheckpointError {
     #[error("Unable to find checkpoint file {0}")]
     FileNotFound(String),
     #[error("Error during serialization {0}")]
-    SerializationError(serde_json::Error),
+    SerializationError(#[source] serde_json::Error),
     #[error("Error during deserialization {0}")]
-    DeserializationError(serde_json::Error),
+    DeserializationError(#[source] serde_json::Error),
     #[error("{0}")]
     IoError(#[from] io::Error),
 }
@@ -44,7 +44,7 @@ impl Checkpoint {
     /// Load latest written checkpoint
     ///
     /// Reads the file `parent_path`/`name`.hypckpt and returns [SourceEventPosition] on success.
-    pub fn load_checkpoint(&self) -> Result<SourceEventPosition, CheckpointError> {
+    pub fn load_checkpoint(&self) -> Result<Position, CheckpointError> {
         let ckpt_exists = fs::exists(&self.ckpt_file);
         if matches!(ckpt_exists, Ok(false)) || ckpt_exists.is_err() {
             return Err(CheckpointError::FileNotFound(
@@ -53,7 +53,7 @@ impl Checkpoint {
         }
 
         let data = fs::read_to_string(&self.ckpt_file)?;
-        let source_event_position: SourceEventPosition =
+        let source_event_position =
             serde_json::from_str(&data).map_err(|e| CheckpointError::DeserializationError(e))?;
 
         Ok(source_event_position)
@@ -62,9 +62,9 @@ impl Checkpoint {
     /// Write new checkpoint
     ///
     /// Writes to the file `parent_path`/`name`.hypckpt.
-    pub fn write_checkpoint(&self, position: SourceEventPosition) -> Result<(), CheckpointError> {
+    pub fn write_checkpoint(&self, position: &Position) -> Result<(), CheckpointError> {
         let s =
-            serde_json::to_string(&position).map_err(|e| CheckpointError::SerializationError(e))?;
+            serde_json::to_string(position).map_err(|e| CheckpointError::SerializationError(e))?;
 
         // First create a tmp file with the new event position and then rename ...hypckpt.tmp to ...hypckpt
         self.write_tmp_file(s)?;

@@ -1,11 +1,6 @@
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::{
-    data_format::DataFormat,
-    message::{DecodedMessage, EncodedMessage},
-};
-
 #[derive(Debug, Error)]
 pub enum DeserializationError {
     #[error("Parsing error: {0}")]
@@ -13,32 +8,31 @@ pub enum DeserializationError {
 }
 
 pub trait Deserializer {
-    fn deserialize(&self, item: EncodedMessage) -> Result<DecodedMessage, DeserializationError>;
+    type Output;
+
+    fn deserialize(&self, item: Vec<u8>) -> Result<Self::Output, DeserializationError>;
     fn deserialize_batch(
         &self,
-        items: Vec<EncodedMessage>,
-    ) -> Result<Vec<DecodedMessage>, DeserializationError>;
+        items: Vec<Vec<u8>>,
+    ) -> Result<Vec<Self::Output>, DeserializationError>;
 }
 
 #[derive(Debug, Deserialize)]
 pub struct JsonDeserializer;
 
 impl Deserializer for JsonDeserializer {
-    fn deserialize(&self, item: EncodedMessage) -> Result<DecodedMessage, DeserializationError> {
-        let data = serde_json::from_slice(&item.value)
+    type Output = serde_json::Value;
+
+    fn deserialize(&self, item: Vec<u8>) -> Result<Self::Output, DeserializationError> {
+        let data = serde_json::from_slice(&item)
             .map_err(|e| DeserializationError::ParsingError(e.to_string()))?;
-        Ok(DecodedMessage {
-            key: item.key,
-            value: DataFormat::Json(data),
-            position: item.position,
-            processing_time: item.ingestion_time,
-        })
+        Ok(data)
     }
 
     fn deserialize_batch(
         &self,
-        items: Vec<EncodedMessage>,
-    ) -> Result<Vec<DecodedMessage>, DeserializationError> {
+        items: Vec<Vec<u8>>,
+    ) -> Result<Vec<Self::Output>, DeserializationError> {
         items
             .into_iter()
             .map(|item| self.deserialize(item))

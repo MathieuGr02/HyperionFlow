@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::message::EventMessage;
+use crate::message::event_record::EventRecord;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum TriggerAction {
@@ -18,6 +18,9 @@ impl TriggerAction {
 pub enum TriggerError {}
 
 pub trait Trigger {
-    fn on_event(&mut self, event: &EventMessage) -> Result<TriggerAction, TriggerError>;
+    fn on_event<'event>(
+        &mut self,
+        event: &EventRecord<'event>,
+    ) -> Result<TriggerAction, TriggerError>;
     fn reset(&mut self);
 }

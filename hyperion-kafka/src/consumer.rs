@@ -1,10 +1,10 @@
 use hyperion_core::{
     components::{event_consumer::EventConsumer, event_error::EventError},
-    message::{EncodedMessage, SourceEventPosition},
+    message::encoded::EncodedMessage,
 };
 use kafka::consumer::Consumer;
 
-use crate::{config::KafkaConfiguration, error::KafkaError};
+use crate::{config::KafkaConfiguration, error::KafkaError, position::KafkaPosition};
 
 #[derive(Debug)]
 pub struct KafkaConsumer {
@@ -44,11 +44,12 @@ impl EventConsumer for KafkaConsumer {
                 messages.push(EncodedMessage::new(
                     Some(m.key.to_vec()),
                     m.value.to_vec(),
-                    SourceEventPosition::Kafka {
+                    KafkaPosition {
                         topic: self.config.topic.clone(),
                         partition: self.config.partition,
                         offset: m.offset,
-                    },
+                    }
+                    .into(),
                 ));
             }
 

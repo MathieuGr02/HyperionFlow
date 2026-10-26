@@ -1,5 +1,7 @@
-use crate::{components::store_error::StoreError, message::DataMessage};
+use crate::{components::store_error::StoreError, message::data::DataMessage};
 
 pub trait StoreReader {
-    fn read(&mut self) -> Result<Vec<DataMessage>, StoreError>;
+    type Output;
+
+    fn read(&mut self) -> Result<Vec<DataMessage<Self::Output>>, StoreError>;
 }

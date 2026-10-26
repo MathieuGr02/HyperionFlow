@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::{event_consumer::EventConsumer, event_error::EventError},
-    message::EncodedMessage,
+    message::encoded::EncodedMessage,
     validatable::Validatable,
 };
 #[cfg(feature = "kafka")]

@@ -5,7 +5,7 @@ use hyperion_core::{
         receiver::{EventReceiver, ReceiverError},
         sender::{EventSender, SenderError},
     },
-    message::EventMessage,
+    message::event::EventMessage,
 };
 
 pub struct EventChannelSender {

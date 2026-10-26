@@ -1,7 +1,6 @@
 use hyperion_core::{
     components::{store_error::StoreError, store_reader::StoreReader},
-    data_format::DataFormat,
-    message::DataMessage,
+    message::data::DataMessage,
 };
 use postgres::{Row, Statement};
 
@@ -44,7 +43,7 @@ impl PostgreSQLReader {
         ))
     }
 
-    pub fn row_to_datamessage(row: Row) -> Result<DataMessage, PostgreSQLError> {
+    pub fn row_to_datamessage(row: Row) -> Result<DataMessage<serde_json::Value>, PostgreSQLError> {
         let mut map = serde_json::Map::new();
         for col in row.columns() {
             let col_name = col.name();
@@ -57,14 +56,16 @@ impl PostgreSQLReader {
 
         Ok(DataMessage {
             key: None,
-            value: DataFormat::Json(serde_json::Value::Object(map)),
+            value: serde_json::Value::Object(map),
         })
     }
 }
 
 impl StoreReader for PostgreSQLReader {
-    fn read(&mut self) -> Result<Vec<DataMessage>, StoreError> {
-        let mut data_messages: Vec<DataMessage> = Vec::new();
+    type Output = serde_json::Value;
+
+    fn read(&mut self) -> Result<Vec<DataMessage<Self::Output>>, StoreError> {
+        let mut data_messages: Vec<DataMessage<Self::Output>> = Vec::new();
 
         let res = self.client.pgclient.query(&self.statement, &[]);
         if let Ok(rows) = res {

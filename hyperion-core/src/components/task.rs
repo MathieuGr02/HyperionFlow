@@ -24,8 +24,8 @@ pub struct Task<ES, ER, O, T> {
 
 impl<ES, ER, O, T> Task<ES, ER, O, T>
 where
-    ES: EventSender,
     ER: EventReceiver,
+    ES: EventSender,
     O: StoreOperator,
     T: Trigger,
 {
@@ -48,8 +48,8 @@ where
 
 impl<ES, ER, O, T> Component for Task<ES, ER, O, T>
 where
-    ES: EventSender,
     ER: EventReceiver,
+    ES: EventSender,
     O: StoreOperator,
     T: Trigger,
 {
@@ -75,14 +75,17 @@ where
             };
 
             for event in events {
-                let should_fire = self.trigger.on_event(&event).is_ok_and(|e| e.fire());
+                let should_fire = self
+                    .trigger
+                    .on_event(&event.as_event_record())
+                    .is_ok_and(|e| e.fire());
                 if should_fire {
                     trace!("Calling operate");
                     if let Err(e) = self.operator.operate() {
                         error!(error = %e, "Error while executing task operation");
                     }
 
-                    if let Err(e) = self.checkpoint.write_checkpoint(event.position) {
+                    if let Err(e) = self.checkpoint.write_checkpoint(&event.position) {
                         error!(error = %e, "Error writing task checkpoint file");
                     }
 

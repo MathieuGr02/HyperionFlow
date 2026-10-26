@@ -1,4 +1,3 @@
-use hyperion_core::components::{event_error::EventError, event_producer::EventProducer};
 use kafka::producer::Producer;
 
 use crate::{config::KafkaConfiguration, error::KafkaError};
@@ -23,8 +22,12 @@ impl KafkaProducer {
     }
 }
 
+/*
 impl EventProducer for KafkaProducer {
     fn push(&mut self) -> Result<(), EventError> {
+        Record::
+        let x  = String::new();
+        self.client.send(rec)
         todo!()
     }
 
@@ -32,3 +35,4 @@ impl EventProducer for KafkaProducer {
         todo!()
     }
 }
+*/

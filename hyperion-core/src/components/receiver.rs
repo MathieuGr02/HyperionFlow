@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::message::EventMessage;
+use crate::message::event::EventMessage;
 
 #[derive(Debug, Error)]
 pub enum ReceiverError {

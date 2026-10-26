@@ -1,7 +1,4 @@
-use serde::Serialize;
 use thiserror::Error;
-
-use crate::message::{DataMessage, EncodedMessage};
 
 #[derive(Debug, Error)]
 pub enum SerializationError {
@@ -10,21 +7,30 @@ pub enum SerializationError {
 }
 
 pub trait Serializer {
-    fn serialize(&self, data: DataMessage) -> Result<EncodedMessage, SerializationError>;
-    fn serialize_batch(&self, data: DataMessage) -> Result<EncodedMessage, SerializationError>;
+    fn serialize(&self, data: impl serde::ser::Serialize) -> Result<String, SerializationError>;
+    fn serialize_batch(
+        &self,
+        data: Vec<impl serde::ser::Serialize>,
+    ) -> Result<Vec<String>, SerializationError>;
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct JsonSerializer {}
 
 impl Serializer for JsonSerializer {
-    fn serialize(&self, data: DataMessage) -> Result<EncodedMessage, SerializationError> {
-        //serde_json::to_string(&data.value.)
-        //  .map_err(|e| SerializationError::ParsingError(e.to_string()));
-        todo!()
+    fn serialize(&self, data: impl serde::ser::Serialize) -> Result<String, SerializationError> {
+        let json = serde_json::to_string(&data)
+            .map_err(|e| SerializationError::ParsingError(e.to_string()))?;
+        Ok(json)
     }
 
-    fn serialize_batch(&self, data: DataMessage) -> Result<EncodedMessage, SerializationError> {
-        todo!()
+    fn serialize_batch(
+        &self,
+        data: Vec<impl serde::ser::Serialize>,
+    ) -> Result<Vec<String>, SerializationError> {
+        Ok(data
+            .into_iter()
+            .map(|j| self.serialize(j).unwrap())
+            .collect())
     }
 }

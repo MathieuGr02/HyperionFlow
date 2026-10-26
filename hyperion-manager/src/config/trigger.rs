@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::trigger::{Trigger, TriggerAction, TriggerError},
-    message::EventMessage,
+    message::event_record::EventRecord,
 };
 use serde::Deserialize;
 use tracing::trace;
@@ -13,7 +13,10 @@ pub enum TriggerType {
 }
 
 impl Trigger for TriggerType {
-    fn on_event(&mut self, event: &EventMessage) -> Result<TriggerAction, TriggerError> {
+    fn on_event<'event>(
+        &mut self,
+        event: &'event EventRecord,
+    ) -> Result<TriggerAction, TriggerError> {
         match self {
             TriggerType::CountTrigger(trigger) => trigger.on_event(event),
         }
@@ -47,7 +50,7 @@ impl CountTrigger {
 }
 
 impl Trigger for CountTrigger {
-    fn on_event(&mut self, _: &EventMessage) -> Result<TriggerAction, TriggerError> {
+    fn on_event<'event>(&mut self, _: &'event EventRecord) -> Result<TriggerAction, TriggerError> {
         self.counter += 1;
 
         if self.counter < self.max {

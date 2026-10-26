@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::{store_error::StoreError, store_writer::StoreWriter},
-    message::DataMessage,
+    message::data::DataMessage,
     validatable::Validatable,
 };
 #[cfg(feature = "sql")]
@@ -9,7 +9,7 @@ use hyperion_sql::stores::postgres::{
 };
 use serde::Deserialize;
 
-use crate::config::error::BuildError;
+use crate::{config::error::BuildError, runtime::messages::format::DataFormat};
 
 pub enum InternalConnector {
     #[cfg(feature = "sql")]
@@ -21,14 +21,17 @@ pub enum InternalWriter {
     Postgres(PostgreSQLWriter),
 }
 
-impl StoreWriter for InternalWriter {
-    fn write(&mut self, item: DataMessage) -> Result<(), StoreError> {
+impl<T> StoreWriter<T> for InternalWriter {
+    fn write(&mut self, item: DataMessage<T>) -> Result<(), StoreError> {
         match self {
             Self::Postgres(postgres) => postgres.write(item),
         }
     }
 
-    fn write_batch(&mut self, items: Vec<DataMessage>) -> Result<(), StoreError> {
+    fn write_batch(
+        &mut self,
+        items: Vec<DataMessage<serde_json::Value>>,
+    ) -> Result<(), StoreError> {
         match self {
             Self::Postgres(postgres) => postgres.write_batch(items),
         }

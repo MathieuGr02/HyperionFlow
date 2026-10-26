@@ -1,4 +1,7 @@
-use std::sync::{Arc, atomic::AtomicBool};
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
 use thiserror::Error;
 
@@ -35,15 +38,13 @@ where
         producer: EP,
         checkpoint: Checkpoint,
     ) -> Result<Self, ()> {
-        let x = Sink {
+        Ok(Sink {
             receiver,
             reader,
             serializer,
             producer,
             checkpoint,
-        };
-
-        Ok(x)
+        })
     }
 }
 
@@ -60,9 +61,15 @@ where
 
     fn main_loop(&mut self, shutdown: Arc<AtomicBool>) -> Result<Self::Output, Self::Error> {
         loop {
-            let res = self.receiver.receive();
+            if shutdown.load(Ordering::SeqCst) {
+                break;
+            }
 
-            let res = self.reader.read();
+            let _ = self.receiver.receive();
+
+            let _ = self.reader.read();
         }
+
+        Ok(())
     }
 }

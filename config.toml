@@ -8,12 +8,15 @@ columns = [
     { "name" = "name", "data_type" = "Text", nullable = false }
 ]
 
+###################
+# Source
+###################
 [pipelines.source]
 name = "test"
 
 [pipelines.source.external]
 type = "kafka"
-config = { host = "localhost", port = 9092, topic = "test", group = "test", partition = 1 }
+config = { host = "localhost", port = 9092, topic = "test_in", group = "test", partition = 1 }
 
 [pipelines.source.internal]
 type = "postgres"
@@ -23,6 +26,9 @@ config = {host = "localhost", port = 5432, user = "postgres", dbname = "postgres
 type = "json"
 config = { }
 
+###################
+# Task
+###################
 [pipelines.task]
 name = "test_task"
 
@@ -36,3 +42,17 @@ config = { host = "localhost", port = 5432, user = "postgres", dbname = "postgre
 [pipelines.task.trigger]
 type = "count_trigger"
 config = { max = 10 }
+
+###################
+# Sink
+###################
+[pipelines.sink]
+name = "test_sink"
+
+[pipelines.sink.internal]
+type = "postgres"
+config = {host = "localhost", port = 5432, user = "postgres", dbname = "postgres", password = "postgres" }
+
+[pipelines.sink.external]
+type = "kafka"
+config = { host = "localhost", port = 9092, topic = "test_out", group = "test", partition = 1 }

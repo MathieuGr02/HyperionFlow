@@ -12,13 +12,7 @@ producer = KafkaProducer(
     value_serializer=lambda value: json.dumps(value).encode("utf-8"),
 )
 
-topic = os.environ.get("KAFKA_TOPIC", "test")
-
 while True:
-    producer.send(topic, key=str(CURRENT_KEY), value={"id": CURRENT_KEY, "name": "Test"})
+    producer.send("test_in", key=str(CURRENT_KEY), value={"id": CURRENT_KEY, "name": "Test"})
     CURRENT_KEY += 1
     sleep(1)
-
-producer.flush()
-producer.close()
-print(f"Published 3 messages to {topic}")

@@ -1,4 +1,4 @@
-use crate::{components::event_error::EventError, message::encoded::EncodedMessage};
+use crate::{components::event::error::EventError, message::encoded::EncodedMessage};
 
 pub trait EventConsumer {
     fn fetch(&mut self) -> Result<Vec<EncodedMessage>, EventError>;

@@ -1,4 +1,4 @@
-use hyperion_core::components::store_error::StoreError;
+use hyperion_core::components::store::error::StoreError;
 use postgres::error::DbError;
 use thiserror::Error;
 

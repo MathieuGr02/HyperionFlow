@@ -1,4 +1,5 @@
-use kafka::producer::Producer;
+use hyperion_core::components::event::{error::EventError, producer::EventProducer};
+use kafka::producer::{Producer, Record};
 
 use crate::{config::KafkaConfiguration, error::KafkaError};
 
@@ -22,17 +23,20 @@ impl KafkaProducer {
     }
 }
 
-/*
 impl EventProducer for KafkaProducer {
-    fn push(&mut self) -> Result<(), EventError> {
-        Record::
-        let x  = String::new();
-        self.client.send(rec)
-        todo!()
+    fn push(&mut self, items: Vec<String>) -> Result<(), EventError> {
+        let records: Vec<_> = items
+            .into_iter()
+            .map(|item| Record::from_value(self.config.topic.as_str(), item))
+            .collect();
+
+        self.client
+            .send_all(&records)
+            .map_err(|e| KafkaError::SendError(e).into())?;
+        Ok(())
     }
 
     fn commit(&mut self) -> Result<(), EventError> {
         todo!()
     }
 }
-*/

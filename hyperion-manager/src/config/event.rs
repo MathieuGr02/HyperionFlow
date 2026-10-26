@@ -1,5 +1,5 @@
 use hyperion_core::{
-    components::{event_consumer::EventConsumer, event_error::EventError},
+    components::event::{consumer::EventConsumer, error::EventError},
     message::encoded::EncodedMessage,
     validatable::Validatable,
 };

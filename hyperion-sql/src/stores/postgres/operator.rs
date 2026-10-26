@@ -1,4 +1,4 @@
-use hyperion_core::components::{store_error::StoreError, store_operator::StoreOperator};
+use hyperion_core::components::store::{error::StoreError, operator::StoreOperator};
 use postgres::Statement;
 use tracing::info;
 

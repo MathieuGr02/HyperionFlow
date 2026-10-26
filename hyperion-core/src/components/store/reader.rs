@@ -1,4 +1,4 @@
-use crate::{components::store_error::StoreError, message::data::DataMessage};
+use crate::{components::store::error::StoreError, message::data::DataMessage};
 
 pub trait StoreReader {
     type Output;

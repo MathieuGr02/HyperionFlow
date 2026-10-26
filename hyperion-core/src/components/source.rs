@@ -10,11 +10,9 @@ use crate::{
     components::{
         checkpoint::{Checkpoint, CheckpointError},
         component::Component,
-        event_consumer::EventConsumer,
-        event_error::EventError,
+        event::{consumer::EventConsumer, error::EventError},
         sender::EventSender,
-        store_error::StoreError,
-        store_writer::StoreWriter,
+        store::{error::StoreError, writer::StoreWriter},
     },
     deserializer::{DeserializationError, Deserializer},
     message::{data::DataMessage, decoded::DecodedMessage, event::EventMessage},

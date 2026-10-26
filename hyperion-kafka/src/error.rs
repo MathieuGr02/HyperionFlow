@@ -1,8 +1,10 @@
-use hyperion_core::components::event_error::EventError;
+use hyperion_core::components::event::error::EventError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum KafkaError {
+    #[error("Error during sending: {0}")]
+    SendError(#[source] kafka::Error),
     #[error("Error during polling: {0}")]
     PollingError(#[source] kafka::Error),
     #[error("Unable to connect to Kafka with host={host:?}, port={port:?}")]
@@ -21,6 +23,7 @@ pub enum KafkaError {
 impl Into<EventError> for KafkaError {
     fn into(self) -> EventError {
         match self {
+            KafkaError::SendError(error) => EventError::PushError(error.to_string()),
             KafkaError::PollingError(error) => EventError::FetchError(error.to_string()),
             KafkaError::ConnectionError { host, port, error } => {
                 EventError::ConnectionError(format!("{}:{} {}", host, port, error))

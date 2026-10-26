@@ -1,5 +1,5 @@
 use hyperion_core::{
-    components::{store_error::StoreError, store_writer::StoreWriter},
+    components::store::{error::StoreError, writer::StoreWriter},
     message::data::DataMessage,
 };
 use postgres::{

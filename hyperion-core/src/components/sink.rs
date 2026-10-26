@@ -4,12 +4,13 @@ use std::sync::{
 };
 
 use thiserror::Error;
+use tracing::error;
 
+use crate::components::{
+    event::producer::EventProducer, receiver::EventReceiver, store::reader::StoreReader,
+};
 use crate::{
-    components::{
-        checkpoint::Checkpoint, component::Component, event_producer::EventProducer,
-        receiver::EventReceiver, store_reader::StoreReader,
-    },
+    components::{checkpoint::Checkpoint, component::Component},
     serializer::Serializer,
 };
 
@@ -51,7 +52,7 @@ where
 impl<ER, R, S, EP> Component for Sink<ER, R, S, EP>
 where
     ER: EventReceiver,
-    R: StoreReader,
+    R: StoreReader<Output: serde::Serialize>,
     S: Serializer,
     EP: EventProducer,
 {
@@ -67,7 +68,26 @@ where
 
             let _ = self.receiver.receive();
 
-            let _ = self.reader.read();
+            let res = self.reader.read();
+            let data = match res {
+                Ok(data) => data,
+                Err(e) => {
+                    error!(error = %e, "Read error");
+                    continue;
+                }
+            };
+
+            if data.is_empty() {
+                continue;
+            }
+
+            let ser: Vec<_> = data
+                .into_iter()
+                .map(|d| self.serializer.serialize(d.value).unwrap())
+                .collect();
+
+            self.producer.push(ser);
+            self.producer.commit();
         }
 
         Ok(())

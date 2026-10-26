@@ -1,5 +1,5 @@
 use hyperion_core::{
-    components::{store_error::StoreError, store_reader::StoreReader},
+    components::store::{error::StoreError, reader::StoreReader},
     message::data::DataMessage,
 };
 use postgres::{Row, Statement};

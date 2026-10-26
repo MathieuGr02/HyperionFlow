@@ -2,6 +2,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum EventError {
+    #[error("Event push error: {0}")]
+    PushError(String),
     #[error("Event connection error: {0}")]
     ConnectionError(String),
     #[error("Event fetch error: {0}")]

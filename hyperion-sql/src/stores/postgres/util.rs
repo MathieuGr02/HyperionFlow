@@ -2,7 +2,7 @@ use std::error::Error;
 
 use postgres::types::{IsNull, ToSql, Type, private::BytesMut, to_sql_checked};
 
-use crate::data_types::Value;
+use crate::value_types::Value;
 
 impl ToSql for Value {
     fn to_sql(
@@ -21,6 +21,7 @@ impl ToSql for Value {
             },
             Value::Float(v) => v.to_sql(ty, out),
             Value::Text(v) => v.to_sql(ty, out),
+            Value::Bytes(v) => v.to_sql(ty, out),
         }
     }
 
@@ -31,6 +32,7 @@ impl ToSql for Value {
             || <i64 as ToSql>::accepts(ty)
             || <f64 as ToSql>::accepts(ty)
             || <String as ToSql>::accepts(ty)
+            || <Vec<u8> as ToSql>::accepts(ty)
     }
 
     to_sql_checked!();

@@ -6,13 +6,13 @@ use postgres::{Statement, types::ToSql};
 use tracing::info;
 
 use crate::{
-    data_types::ValueType,
     record::Record,
     row_decoder::RowDecoder,
     stores::postgres::{
         client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
     },
-    table::Table,
+    table::{Column, Table},
+    value_types::ValueType,
 };
 
 pub struct PostgreSQLWriter {
@@ -23,6 +23,11 @@ pub struct PostgreSQLWriter {
 }
 
 impl PostgreSQLWriter {
+    fn extend_table(table: &mut Table) {
+        let key_column = Column::new("_key", ValueType::Bytes, true);
+        table.columns.push(key_column);
+    }
+
     fn create_table(client: &mut PostgreSQLClient, table: &Table) -> Result<(), PostgreSQLError> {
         let columns: Vec<String> = table
             .columns
@@ -81,12 +86,16 @@ impl PostgreSQLWriter {
         ))
     }
 
-    pub fn connect(config: PostgreSQLConfiguration, table: Table) -> Result<Self, PostgreSQLError> {
+    pub fn connect(
+        config: PostgreSQLConfiguration,
+        mut table: Table,
+    ) -> Result<Self, PostgreSQLError> {
         let mut client = PostgreSQLClient::connect(config)?;
 
         let column_names: Vec<String> = table.columns.iter().map(|c| c.name.clone()).collect();
         let decoder = RowDecoder::new(column_names);
 
+        Self::extend_table(&mut table);
         Self::create_table(&mut client, &table)?;
         let statement = Self::prepare_insert(&mut client, &table)?;
 

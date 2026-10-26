@@ -1,4 +1,4 @@
-use crate::{data_types::Value, row_decoder::RowDecoder};
+use crate::{row_decoder::RowDecoder, value_types::Value};
 
 pub struct Record {
     pub data: Vec<Value>,

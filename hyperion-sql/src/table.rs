@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::data_types::ValueType;
+use crate::value_types::ValueType;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Column {

@@ -1,7 +1,7 @@
 use hyperion_sql::table::Table;
 use serde::Deserialize;
 
-use crate::config::{source::SourceConfig, task::TaskConfig};
+use crate::config::{sink::SinkConfig, source::SourceConfig, task::TaskConfig};
 
 #[derive(Debug, Deserialize)]
 pub struct PipelineConfig {
@@ -9,4 +9,5 @@ pub struct PipelineConfig {
     pub table: Table,
     pub source: SourceConfig,
     pub task: TaskConfig,
+    pub sink: SinkConfig,
 }

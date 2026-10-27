@@ -46,7 +46,7 @@ impl<C, W, D, S> Source<C, W, D, S>
 where
     C: EventConsumer,
     D: Deserializer,
-    W: StoreWriter<D::Output>,
+    W: StoreWriter,
     S: EventSender,
 {
     pub fn new(
@@ -70,7 +70,7 @@ impl<C, W, D, S> Component for Source<C, W, D, S>
 where
     C: EventConsumer,
     D: Deserializer,
-    W: StoreWriter<D::Output>,
+    W: StoreWriter,
     S: EventSender,
 {
     type Output = ();
@@ -130,7 +130,7 @@ where
             };
             */
 
-            let (data, events): (Vec<DataMessage<_>>, Vec<EventMessage>) =
+            let (data, events): (Vec<DataMessage>, Vec<EventMessage>) =
                 batch.into_iter().map(|m| m.split()).collect();
 
             // Write checkpoint for latest record from external event source

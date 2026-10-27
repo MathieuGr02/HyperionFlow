@@ -91,9 +91,9 @@ where
 
                     self.trigger.reset();
 
-                    //if let Err(e) = self.sender.send(vec![event]) {
-                    //    error!(error = %e, "Error while sending event message");
-                    //}
+                    if let Err(e) = self.sender.send(vec![event]) {
+                        error!(error = %e, "Error while sending event message");
+                    }
                 }
             }
         }

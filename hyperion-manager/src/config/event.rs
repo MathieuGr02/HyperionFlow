@@ -1,10 +1,12 @@
 use hyperion_core::{
-    components::event::{consumer::EventConsumer, error::EventError},
+    components::event::{consumer::EventConsumer, error::EventError, producer::EventProducer},
     message::encoded::EncodedMessage,
     validatable::Validatable,
 };
 #[cfg(feature = "kafka")]
-use hyperion_kafka::{config::KafkaConfiguration, consumer::KafkaConsumer};
+use hyperion_kafka::{
+    config::KafkaConfiguration, consumer::KafkaConsumer, producer::KafkaProducer,
+};
 use serde::Deserialize;
 
 use crate::config::error::BuildError;
@@ -43,6 +45,25 @@ impl EventConfig {
                 config_type: "kafka".into(),
                 error,
             }),
+        }
+    }
+}
+
+pub enum ExternalProducer {
+    #[cfg(feature = "kafka")]
+    Kafka(KafkaProducer),
+}
+
+impl EventProducer for ExternalProducer {
+    fn push(&mut self, items: Vec<Vec<u8>>) -> Result<(), EventError> {
+        match self {
+            ExternalProducer::Kafka(kafka) => kafka.push(items),
+        }
+    }
+
+    fn commit(&mut self) -> Result<(), EventError> {
+        match self {
+            ExternalProducer::Kafka(kafka) => kafka.commit(),
         }
     }
 }

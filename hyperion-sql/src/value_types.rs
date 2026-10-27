@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use tracing_subscriber::fmt::format::json;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 pub enum ValueType {
@@ -35,6 +37,19 @@ impl From<&serde_json::Value> for Value {
             }
             serde_json::Value::String(string) => Value::Text(string.to_owned()),
             _ => Value::Null,
+        }
+    }
+}
+
+impl Into<serde_json::Value> for Value {
+    fn into(self) -> serde_json::Value {
+        match self {
+            Value::Null => serde_json::Value::Null,
+            Value::Bool(v) => serde_json::Value::Bool(v),
+            Value::Integer(v) => json!(v),
+            Value::Float(v) => json!(v),
+            Value::Text(v) => json!(v),
+            Value::Bytes(v) => json!(v),
         }
     }
 }

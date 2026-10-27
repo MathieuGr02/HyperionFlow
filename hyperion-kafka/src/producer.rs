@@ -1,5 +1,6 @@
 use hyperion_core::components::event::{error::EventError, producer::EventProducer};
 use kafka::producer::{Producer, Record};
+use tracing::trace;
 
 use crate::{config::KafkaConfiguration, error::KafkaError};
 
@@ -24,15 +25,17 @@ impl KafkaProducer {
 }
 
 impl EventProducer for KafkaProducer {
-    fn push(&mut self, items: Vec<String>) -> Result<(), EventError> {
+    fn push(&mut self, items: Vec<Vec<u8>>) -> Result<(), EventError> {
         let records: Vec<_> = items
             .into_iter()
             .map(|item| Record::from_value(self.config.topic.as_str(), item))
             .collect();
 
+        trace!("Sending {} records", records.len());
         self.client
             .send_all(&records)
             .map_err(|e| KafkaError::SendError(e).into())?;
+
         Ok(())
     }
 

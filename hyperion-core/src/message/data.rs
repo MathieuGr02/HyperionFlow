@@ -1,5 +1,5 @@
 #[derive(Debug)]
-pub struct DataMessage<V> {
+pub struct DataMessage {
     pub key: Option<Vec<u8>>,
-    pub value: V,
+    pub value: serde_json::Value,
 }

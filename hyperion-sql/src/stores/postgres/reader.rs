@@ -1,15 +1,20 @@
+use std::panic;
+
 use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
     message::data::DataMessage,
 };
 use postgres::{Row, Statement};
 
-use crate::stores::postgres::{
-    client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
+use crate::{
+    stores::postgres::{
+        client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
+    },
+    value_types::{self, Value, ValueType},
 };
 
 pub struct PostgreSQLReader {
-    client: PostgreSQLClient,
+    pub client: PostgreSQLClient,
     statement: Statement,
 }
 
@@ -25,14 +30,16 @@ impl PostgreSQLReader {
         Ok(PostgreSQLReader { client, statement })
     }
 
-    pub fn row_to_datamessage(row: Row) -> Result<DataMessage<serde_json::Value>, PostgreSQLError> {
+    pub fn row_to_datamessage(row: Row) -> Result<DataMessage, PostgreSQLError> {
         let mut map = serde_json::Map::new();
         for col in row.columns() {
             let col_name = col.name();
-            if let Ok(value) = row.try_get::<_, &str>(col_name) {
-                let value = serde_json::from_str(value)
-                    .map_err(|e| PostgreSQLError::QueryError(e.to_string()))?;
+            let res = row.try_get::<_, Value>(col_name);
+            if let Ok(value) = res {
+                let value = value.into();
                 map.insert(col.name().to_string(), value);
+            } else if let Err(error) = res {
+                panic!("{:?}", error);
             }
         }
 
@@ -44,10 +51,8 @@ impl PostgreSQLReader {
 }
 
 impl StoreReader for PostgreSQLReader {
-    type Output = serde_json::Value;
-
-    fn read(&mut self) -> Result<Vec<DataMessage<Self::Output>>, StoreError> {
-        let mut data_messages: Vec<DataMessage<Self::Output>> = Vec::new();
+    fn read(&mut self) -> Result<Vec<DataMessage>, StoreError> {
+        let mut data_messages: Vec<DataMessage> = Vec::new();
 
         let res = self.client.pgclient.query(&self.statement, &[]);
         if let Ok(rows) = res {

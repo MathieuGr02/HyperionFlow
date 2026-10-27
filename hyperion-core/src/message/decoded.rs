@@ -3,15 +3,15 @@ use time::OffsetDateTime;
 use crate::message::{data::DataMessage, event::EventMessage, position::Position};
 
 #[derive(Debug)]
-pub struct DecodedMessage<V> {
+pub struct DecodedMessage {
     pub key: Option<Vec<u8>>,
-    pub value: V,
+    pub value: serde_json::Value,
     pub position: Position,
     pub ingestion_time: OffsetDateTime,
 }
 
-impl<V> DecodedMessage<V> {
-    pub fn split(self) -> (DataMessage<V>, EventMessage) {
+impl DecodedMessage {
+    pub fn split(self) -> (DataMessage, EventMessage) {
         (
             DataMessage {
                 key: self.key.clone(),

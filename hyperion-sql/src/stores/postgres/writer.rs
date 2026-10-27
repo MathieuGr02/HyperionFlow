@@ -100,8 +100,8 @@ impl PostgreSQLWriter {
     }
 }
 
-impl StoreWriter<serde_json::Value> for PostgreSQLWriter {
-    fn write(&mut self, item: DataMessage<serde_json::Value>) -> Result<(), StoreError> {
+impl StoreWriter for PostgreSQLWriter {
+    fn write(&mut self, item: DataMessage) -> Result<(), StoreError> {
         let record = Record::decode(item.value, &self.decoder);
 
         let mut params: Vec<&(dyn ToSql + Sync)> = record
@@ -124,10 +124,7 @@ impl StoreWriter<serde_json::Value> for PostgreSQLWriter {
         Ok(())
     }
 
-    fn write_batch(
-        &mut self,
-        items: Vec<DataMessage<serde_json::Value>>,
-    ) -> Result<(), StoreError> {
+    fn write_batch(&mut self, items: Vec<DataMessage>) -> Result<(), StoreError> {
         items.into_iter().for_each(|item| self.write(item).unwrap());
         Ok(())
     }

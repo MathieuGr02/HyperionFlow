@@ -6,6 +6,7 @@ pub mod error;
 pub mod event;
 pub mod operator;
 pub mod pipeline;
+pub mod serializer;
 pub mod sink;
 pub mod source;
 pub mod store;

@@ -9,9 +9,7 @@ pub enum DeserializerType {
 }
 
 impl Deserializer for DeserializerType {
-    type Output = serde_json::Value;
-
-    fn deserialize(&self, item: Vec<u8>) -> Result<Self::Output, DeserializationError> {
+    fn deserialize(&self, item: Vec<u8>) -> Result<serde_json::Value, DeserializationError> {
         match self {
             DeserializerType::Json(json) => json.deserialize(item),
         }
@@ -20,7 +18,7 @@ impl Deserializer for DeserializerType {
     fn deserialize_batch(
         &self,
         items: Vec<Vec<u8>>,
-    ) -> Result<Vec<Self::Output>, DeserializationError> {
+    ) -> Result<Vec<serde_json::Value>, DeserializationError> {
         match self {
             DeserializerType::Json(json) => json.deserialize_batch(items),
         }

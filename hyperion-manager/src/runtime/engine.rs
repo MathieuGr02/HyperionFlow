@@ -1,6 +1,6 @@
 use std::{fs, sync::mpsc};
 
-use hyperion_core::components::{source::SourceError, task::TaskError};
+use hyperion_core::components::{sink::SinkError, source::SourceError, task::TaskError};
 use hyperion_sql::table::Table;
 use thiserror::Error;
 use tracing::{error, info};
@@ -11,6 +11,7 @@ use crate::{
         engine::EngineConfig,
         error::BuildError,
         pipeline::PipelineConfig,
+        sink::SinkConfig,
         source::SourceConfig,
         task::TaskConfig,
     },
@@ -21,6 +22,7 @@ pub struct Engine {
     config: EngineConfig,
     source_manager: ThreadManager<Result<(), SourceError>>,
     task_manager: ThreadManager<Result<(), TaskError>>,
+    sink_manager: ThreadManager<Result<(), SinkError>>,
 }
 
 #[derive(Debug, Error)]
@@ -54,6 +56,7 @@ impl Engine {
         Engine {
             source_manager: ThreadManager::new(),
             task_manager: ThreadManager::new(),
+            sink_manager: ThreadManager::new(),
             config,
         }
     }
@@ -82,6 +85,10 @@ impl Engine {
         if let Err(e) = self.setup_task(config.task, task_receiver, task_sender, config.table) {
             error!(error = %e, "Error setting up task");
         }
+        if let Err(e) = self.setup_sink(config.sink, sink_receiver) {
+            error!(error = %e, "Error setting up sink");
+        }
+
         Ok(())
     }
 
@@ -126,6 +133,27 @@ impl Engine {
 
         info!("Starting task thread {}", name);
         if let Err(e) = self.task_manager.start_thread(&name) {
+            error!(error = %e, "Failed to start thread");
+        }
+
+        Ok(())
+    }
+
+    pub fn setup_sink(
+        &mut self,
+        config: SinkConfig,
+        receiver: EventChannelReceiver,
+    ) -> Result<(), EngineError> {
+        let (name, sink) = config
+            .build(&self.config.checkpoint_path, receiver)
+            .map_err(|e| EngineError::Custom(e.to_string()))?;
+
+        if let Err(e) = self.sink_manager.add_config(name.clone(), sink) {
+            error!(error = %e, "Failed to add config");
+        }
+
+        info!("Starting sink thread {}", name);
+        if let Err(e) = self.sink_manager.start_thread(&name) {
             error!(error = %e, "Failed to start thread");
         }
 

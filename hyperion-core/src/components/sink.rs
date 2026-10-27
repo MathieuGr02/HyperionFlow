@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use thiserror::Error;
-use tracing::error;
+use tracing::{error, info, trace};
 
 use crate::components::{
     event::producer::EventProducer, receiver::EventReceiver, store::reader::StoreReader,
@@ -17,7 +17,13 @@ use crate::{
 #[derive(Debug, Error)]
 pub enum SinkError {}
 
-pub struct Sink<ER, R, S, EP> {
+pub struct Sink<ER, R, S, EP>
+where
+    ER: EventReceiver,
+    R: StoreReader,
+    S: Serializer,
+    EP: EventProducer,
+{
     receiver: ER,
     reader: R,
     serializer: S,
@@ -52,7 +58,7 @@ where
 impl<ER, R, S, EP> Component for Sink<ER, R, S, EP>
 where
     ER: EventReceiver,
-    R: StoreReader<Output: serde::Serialize>,
+    R: StoreReader,
     S: Serializer,
     EP: EventProducer,
 {
@@ -63,6 +69,7 @@ where
     fn main_loop(&mut self, shutdown: Arc<AtomicBool>) -> Result<Self::Output, Self::Error> {
         loop {
             if shutdown.load(Ordering::SeqCst) {
+                trace!("Shutting down");
                 break;
             }
 
@@ -78,16 +85,18 @@ where
             };
 
             if data.is_empty() {
+                trace!("No data");
                 continue;
             }
 
-            let ser: Vec<_> = data
+            let ser: Vec<Vec<_>> = data
                 .into_iter()
                 .map(|d| self.serializer.serialize(d.value).unwrap())
                 .collect();
 
+            trace!("Pushing files {}", ser.len());
             self.producer.push(ser);
-            self.producer.commit();
+            //self.producer.commit();
         }
 
         Ok(())

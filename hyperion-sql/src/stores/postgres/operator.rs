@@ -19,6 +19,8 @@ pub struct PostgreSQLOperatorConfiguration {
     client_config: PostgreSQLConfiguration,
     table: Table,
     query: String,
+    #[serde(default)]
+    output_name: String,
 }
 
 impl Validatable for PostgreSQLOperatorConfiguration {
@@ -43,9 +45,11 @@ impl PostgreSQLOperator {
             client_config,
             table,
             query,
+            output_name,
         } = config;
+
         let mut client = PostgreSQLClient::connect(client_config)?;
-        let statement = Self::prepare_statement(&mut client, &table, &query)?;
+        let statement = Self::prepare_statement(&mut client, &table, &query, output_name)?;
 
         Ok(PostgreSQLOperator {
             client,
@@ -59,19 +63,18 @@ impl PostgreSQLOperator {
         client: &mut PostgreSQLClient,
         table: &Table,
         query: &String,
+        output_name: String,
     ) -> Result<Statement, PostgreSQLError> {
-        let view_name = format!("{}_op", table.get_name());
-
         let create_materialized_view = format!(
             "CREATE MATERIALIZED VIEW IF NOT EXISTS {} AS {}",
-            view_name, query
+            output_name, query
         );
 
         client.execute_ddl(&create_materialized_view)?;
 
-        info!("Created materialized view {}", view_name);
+        info!("Created materialized view {}", output_name);
 
-        let refresh_materialized_view = format!("REFRESH MATERIALIZED VIEW {}", view_name);
+        let refresh_materialized_view = format!("REFRESH MATERIALIZED VIEW {}", output_name);
         client.prepare_statement(&refresh_materialized_view)
     }
 }

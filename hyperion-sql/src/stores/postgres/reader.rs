@@ -3,8 +3,10 @@ use std::panic;
 use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
     message::data::DataMessage,
+    validatable::{Validatable, ValidationError},
 };
 use postgres::{Row, Statement};
+use serde::Deserialize;
 
 use crate::{
     stores::postgres::{
@@ -13,17 +15,34 @@ use crate::{
     value_types::Value,
 };
 
+#[derive(Debug, Deserialize)]
+pub struct PostgreSQLReaderConfiguration {
+    #[serde(flatten)]
+    client_config: PostgreSQLConfiguration,
+    query: String,
+}
+
+impl Validatable for PostgreSQLReaderConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        self.client_config.validate()?;
+        Self::key_empty("query", &self.query)?;
+        Ok(())
+    }
+}
+
 pub struct PostgreSQLReader {
     pub client: PostgreSQLClient,
     statement: Statement,
 }
 
 impl PostgreSQLReader {
-    pub fn connect(
-        config: PostgreSQLConfiguration,
-        query: String,
-    ) -> Result<Self, PostgreSQLError> {
-        let mut client = PostgreSQLClient::connect(config)?;
+    pub fn connect(config: PostgreSQLReaderConfiguration) -> Result<Self, PostgreSQLError> {
+        let PostgreSQLReaderConfiguration {
+            client_config,
+            query,
+        } = config;
+
+        let mut client = PostgreSQLClient::connect(client_config)?;
 
         let statement = client.prepare_statement(&query)?;
 

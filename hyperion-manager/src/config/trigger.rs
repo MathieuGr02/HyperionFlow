@@ -36,6 +36,7 @@ impl Trigger for TriggerType {
     }
 }
 
+/// The [CountTrigger] is a trigger which fires after `max` events have been observed
 #[derive(Debug, Deserialize)]
 pub struct CountTrigger {
     max: usize,

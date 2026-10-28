@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use hyperion_core::{components::log::checkpoint::Checkpoint, validatable::Validatable};
-use hyperion_sql::{stores::postgres::operator::PostgreSQLOperator, table::Table};
+use hyperion_sql::stores::postgres::operator::PostgreSQLOperator;
 use serde::Deserialize;
 
 use crate::{
@@ -35,11 +35,11 @@ impl TaskConfig {
         checkpoint_path: &PathBuf,
         receiver: EventChannelReceiver,
         sender: EventChannelSender,
-        table: Table,
     ) -> Result<(String, RuntimeTask), EngineError> {
         let operator = match self.operator {
-            OperatorConfig::Postgres { config, query } => Operator::Postgres(
-                PostgreSQLOperator::connect(config, table, query)
+            #[cfg(feature = "sql")]
+            OperatorConfig::Postgres(config) => Operator::Postgres(
+                PostgreSQLOperator::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
         };

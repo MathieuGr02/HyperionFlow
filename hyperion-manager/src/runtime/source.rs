@@ -4,14 +4,13 @@ use hyperion_core::components::{component::Component, source::Source};
 
 use crate::{
     config::{
-        comm::EventChannelSender, deserializer::DeserializerType, event::ExternalConsumer,
-        store::InternalWriter,
+        comm::EventChannelSender, consumer::Consumer, deserializer::DeserializerType,
+        writer::Writer,
     },
     runtime::{engine::EngineError, runnable::Runnable},
 };
 
-pub type RuntimeSource =
-    Source<ExternalConsumer, InternalWriter, DeserializerType, EventChannelSender>;
+pub type RuntimeSource = Source<Consumer, Writer, DeserializerType, EventChannelSender>;
 
 impl Runnable for RuntimeSource {
     type Output = Result<(), EngineError>;

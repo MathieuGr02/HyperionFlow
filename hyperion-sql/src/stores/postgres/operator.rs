@@ -1,5 +1,6 @@
 use hyperion_core::components::store::{error::StoreError, operator::StoreOperator};
 use postgres::Statement;
+use serde::Deserialize;
 use tracing::info;
 
 use crate::{
@@ -8,6 +9,14 @@ use crate::{
     },
     table::Table,
 };
+
+#[derive(Debug, Deserialize)]
+pub struct PostgreSQLOperatorConfiguration {
+    #[serde(flatten)]
+    client_config: PostgreSQLConfiguration,
+    table: Table,
+    query: String,
+}
 
 #[allow(dead_code)]
 pub struct PostgreSQLOperator {
@@ -18,12 +27,13 @@ pub struct PostgreSQLOperator {
 }
 
 impl PostgreSQLOperator {
-    pub fn connect(
-        config: PostgreSQLConfiguration,
-        table: Table,
-        query: String,
-    ) -> Result<Self, PostgreSQLError> {
-        let mut client = PostgreSQLClient::connect(config)?;
+    pub fn connect(config: PostgreSQLOperatorConfiguration) -> Result<Self, PostgreSQLError> {
+        let PostgreSQLOperatorConfiguration {
+            client_config,
+            table,
+            query,
+        } = config;
+        let mut client = PostgreSQLClient::connect(client_config)?;
         let statement = Self::prepare_statement(&mut client, &table, &query)?;
 
         Ok(PostgreSQLOperator {

@@ -5,8 +5,8 @@ use hyperion_core::{
 use serde::Deserialize;
 
 #[cfg(feature = "sql")]
-use hyperion_sql::stores::postgres::{
-    config::PostgreSQLConfiguration, operator::PostgreSQLOperator,
+use hyperion_sql::stores::postgres::operator::{
+    PostgreSQLOperator, PostgreSQLOperatorConfiguration,
 };
 
 #[derive(Debug, Deserialize)]
@@ -14,10 +14,7 @@ use hyperion_sql::stores::postgres::{
 #[serde(deny_unknown_fields)]
 pub enum OperatorConfig {
     #[cfg(feature = "sql")]
-    Postgres {
-        config: PostgreSQLConfiguration,
-        query: String,
-    },
+    Postgres(PostgreSQLOperatorConfiguration),
 }
 
 impl Validatable for OperatorConfig {

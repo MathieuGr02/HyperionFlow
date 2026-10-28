@@ -4,13 +4,12 @@ use hyperion_core::components::{component::Component, sink::Sink};
 
 use crate::{
     config::{
-        comm::EventChannelReceiver, event::ExternalProducer, serializer::SerializerType,
-        store::InternalReader,
+        comm::EventChannelReceiver, producer::Producer, reader::Reader, serializer::SerializerType,
     },
     runtime::{engine::EngineError, runnable::Runnable},
 };
 
-pub type RuntimeSink = Sink<EventChannelReceiver, InternalReader, SerializerType, ExternalProducer>;
+pub type RuntimeSink = Sink<EventChannelReceiver, Reader, SerializerType, Producer>;
 
 impl Runnable for RuntimeSink {
     type Output = Result<(), EngineError>;

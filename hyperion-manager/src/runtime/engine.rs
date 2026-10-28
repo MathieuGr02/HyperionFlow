@@ -89,20 +89,16 @@ impl Engine {
 
         debug!("Building source configuration: {}", config.source.name);
 
-        let (source_name, source) = config.source.build(
-            &self.config.checkpoint_path,
-            source_sender,
-            config.table.clone(),
-        )?;
+        let (source_name, source) = config
+            .source
+            .build(&self.config.checkpoint_path, source_sender)?;
 
         debug!("Building task configuration: {}", config.task.name);
 
-        let (task_name, task) = config.task.build(
-            &self.config.checkpoint_path,
-            task_receiver,
-            task_sender,
-            config.table,
-        )?;
+        let (task_name, task) =
+            config
+                .task
+                .build(&self.config.checkpoint_path, task_receiver, task_sender)?;
 
         debug!("Building sink configuration: {}", config.sink.name);
 

@@ -5,12 +5,14 @@ use hyperion_kafka::producer::KafkaProducer;
 use hyperion_sql::stores::postgres::reader::PostgreSQLReader;
 use serde::Deserialize;
 
+#[cfg(feature = "kafka")]
+use crate::config::producer::Producer;
 use crate::{
     config::{
         comm::EventChannelReceiver,
-        event::{EventConfig, ExternalProducer},
+        producer::ProducerConfig,
+        reader::{Reader, ReaderConfig},
         serializer::SerializerType,
-        store::{InternalReader, StoreConfig},
     },
     runtime::{engine::EngineError, sink::RuntimeSink},
 };
@@ -18,8 +20,8 @@ use crate::{
 #[derive(Debug, Deserialize)]
 pub struct SinkConfig {
     pub name: String,
-    pub external: EventConfig,
-    pub internal: StoreConfig,
+    pub external: ProducerConfig,
+    pub internal: ReaderConfig,
     pub serializer: SerializerType,
 }
 
@@ -40,14 +42,16 @@ impl SinkConfig {
         receiver: EventChannelReceiver,
     ) -> Result<(String, RuntimeSink), EngineError> {
         let reader = match self.internal {
-            StoreConfig::Postgres(config) => InternalReader::Postgres(
-                PostgreSQLReader::connect(config, "SELECT name FROM test_source_op".to_string())
+            #[cfg(feature = "sql")]
+            ReaderConfig::Postgres(config) => Reader::Postgres(
+                PostgreSQLReader::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
         };
 
         let producer = match self.external {
-            EventConfig::Kafka(config) => ExternalProducer::Kafka(
+            #[cfg(feature = "kafka")]
+            ProducerConfig::Kafka(config) => Producer::Kafka(
                 KafkaProducer::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),

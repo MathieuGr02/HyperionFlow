@@ -2,15 +2,15 @@ use std::path::PathBuf;
 
 use hyperion_core::{components::log::checkpoint::Checkpoint, validatable::Validatable};
 use hyperion_kafka::consumer::KafkaConsumer;
-use hyperion_sql::{stores::postgres::writer::PostgreSQLWriter, table::Table};
+use hyperion_sql::stores::postgres::writer::PostgreSQLWriter;
 use serde::Deserialize;
 
 use crate::{
     config::{
         comm::EventChannelSender,
+        consumer::{Consumer, ConsumerConfig},
         deserializer::DeserializerType,
-        event::{EventConfig, ExternalConsumer},
-        store::{InternalWriter, StoreConfig},
+        writer::{Writer, WriterConfig},
     },
     runtime::{engine::EngineError, source::RuntimeSource},
 };
@@ -18,23 +18,24 @@ use crate::{
 #[derive(Debug, Deserialize)]
 pub struct SourceConfig {
     pub name: String,
-    pub external: EventConfig,
-    pub internal: StoreConfig,
+    pub external: ConsumerConfig,
+    pub writer: WriterConfig,
     pub deserializer: DeserializerType,
 }
 
 impl Validatable for SourceConfig {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
         self.external.validate()?;
-        self.internal.validate()?;
+        self.writer.validate()?;
         Ok(())
     }
 }
 
 impl SourceConfig {
-    fn build_external(config: EventConfig) -> Result<ExternalConsumer, EngineError> {
-        let external: ExternalConsumer = match config {
-            EventConfig::Kafka(kafka) => ExternalConsumer::Kafka(
+    fn build_external(config: ConsumerConfig) -> Result<Consumer, EngineError> {
+        let external: Consumer = match config {
+            #[cfg(feature = "kafka")]
+            ConsumerConfig::Kafka(kafka) => Consumer::Kafka(
                 KafkaConsumer::connect(kafka)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
@@ -43,10 +44,11 @@ impl SourceConfig {
         Ok(external)
     }
 
-    fn build_writer(config: StoreConfig, table: Table) -> Result<InternalWriter, EngineError> {
+    fn build_writer(config: WriterConfig) -> Result<Writer, EngineError> {
         let writer = match config {
-            StoreConfig::Postgres(config) => InternalWriter::Postgres(
-                PostgreSQLWriter::connect(config, table)
+            #[cfg(feature = "sql")]
+            WriterConfig::Postgres(config) => Writer::Postgres(
+                PostgreSQLWriter::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
         };
@@ -58,10 +60,9 @@ impl SourceConfig {
         self,
         checkpoint_path: &PathBuf,
         sender: EventChannelSender,
-        table: Table,
     ) -> Result<(String, RuntimeSource), EngineError> {
         let external = Self::build_external(self.external)?;
-        let internal = Self::build_writer(self.internal, table)?;
+        let internal = Self::build_writer(self.writer)?;
         let checkpoint = Checkpoint::new(checkpoint_path, self.name.clone());
         let source = RuntimeSource::new(external, internal, self.deserializer, sender, checkpoint)
             .map_err(|_| {

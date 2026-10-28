@@ -1,6 +1,7 @@
 use hyperion_core::{
     components::store::{error::StoreError, writer::StoreWriter},
     message::data::DataMessage,
+    validatable::Validatable,
 };
 use postgres::{Statement, types::ToSql};
 use serde::Deserialize;
@@ -17,11 +18,18 @@ use crate::{
 };
 
 #[derive(Debug, Deserialize)]
-pub struct PostgreSQLWriterConfig {
+pub struct PostgreSQLWriterConfiguration {
     #[serde(flatten)]
-    config: PostgreSQLConfiguration,
+    client_config: PostgreSQLConfiguration,
     table: Table,
-    show_key: bool,
+    #[serde(default)]
+    key_name: Option<String>,
+}
+
+impl Validatable for PostgreSQLWriterConfiguration {
+    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
+        self.client_config.validate()
+    }
 }
 
 /// The PostgreSQL writer
@@ -35,8 +43,12 @@ pub struct PostgreSQLWriter {
 }
 
 impl PostgreSQLWriter {
-    fn extend_table(table: &mut Table) {
-        let key_column = Column::new("_key", ValueType::Bytes, true);
+    fn extend_table(table: &mut Table, key_name: Option<String>) {
+        let key_column_name = match key_name {
+            Some(key) => key,
+            None => String::from("_key"),
+        };
+        let key_column = Column::new(key_column_name, ValueType::Bytes, true);
         table.columns.push(key_column);
     }
 
@@ -81,16 +93,19 @@ impl PostgreSQLWriter {
         client.prepare_statement(&insert_query)
     }
 
-    pub fn connect(
-        config: PostgreSQLConfiguration,
-        mut table: Table,
-    ) -> Result<Self, PostgreSQLError> {
-        let mut client = PostgreSQLClient::connect(config)?;
+    pub fn connect(config: PostgreSQLWriterConfiguration) -> Result<Self, PostgreSQLError> {
+        let PostgreSQLWriterConfiguration {
+            client_config,
+            mut table,
+            key_name,
+        } = config;
+
+        let mut client = PostgreSQLClient::connect(client_config)?;
 
         let column_names: Vec<String> = table.columns.iter().map(|c| c.name.clone()).collect();
         let decoder = RowDecoder::new(column_names);
 
-        Self::extend_table(&mut table);
+        Self::extend_table(&mut table, key_name);
         Self::create_table(&mut client, &table)?;
         let statement = Self::prepare_insert(&mut client, &table)?;
 

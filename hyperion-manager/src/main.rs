@@ -1,11 +1,13 @@
 use std::fs;
 
 use hyperion_manager::{
-    config::components::ComponentsConfig, runtime::engine::Engine, tracing::init_tracing,
+    config::components::ComponentsConfig,
+    runtime::engine::{Engine, EngineError},
+    tracing::init_tracing,
 };
 use tracing::debug;
 
-fn main() -> Result<(), ()> {
+fn main() -> Result<(), EngineError> {
     init_tracing();
 
     debug!("Initializing engine");
@@ -20,6 +22,4 @@ fn main() -> Result<(), ()> {
         .try_for_each(|p| engine.setup_pipeline(p))?;
 
     loop {}
-
-    Ok(())
 }

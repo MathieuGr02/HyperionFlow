@@ -9,8 +9,6 @@ use hyperion_kafka::{
 };
 use serde::Deserialize;
 
-use crate::config::error::BuildError;
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "type", content = "config")]
 #[serde(deny_unknown_fields)]
@@ -38,13 +36,10 @@ impl EventConsumer for ExternalConsumer {
     }
 }
 
-impl EventConfig {
-    pub fn validate(&self) -> Result<(), BuildError> {
+impl Validatable for EventConfig {
+    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
         match self {
-            Self::Kafka(kafka) => kafka.validate().map_err(|error| BuildError::Invalid {
-                config_type: "kafka".into(),
-                error,
-            }),
+            EventConfig::Kafka(kafka) => kafka.validate(),
         }
     }
 }

@@ -10,7 +10,7 @@ use crate::{
     stores::postgres::{
         client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
     },
-    value_types::{self, Value, ValueType},
+    value_types::Value,
 };
 
 pub struct PostgreSQLReader {

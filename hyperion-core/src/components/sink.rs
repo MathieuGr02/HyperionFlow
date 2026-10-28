@@ -4,13 +4,13 @@ use std::sync::{
 };
 
 use thiserror::Error;
-use tracing::{error, info, trace};
+use tracing::{error, trace};
 
 use crate::components::{
     event::producer::EventProducer, receiver::EventReceiver, store::reader::StoreReader,
 };
 use crate::{
-    components::{checkpoint::Checkpoint, component::Component},
+    components::{component::Component, log::checkpoint::Checkpoint},
     serializer::Serializer,
 };
 
@@ -73,7 +73,19 @@ where
                 break;
             }
 
-            let _ = self.receiver.receive();
+            let res = self.receiver.receive();
+            let events = match res {
+                Ok(events) => events,
+                Err(e) => {
+                    error!(error = %e, "Error receiving event messages");
+                    break;
+                }
+            };
+            if let Some(event) = events.last() {
+                if let Err(e) = self.checkpoint.write_checkpoint(&event.position) {
+                    error!(error = %e, "Error writing checkpoint file");
+                }
+            }
 
             let res = self.reader.read();
             let data = match res {
@@ -95,7 +107,10 @@ where
                 .collect();
 
             trace!("Pushing files {}", ser.len());
-            self.producer.push(ser);
+            if let Err(e) = self.producer.push(ser) {
+                error!(error = %e, "Error pushing data to external source");
+            }
+
             //self.producer.commit();
         }
 

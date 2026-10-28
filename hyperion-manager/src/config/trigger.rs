@@ -1,6 +1,7 @@
 use hyperion_core::{
     components::trigger::{Trigger, TriggerAction, TriggerError},
     message::event_record::EventRecord,
+    validatable::Validatable,
 };
 use serde::Deserialize;
 use tracing::trace;
@@ -10,6 +11,12 @@ use tracing::trace;
 #[serde(deny_unknown_fields)]
 pub enum TriggerType {
     CountTrigger(CountTrigger),
+}
+
+impl Validatable for TriggerType {
+    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
+        todo!()
+    }
 }
 
 impl Trigger for TriggerType {

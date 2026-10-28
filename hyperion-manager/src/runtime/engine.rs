@@ -1,41 +1,51 @@
 use std::{fs, sync::mpsc};
 
-use hyperion_core::components::{sink::SinkError, source::SourceError, task::TaskError};
-use hyperion_sql::table::Table;
+use hyperion_core::{
+    components::{sink::SinkError, source::SourceError, task::TaskError},
+    validatable::{Validatable, ValidationError},
+};
 use thiserror::Error;
-use tracing::{error, info};
+use tracing::{debug, error};
 
 use crate::{
     config::{
         comm::{EventChannelReceiver, EventChannelSender},
         engine::EngineConfig,
-        error::BuildError,
         pipeline::PipelineConfig,
-        sink::SinkConfig,
-        source::SourceConfig,
-        task::TaskConfig,
     },
-    runtime::thread_manager::ThreadManager,
+    runtime::thread_manager::{ThreadManager, ThreadManagerError},
 };
 
+/// The [Engine] type if the main runner of the manager.
+///
+/// It handles the setup of the different components of the pipeline as well as their lifecycle
+///
+/// It holds all the thread configurations or their running counterpart
 pub struct Engine {
     config: EngineConfig,
-    source_manager: ThreadManager<Result<(), SourceError>>,
-    task_manager: ThreadManager<Result<(), TaskError>>,
-    sink_manager: ThreadManager<Result<(), SinkError>>,
+    manager: ThreadManager<Result<(), EngineError>>,
 }
 
 #[derive(Debug, Error)]
 pub enum EngineError {
-    #[error("Invalid config")]
-    InvalidConfig(#[from] BuildError),
+    #[error("Invalid config: {0}")]
+    InvalidConfig(#[from] ValidationError),
     #[error("Source error: {0}")]
     SourceError(#[from] SourceError),
+    #[error("Task error: {0}")]
+    TaskError(#[from] TaskError),
+    #[error("Sink error: {0}")]
+    SinkError(#[from] SinkError),
+    #[error("Connection error: {0}")]
+    ConnectionError(String),
+    #[error("Thread manager error: {0}")]
+    ThreadManagerError(#[from] ThreadManagerError),
     #[error("{0}")]
     Custom(String),
 }
 
 impl Engine {
+    /// Initialise the engine with its default configuration
     pub fn init() -> Self {
         let config = EngineConfig::default();
 
@@ -54,108 +64,67 @@ impl Engine {
         }
 
         Engine {
-            source_manager: ThreadManager::new(),
-            task_manager: ThreadManager::new(),
-            sink_manager: ThreadManager::new(),
+            manager: ThreadManager::new(),
             config,
         }
     }
 
-    fn build_channel(bound: usize) -> Result<(EventChannelSender, EventChannelReceiver), ()> {
+    fn build_channel(bound: usize) -> (EventChannelSender, EventChannelReceiver) {
         let (sender, receiver) = mpsc::sync_channel(bound);
-        Ok((
+        (
             EventChannelSender { sender },
             EventChannelReceiver { receiver },
-        ))
+        )
     }
 
-    pub fn setup_pipeline(&mut self, mut config: PipelineConfig) -> Result<(), ()> {
-        info!("Building pipeline {}", config.name);
+    pub fn setup_pipeline(&mut self, config: PipelineConfig) -> Result<(), EngineError> {
+        debug!("Validating pipeline configuration: {}", config.name);
 
-        let (source_sender, task_receiver) = Self::build_channel(self.config.channel_size)?;
-        let (task_sender, sink_receiver) = Self::build_channel(self.config.channel_size)?;
+        config.validate()?;
 
-        let res = source_sender.sender.send(vec![]);
-        if let Err(e) = res {
-            panic!("{:?}", e);
-        }
-        if let Err(e) = self.setup_source(config.source, source_sender, config.table.clone()) {
-            error!(error = %e, "Error setting up source");
-        }
-        if let Err(e) = self.setup_task(config.task, task_receiver, task_sender, config.table) {
-            error!(error = %e, "Error setting up task");
-        }
-        if let Err(e) = self.setup_sink(config.sink, sink_receiver) {
-            error!(error = %e, "Error setting up sink");
-        }
+        debug!("Building pipeline configuration: {}", config.name);
 
-        Ok(())
-    }
+        let (source_sender, task_receiver) = Self::build_channel(self.config.channel_size);
+        let (task_sender, sink_receiver) = Self::build_channel(self.config.channel_size);
 
-    pub fn setup_source(
-        &mut self,
-        config: SourceConfig,
-        sender: EventChannelSender,
-        table: Table,
-    ) -> Result<(), EngineError> {
-        let (name, source) = config
-            .build(&self.config.checkpoint_path, sender, table)
-            .map_err(|e| EngineError::Custom(e.to_string()))?;
+        debug!("Building source configuration: {}", config.source.name);
 
-        if let Err(e) = self.source_manager.add_config(name.clone(), source) {
-            error!(error = %e, "Failed to add config");
-            return Err(EngineError::Custom(e.to_string()));
-        }
+        let (source_name, source) = config.source.build(
+            &self.config.checkpoint_path,
+            source_sender,
+            config.table.clone(),
+        )?;
 
-        info!("Starting source thread {}", name);
-        if let Err(e) = self.source_manager.start_thread(&name) {
-            error!(error = %e, "Failed to start thread");
-            return Err(EngineError::Custom(e.to_string()));
-        }
+        debug!("Building task configuration: {}", config.task.name);
 
-        Ok(())
-    }
+        let (task_name, task) = config.task.build(
+            &self.config.checkpoint_path,
+            task_receiver,
+            task_sender,
+            config.table,
+        )?;
 
-    pub fn setup_task(
-        &mut self,
-        config: TaskConfig,
-        receiver: EventChannelReceiver,
-        sender: EventChannelSender,
-        table: Table,
-    ) -> Result<(), EngineError> {
-        let (name, task) = config
-            .build(&self.config.checkpoint_path, receiver, sender, table)
-            .map_err(|e| EngineError::Custom(e.to_string()))?;
+        debug!("Building sink configuration: {}", config.sink.name);
 
-        if let Err(e) = self.task_manager.add_config(name.clone(), task) {
-            error!(error = %e, "Failed to add config");
-        }
+        let (sink_name, sink) = config
+            .sink
+            .build(&self.config.checkpoint_path, sink_receiver)?;
 
-        info!("Starting task thread {}", name);
-        if let Err(e) = self.task_manager.start_thread(&name) {
-            error!(error = %e, "Failed to start thread");
-        }
+        debug!("Adding pipeline configurations to thread manager");
 
-        Ok(())
-    }
+        self.manager.add_configs(vec![
+            (source_name.clone(), source.into()),
+            (task_name.clone(), task.into()),
+            (sink_name.clone(), sink.into()),
+        ])?;
 
-    pub fn setup_sink(
-        &mut self,
-        config: SinkConfig,
-        receiver: EventChannelReceiver,
-    ) -> Result<(), EngineError> {
-        let (name, sink) = config
-            .build(&self.config.checkpoint_path, receiver)
-            .map_err(|e| EngineError::Custom(e.to_string()))?;
+        debug!("Starting pipeline threads");
 
-        if let Err(e) = self.sink_manager.add_config(name.clone(), sink) {
-            error!(error = %e, "Failed to add config");
-        }
-
-        info!("Starting sink thread {}", name);
-        if let Err(e) = self.sink_manager.start_thread(&name) {
-            error!(error = %e, "Failed to start thread");
-        }
+        self.manager.start_threads(&[
+            source_name.as_str(),
+            task_name.as_str(),
+            sink_name.as_str(),
+        ])?;
 
         Ok(())
     }

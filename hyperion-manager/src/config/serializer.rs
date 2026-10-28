@@ -1,4 +1,7 @@
-use hyperion_core::serializer::{JsonSerializer, Serializer};
+use hyperion_core::{
+    serializer::{JsonSerializer, Serializer},
+    validatable::Validatable,
+};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -6,6 +9,12 @@ use serde::Deserialize;
 #[serde(deny_unknown_fields)]
 pub enum SerializerType {
     Json(JsonSerializer),
+}
+
+impl Validatable for SerializerType {
+    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
+        todo!()
+    }
 }
 
 impl Serializer for SerializerType {

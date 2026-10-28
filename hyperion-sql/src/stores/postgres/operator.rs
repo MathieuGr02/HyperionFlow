@@ -9,6 +9,7 @@ use crate::{
     table::Table,
 };
 
+#[allow(dead_code)]
 pub struct PostgreSQLOperator {
     client: PostgreSQLClient,
     table: Table,
@@ -44,16 +45,8 @@ impl PostgreSQLOperator {
             "CREATE MATERIALIZED VIEW IF NOT EXISTS {} AS {}",
             view_name, query
         );
-        let res = client.pgclient.execute(&create_materialized_view, &[]);
-        if let Err(e) = res {
-            if let Some(e) = e.as_db_error() {
-                return Err(e.into());
-            }
 
-            return Err(PostgreSQLError::ExecuteError(
-                "Uncaught postgres error".to_string(),
-            ));
-        }
+        client.execute_ddl(&create_materialized_view)?;
 
         info!("Created materialized view {}", view_name);
 

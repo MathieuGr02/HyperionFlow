@@ -1,6 +1,6 @@
 pub mod component;
 
-pub mod checkpoint;
+pub mod log;
 
 pub mod sink;
 pub mod source;

@@ -9,8 +9,6 @@ use hyperion_sql::stores::postgres::{
 };
 use serde::Deserialize;
 
-use crate::config::error::BuildError;
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "type", content = "config")]
 #[serde(deny_unknown_fields)]
@@ -19,13 +17,10 @@ pub enum StoreConfig {
     Postgres(PostgreSQLConfiguration),
 }
 
-impl StoreConfig {
-    pub fn validate(&self) -> Result<(), BuildError> {
+impl Validatable for StoreConfig {
+    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
         match self {
-            Self::Postgres(config) => config.validate().map_err(|error| BuildError::Invalid {
-                config_type: "PostgreSQL".into(),
-                error,
-            }),
+            StoreConfig::Postgres(postgres) => postgres.validate(),
         }
     }
 }

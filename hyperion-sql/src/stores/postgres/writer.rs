@@ -2,10 +2,8 @@ use hyperion_core::{
     components::store::{error::StoreError, writer::StoreWriter},
     message::data::DataMessage,
 };
-use postgres::{
-    Statement,
-    types::{ToSql, Type},
-};
+use postgres::{Statement, types::ToSql};
+use serde::Deserialize;
 use tracing::info;
 
 use crate::{
@@ -18,6 +16,17 @@ use crate::{
     value_types::ValueType,
 };
 
+#[derive(Debug, Deserialize)]
+pub struct PostgreSQLWriterConfig {
+    #[serde(flatten)]
+    config: PostgreSQLConfiguration,
+    table: Table,
+    show_key: bool,
+}
+
+/// The PostgreSQL writer
+///
+/// T
 pub struct PostgreSQLWriter {
     pub client: PostgreSQLClient,
     pub table: Table,
@@ -47,13 +56,7 @@ impl PostgreSQLWriter {
 
         let columns = columns.join(", ");
         let table_query = format!("CREATE TABLE IF NOT EXISTS {} ({})", table.name, columns);
-
-        let res = client.pgclient.batch_execute(&table_query);
-        if let Err(e) = res {
-            if let Some(e) = e.as_db_error() {
-                return Err(e.into());
-            }
-        }
+        client.execute_ddl(&table_query)?;
 
         info!("Created table {}", table.name);
 

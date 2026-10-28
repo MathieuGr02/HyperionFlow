@@ -2,7 +2,6 @@ pub mod comm;
 pub mod components;
 pub mod deserializer;
 pub mod engine;
-pub mod error;
 pub mod event;
 pub mod operator;
 pub mod pipeline;

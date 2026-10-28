@@ -7,8 +7,8 @@ use thiserror::Error;
 use tracing::{Level, error, info, span, trace};
 
 use crate::components::{
-    checkpoint::Checkpoint, component::Component, receiver::EventReceiver, sender::EventSender,
-    store::operator::StoreOperator, trigger::Trigger,
+    component::Component, log::checkpoint::Checkpoint, receiver::EventReceiver,
+    sender::EventSender, store::operator::StoreOperator, trigger::Trigger,
 };
 
 #[derive(Debug, Error)]

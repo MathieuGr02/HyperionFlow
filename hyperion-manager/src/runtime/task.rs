@@ -11,16 +11,26 @@ use crate::{
         operator::Operator,
         trigger::TriggerType,
     },
-    runtime::runnable::Runnable,
+    runtime::{
+        engine::{Engine, EngineError},
+        runnable::Runnable,
+    },
 };
 
 pub type RuntimeTask = Task<EventChannelSender, EventChannelReceiver, Operator, TriggerType>;
 
 impl Runnable for RuntimeTask {
-    type Output = Result<(), TaskError>;
+    type Output = Result<(), EngineError>;
 
     fn run(&mut self, shutdown: Arc<AtomicBool>) -> Self::Output {
-        self.main_loop(shutdown);
+        self.main_loop(shutdown)?;
         Ok(())
+    }
+}
+
+impl Into<Box<dyn Runnable<Output = Result<(), EngineError>>>> for RuntimeTask {
+    fn into(self) -> Box<dyn Runnable<Output = Result<(), EngineError>>> {
+        let runnable: Box<dyn Runnable<Output = Result<(), EngineError>>> = Box::new(self);
+        runnable
     }
 }

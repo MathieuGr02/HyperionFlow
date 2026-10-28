@@ -65,20 +65,61 @@ impl<T: Send + 'static> ThreadManager<T> {
             .map_err(|e| ThreadManagerError::SpawnThreadError(e.to_string()))
     }
 
+    /// Add multiple configurations at the same time.
+    /// Provides rollback feature incase one configuration fails
+    pub fn add_configs(
+        &mut self,
+        pairs: Vec<(String, Box<dyn Runnable<Output = T>>)>,
+    ) -> Result<(), ThreadManagerError> {
+        let mut rollback_buffer: Vec<String> = Vec::new();
+        for (name, runnable) in pairs {
+            let res = self.add_config(name.clone(), runnable);
+            if res.is_err() {
+                for name in rollback_buffer.iter() {
+                    self.remove_config(name);
+                }
+                res?;
+            }
+            rollback_buffer.push(name);
+        }
+
+        Ok(())
+    }
+
     pub fn add_config(
         &mut self,
         name: String,
-        runnable: impl Runnable<Output = T>,
+        runnable: Box<dyn Runnable<Output = T>>,
     ) -> Result<(), ThreadManagerError> {
         if self.configs.contains_key(&name) {
             return Err(ThreadManagerError::NameConflict(name));
         }
-        self.configs.insert(
-            name,
-            ThreadConfig {
-                runnable: Box::new(runnable),
-            },
-        );
+        self.configs
+            .insert(name.clone(), ThreadConfig { runnable: runnable });
+
+        Ok(())
+    }
+
+    pub fn remove_config(&mut self, name: &str) {
+        self.configs.remove(name);
+    }
+
+    /// Start multiple threads at the same time.
+    /// Provides rollback feature incase one thread fails
+    pub fn start_threads(&mut self, names: &[&str]) -> Result<(), ThreadManagerError> {
+        let mut rollback_buffer: Vec<String> = Vec::new();
+
+        for name in names.into_iter() {
+            let res = self.start_thread(name);
+            if res.is_err() {
+                for name in rollback_buffer.iter() {
+                    self.remove_config(name);
+                }
+                res?;
+            }
+            rollback_buffer.push(name.to_string());
+        }
+
         Ok(())
     }
 

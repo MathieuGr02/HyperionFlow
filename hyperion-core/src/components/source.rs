@@ -8,9 +8,9 @@ use tracing::{error, trace};
 
 use crate::{
     components::{
-        checkpoint::{Checkpoint, CheckpointError},
         component::Component,
         event::{consumer::EventConsumer, error::EventError},
+        log::checkpoint::{Checkpoint, CheckpointError},
         sender::EventSender,
         store::{error::StoreError, writer::StoreWriter},
     },
@@ -94,7 +94,7 @@ where
             let batch = match res {
                 Ok(data) => data,
                 Err(e) => {
-                    error!(error = %e, "Unable to fetch data from external source");
+                    error!(error = %e, "Error fetching data from external source");
                     continue;
                 }
             };
@@ -136,7 +136,7 @@ where
             // Write checkpoint for latest record from external event source
             let latest_position = &events.last().unwrap().position;
             if let Err(e) = self.checkpoint.write_checkpoint(latest_position) {
-                error!(error = %e, "Error writing source checkpoint file");
+                error!(error = %e, "Error writing checkpoint file");
             }
 
             // Write records to internal data store

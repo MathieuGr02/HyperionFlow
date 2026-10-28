@@ -33,6 +33,21 @@ impl PostgreSQLClient {
         })
     }
 
+    /// Execute a Data Definition Language (DDL) query
+    pub fn execute_ddl(&mut self, query: &str) -> Result<(), PostgreSQLError> {
+        if let Err(e) = self.pgclient.batch_execute(query) {
+            if let Some(e) = e.as_db_error() {
+                return Err(e.into());
+            }
+
+            return Err(PostgreSQLError::ExecuteError(
+                "Uncaught postgres error".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
     /// Prepare a SQL query as a statement
     pub fn prepare_statement(&mut self, query: &str) -> Result<Statement, PostgreSQLError> {
         let res = self.pgclient.prepare(query);

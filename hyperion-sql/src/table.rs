@@ -23,13 +23,6 @@ impl Column {
     ) -> Result<Self, SQLError> {
         let name = name.into();
 
-        if Self::RESERVERD_NAMES.contains(&name.as_str()) {
-            return Err(SQLError::InvalidColumn(format!(
-                "Column name {} is a reserved name and cannot be used",
-                name,
-            )));
-        }
-
         let column = Column {
             name: name.into(),
             data_type,

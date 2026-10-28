@@ -135,14 +135,18 @@ impl StoreWriter for PostgreSQLWriter {
             .collect();
 
         let key: Option<&Vec<u8>> = item.key.as_ref();
-
         params.push(&key);
+
+        let value: &(dyn ToSql + Sync) = &item.ingestion_time;
+        params.push(value);
 
         let res = self.client.pgclient.execute(&self.statement, &params);
         if let Err(e) = res {
             if let Some(e) = e.as_db_error() {
                 return Err((PostgreSQLError::from(e)).into());
             }
+
+            return Err(PostgreSQLError::ExecuteError(e.to_string()).into());
         }
 
         Ok(())

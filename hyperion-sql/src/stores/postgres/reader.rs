@@ -65,6 +65,7 @@ impl PostgreSQLReader {
         Ok(DataMessage {
             key: None,
             value: serde_json::Value::Object(map),
+            ingestion_time: 0,
         })
     }
 }

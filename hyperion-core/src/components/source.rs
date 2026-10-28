@@ -118,18 +118,6 @@ where
                 })
                 .collect();
 
-            // Deserialization of records
-            //let res = self.deserializer.deserialize_batch(batch);
-
-            /*let batch = match res {
-                Ok(batch) => batch,
-                Err(error) => {
-                    error!("{}", error);
-                    continue;
-                }
-            };
-            */
-
             let (data, events): (Vec<DataMessage>, Vec<EventMessage>) =
                 batch.into_iter().map(|m| m.split()).collect();
 

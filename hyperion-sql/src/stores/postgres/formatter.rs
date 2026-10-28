@@ -9,7 +9,7 @@ impl std::fmt::Display for ValueType {
             ValueType::Integer => "INTEGER",
             ValueType::Float => "FLOAT",
             ValueType::Bytes => "BYTEA",
-            ValueType::Timestamp => "TIMESTAMP",
+            ValueType::Timestamp => "BIGINT",
         };
 
         write!(f, "{}", s)

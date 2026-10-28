@@ -1,4 +1,5 @@
 use postgres::{Client, NoTls, Statement};
+use tracing::trace;
 
 use crate::stores::postgres::{config::PostgreSQLConfiguration, error::PostgreSQLError};
 
@@ -35,6 +36,7 @@ impl PostgreSQLClient {
 
     /// Execute a Data Definition Language (DDL) query
     pub fn execute_ddl(&mut self, query: &str) -> Result<(), PostgreSQLError> {
+        trace!("Executing DDL query {}", query);
         if let Err(e) = self.pgclient.batch_execute(query) {
             if let Some(e) = e.as_db_error() {
                 return Err(e.into());

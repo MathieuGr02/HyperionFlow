@@ -18,14 +18,14 @@ use crate::{
 #[derive(Debug, Deserialize)]
 pub struct SourceConfig {
     pub name: String,
-    pub external: ConsumerConfig,
+    pub consumer: ConsumerConfig,
     pub writer: WriterConfig,
     pub deserializer: DeserializerType,
 }
 
 impl Validatable for SourceConfig {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
-        self.external.validate()?;
+        self.consumer.validate()?;
         self.writer.validate()?;
         Ok(())
     }
@@ -61,7 +61,7 @@ impl SourceConfig {
         checkpoint_path: &PathBuf,
         sender: EventChannelSender,
     ) -> Result<(String, RuntimeSource), EngineError> {
-        let external = Self::build_external(self.external)?;
+        let external = Self::build_external(self.consumer)?;
         let internal = Self::build_writer(self.writer)?;
         let checkpoint = Checkpoint::new(checkpoint_path, self.name.clone());
         let source = RuntimeSource::new(external, internal, self.deserializer, sender, checkpoint)

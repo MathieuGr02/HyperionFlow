@@ -1,4 +1,7 @@
-use hyperion_core::components::store::{error::StoreError, operator::StoreOperator};
+use hyperion_core::{
+    components::store::{error::StoreError, operator::StoreOperator},
+    validatable::Validatable,
+};
 use postgres::Statement;
 use serde::Deserialize;
 use tracing::info;
@@ -16,6 +19,14 @@ pub struct PostgreSQLOperatorConfiguration {
     client_config: PostgreSQLConfiguration,
     table: Table,
     query: String,
+}
+
+impl Validatable for PostgreSQLOperatorConfiguration {
+    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
+        self.client_config.validate()?;
+        Self::key_empty("query", &self.query)?;
+        Ok(())
+    }
 }
 
 #[allow(dead_code)]

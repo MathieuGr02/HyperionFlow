@@ -13,7 +13,9 @@ pub enum SerializerType {
 
 impl Validatable for SerializerType {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
-        todo!()
+        match self {
+            SerializerType::Json(json) => json.validate(),
+        }
     }
 }
 

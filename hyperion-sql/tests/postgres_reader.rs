@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::{assert_matches, panic};
+    use std::panic;
 
     use hyperion_core::{
         components::store::{reader::StoreReader, writer::StoreWriter},

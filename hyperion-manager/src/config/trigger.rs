@@ -1,7 +1,7 @@
 use hyperion_core::{
     components::trigger::{Trigger, TriggerAction, TriggerError},
     message::event_record::EventRecord,
-    validatable::Validatable,
+    validatable::{Validatable, ValidationError},
 };
 use serde::Deserialize;
 use tracing::trace;
@@ -14,8 +14,10 @@ pub enum TriggerType {
 }
 
 impl Validatable for TriggerType {
-    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
-        todo!()
+    fn validate(&self) -> Result<(), ValidationError> {
+        match self {
+            TriggerType::CountTrigger(count) => count.validate(),
+        }
     }
 }
 
@@ -42,6 +44,12 @@ pub struct CountTrigger {
     max: usize,
     #[serde(skip, default = "CountTrigger::default_counter")]
     counter: usize,
+}
+
+impl Validatable for CountTrigger {
+    fn validate(&self) -> Result<(), ValidationError> {
+        Ok(())
+    }
 }
 
 impl CountTrigger {

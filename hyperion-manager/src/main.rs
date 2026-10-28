@@ -5,7 +5,8 @@ use hyperion_manager::{
     runtime::engine::{Engine, EngineError},
     tracing::init_tracing,
 };
-use tracing::debug;
+use toml::de::Error;
+use tracing::{debug, error};
 
 fn main() -> Result<(), EngineError> {
     init_tracing();
@@ -14,12 +15,17 @@ fn main() -> Result<(), EngineError> {
     let mut engine = Engine::init();
 
     let t = fs::read_to_string("config.toml").unwrap();
-    let config: ComponentsConfig = toml::from_str(&t).unwrap();
+    let res: Result<ComponentsConfig, Error> = toml::from_str(&t);
+    if let Ok(config) = res {
+        config
+            .pipelines
+            .into_iter()
+            .try_for_each(|p| engine.setup_pipeline(p))?;
 
-    config
-        .pipelines
-        .into_iter()
-        .try_for_each(|p| engine.setup_pipeline(p))?;
+        loop {}
+    } else if let Err(e) = res {
+        error!(error = %e, "Error parsing TOML configuration");
+    }
 
-    loop {}
+    Ok(())
 }

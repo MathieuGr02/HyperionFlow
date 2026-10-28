@@ -1,26 +1,32 @@
 [[pipelines]]
 name = "test"
 
-[pipelines.table]
-name = "test_source"
-columns = [
-    { "name" = "id", "data_type" = "Integer", nullable = false },
-    { "name" = "name", "data_type" = "Text", nullable = false }
-]
-
 ###################
 # Source
 ###################
 [pipelines.source]
 name = "test"
 
-[pipelines.source.external]
+[pipelines.source.consumer]
 type = "kafka"
 config = { host = "localhost", port = 9092, topic = "test_in", group = "test", partition = 1 }
 
-[pipelines.source.internal]
+[pipelines.source.writer]
 type = "postgres"
-config = {host = "localhost", port = 5432, user = "postgres", dbname = "postgres", password = "postgres" }
+
+[pipelines.source.writer.config]
+host = "localhost"
+port = 5432
+user = "postgres"
+dbname = "postgres"
+password = "postgres"
+
+[pipelines.source.writer.config.table]
+name = "test_source"
+columns = [
+    { "name" = "id", "data_type" = "Integer", nullable = false },
+    { "name" = "name", "data_type" = "Text", nullable = false }
+]
 
 [pipelines.source.deserializer]
 type = "json"
@@ -37,7 +43,18 @@ type = "postgres"
 
 [pipelines.task.operator.config]
 query = "SELECT name FROM test_source"
-config = { host = "localhost", port = 5432, user = "postgres", dbname = "postgres", password = "postgres" }
+host = "localhost"
+port = 5432
+user = "postgres"
+dbname = "postgres"
+password = "postgres"
+
+[pipelines.task.operator.config.table]
+name = "test_source"
+columns = [
+    { "name" = "id", "data_type" = "Integer", nullable = false },
+    { "name" = "name", "data_type" = "Text", nullable = false }
+]
 
 [pipelines.task.trigger]
 type = "count_trigger"
@@ -53,10 +70,10 @@ name = "test_sink"
 type = "json"
 config = { }
 
-[pipelines.sink.internal]
+[pipelines.sink.reader]
 type = "postgres"
-config = {host = "localhost", port = 5432, user = "postgres", dbname = "postgres", password = "postgres" }
+config = { host = "localhost", port = 5432, user = "postgres", dbname = "postgres", password = "postgres", query = "SELECT name FROM source_test_op" }
 
-[pipelines.sink.external]
+[pipelines.sink.producer]
 type = "kafka"
 config = { host = "localhost", port = 9092, topic = "test_out", group = "test", partition = 1 }

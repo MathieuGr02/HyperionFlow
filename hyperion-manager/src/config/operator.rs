@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::store::{error::StoreError, operator::StoreOperator},
-    validatable::Validatable,
+    validatable::{Validatable, ValidationError},
 };
 use serde::Deserialize;
 
@@ -18,8 +18,10 @@ pub enum OperatorConfig {
 }
 
 impl Validatable for OperatorConfig {
-    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
-        todo!()
+    fn validate(&self) -> Result<(), ValidationError> {
+        match self {
+            OperatorConfig::Postgres(postgres) => postgres.validate(),
+        }
     }
 }
 

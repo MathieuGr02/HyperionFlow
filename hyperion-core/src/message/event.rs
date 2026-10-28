@@ -1,11 +1,9 @@
-use time::OffsetDateTime;
-
 use crate::message::{event_record::EventRecord, position::Position};
 
 #[derive(Debug)]
 pub struct EventMessage {
     pub key: Option<Vec<u8>>,
-    pub ingestion_time: OffsetDateTime,
+    pub ingestion_time: i64,
     pub position: Position,
 }
 

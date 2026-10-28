@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use thiserror::Error;
 
+use crate::validatable::Validatable;
+
 #[derive(Debug, Error)]
 pub enum SerializationError {
     #[error("Parsing error: {0}")]
@@ -33,5 +35,11 @@ impl Serializer for JsonSerializer {
             .into_iter()
             .map(|j| self.serialize(j).unwrap())
             .collect())
+    }
+}
+
+impl Validatable for JsonSerializer {
+    fn validate(&self) -> Result<(), crate::validatable::ValidationError> {
+        Ok(())
     }
 }

@@ -50,6 +50,9 @@ impl PostgreSQLWriter {
         };
         let key_column = Column::new(key_column_name, ValueType::Bytes, true);
         table.columns.push(key_column);
+
+        let ingestion_time_column = Column::new("_ingestion_time", ValueType::Timestamp, false);
+        table.columns.push(ingestion_time_column);
     }
 
     fn create_table(client: &mut PostgreSQLClient, table: &Table) -> Result<(), PostgreSQLError> {

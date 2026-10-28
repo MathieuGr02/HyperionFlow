@@ -20,16 +20,16 @@ use crate::{
 #[derive(Debug, Deserialize)]
 pub struct SinkConfig {
     pub name: String,
-    pub external: ProducerConfig,
-    pub internal: ReaderConfig,
+    pub producer: ProducerConfig,
+    pub reader: ReaderConfig,
     pub serializer: SerializerType,
 }
 
 impl Validatable for SinkConfig {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
         Self::key_empty("name", &self.name)?;
-        self.external.validate()?;
-        self.internal.validate()?;
+        self.producer.validate()?;
+        self.reader.validate()?;
         self.serializer.validate()?;
         Ok(())
     }
@@ -41,7 +41,7 @@ impl SinkConfig {
         checkpoint_path: &PathBuf,
         receiver: EventChannelReceiver,
     ) -> Result<(String, RuntimeSink), EngineError> {
-        let reader = match self.internal {
+        let reader = match self.reader {
             #[cfg(feature = "sql")]
             ReaderConfig::Postgres(config) => Reader::Postgres(
                 PostgreSQLReader::connect(config)
@@ -49,7 +49,7 @@ impl SinkConfig {
             ),
         };
 
-        let producer = match self.external {
+        let producer = match self.producer {
             #[cfg(feature = "kafka")]
             ProducerConfig::Kafka(config) => Producer::Kafka(
                 KafkaProducer::connect(config)

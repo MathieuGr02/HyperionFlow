@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
 use serde_json::json;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
@@ -9,6 +9,7 @@ pub enum ValueType {
     Integer,
     Float,
     Bytes,
+    Timestamp,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -19,6 +20,32 @@ pub enum Value {
     Float(f64),
     Text(String),
     Bytes(Vec<u8>),
+    #[serde(
+        serialize_with = "offset_date_time_serializer",
+        deserialize_with = "offset_date_time_deserializer"
+    )]
+    Timestamp(i64),
+}
+
+pub fn offset_date_time_deserializer<'de, D>(deserializer: D) -> Result<i64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let v = serde_json::Value::deserialize(deserializer)?;
+    match v {
+        serde_json::Value::Number(t) => {
+            let t: i64 = t.as_i64().ok_or(Error::custom("Cannot cast to i64"))?;
+            Ok(t)
+        }
+        _ => Err(serde::de::Error::custom("Expected number")),
+    }
+}
+
+pub fn offset_date_time_serializer<S>(val: &i64, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_i64(val.to_owned())
 }
 
 impl From<&serde_json::Value> for Value {
@@ -49,6 +76,7 @@ impl Into<serde_json::Value> for Value {
             Value::Float(v) => json!(v),
             Value::Text(v) => json!(v),
             Value::Bytes(v) => json!(v),
+            Value::Timestamp(v) => json!(v),
         }
     }
 }

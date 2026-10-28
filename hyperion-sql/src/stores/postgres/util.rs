@@ -23,6 +23,7 @@ impl ToSql for Value {
             Value::Float(v) => v.to_sql(ty, out),
             Value::Text(v) => v.to_sql(ty, out),
             Value::Bytes(v) => v.to_sql(ty, out),
+            Value::Timestamp(v) => v.to_sql(ty, out),
         }
     }
 

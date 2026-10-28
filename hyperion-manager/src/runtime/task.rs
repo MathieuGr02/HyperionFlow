@@ -1,9 +1,6 @@
 use std::sync::{Arc, atomic::AtomicBool};
 
-use hyperion_core::components::{
-    component::Component,
-    task::{Task, TaskError},
-};
+use hyperion_core::components::{component::Component, task::Task};
 
 use crate::{
     config::{
@@ -11,10 +8,7 @@ use crate::{
         operator::Operator,
         trigger::TriggerType,
     },
-    runtime::{
-        engine::{Engine, EngineError},
-        runnable::Runnable,
-    },
+    runtime::{engine::EngineError, runnable::Runnable},
 };
 
 pub type RuntimeTask = Task<EventChannelSender, EventChannelReceiver, Operator, TriggerType>;

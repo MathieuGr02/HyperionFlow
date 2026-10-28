@@ -5,7 +5,7 @@ use hyperion_core::{
     validatable::{Validatable, ValidationError},
 };
 use thiserror::Error;
-use tracing::{debug, error};
+use tracing::debug;
 
 use crate::{
     config::{

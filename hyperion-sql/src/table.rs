@@ -1,6 +1,9 @@
+use std::collections::HashSet;
+
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::stores::postgres::util::SQLError;
 use crate::value_types::ValueType;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -11,12 +14,39 @@ pub struct Column {
 }
 
 impl Column {
-    pub fn new(name: impl Into<String>, data_type: ValueType, nullable: bool) -> Self {
-        Column {
+    const RESERVERD_NAMES: &[&str] = &["_ingestion_time", "_key"];
+
+    pub fn new(
+        name: impl Into<String>,
+        data_type: ValueType,
+        nullable: bool,
+    ) -> Result<Self, SQLError> {
+        let name = name.into();
+
+        if Self::RESERVERD_NAMES.contains(&name.as_str()) {
+            return Err(SQLError::InvalidColumn(format!(
+                "Column name {} is a reserved name and cannot be used",
+                name,
+            )));
+        }
+
+        let column = Column {
             name: name.into(),
             data_type,
             nullable,
+        };
+
+        column.check()?;
+
+        Ok(column)
+    }
+
+    pub fn check(&self) -> Result<(), SQLError> {
+        if self.name.is_empty() {
+            return Err(SQLError::InvalidColumn(String::from("Empty column name")));
         }
+
+        Ok(())
     }
 }
 
@@ -27,11 +57,31 @@ pub struct Table {
 }
 
 impl Table {
-    pub fn new(name: impl Into<String>, columns: Vec<Column>) -> Self {
-        Table {
+    pub fn new(name: impl Into<String>, columns: Vec<Column>) -> Result<Self, SQLError> {
+        let table = Table {
             name: name.into(),
             columns,
+        };
+
+        table.check()?;
+
+        Ok(table)
+    }
+
+    pub fn check(&self) -> Result<(), SQLError> {
+        let set: HashSet<&String> = self.columns.iter().map(|c| &c.name).collect();
+
+        if set.len() != self.columns.len() {
+            return Err(SQLError::InvalidTable(String::from(
+                "Duplicate column names",
+            )));
         }
+
+        for c in self.columns.iter() {
+            c.check()?;
+        }
+
+        Ok(())
     }
 
     pub fn get_name(&self) -> &str {
@@ -40,5 +90,20 @@ impl Table {
 
     pub fn get_column_names(&self) -> Vec<&String> {
         self.columns.iter().map(|c| &c.name).collect()
+    }
+
+    pub fn add_column(&mut self, column: Column) -> Result<(), SQLError> {
+        for c in self.columns.iter() {
+            if c.name == column.name {
+                return Err(SQLError::InvalidColumn(format!(
+                    "Column {} already exists in table {}",
+                    column.name, self.name,
+                )));
+            }
+        }
+
+        self.columns.push(column);
+
+        Ok(())
     }
 }

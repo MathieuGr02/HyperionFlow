@@ -12,6 +12,7 @@ use crate::{
     row_decoder::RowDecoder,
     stores::postgres::{
         client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
+        util::SQLError,
     },
     table::{Column, Table},
     value_types::ValueType,
@@ -43,16 +44,18 @@ pub struct PostgreSQLWriter {
 }
 
 impl PostgreSQLWriter {
-    fn extend_table(table: &mut Table, key_name: Option<String>) {
+    fn extend_table(table: &mut Table, key_name: Option<String>) -> Result<(), SQLError> {
         let key_column_name = match key_name {
             Some(key) => key,
             None => String::from("_key"),
         };
-        let key_column = Column::new(key_column_name, ValueType::Bytes, true);
-        table.columns.push(key_column);
+        let key_column = Column::new(key_column_name, ValueType::Bytes, true)?;
+        table.add_column(key_column)?;
 
-        let ingestion_time_column = Column::new("_ingestion_time", ValueType::Timestamp, false);
-        table.columns.push(ingestion_time_column);
+        let ingestion_time_column = Column::new("_ingestion_time", ValueType::Timestamp, false)?;
+        table.add_column(ingestion_time_column)?;
+
+        Ok(())
     }
 
     fn create_table(client: &mut PostgreSQLClient, table: &Table) -> Result<(), PostgreSQLError> {
@@ -108,7 +111,7 @@ impl PostgreSQLWriter {
         let column_names: Vec<String> = table.columns.iter().map(|c| c.name.clone()).collect();
         let decoder = RowDecoder::new(column_names);
 
-        Self::extend_table(&mut table, key_name);
+        Self::extend_table(&mut table, key_name)?;
         Self::create_table(&mut client, &table)?;
         let statement = Self::prepare_insert(&mut client, &table)?;
 

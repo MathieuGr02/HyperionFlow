@@ -42,6 +42,10 @@ impl ToSql for Value {
 
 #[derive(Debug, Error)]
 pub enum SQLError {
+    #[error("Invalid column: {0}")]
+    InvalidColumn(String),
+    #[error("Invalid table: {0}")]
+    InvalidTable(String),
     #[error("{0}")]
     Custom(String),
 }

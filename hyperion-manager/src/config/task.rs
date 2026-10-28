@@ -22,7 +22,7 @@ pub struct TaskConfig {
 
 impl Validatable for TaskConfig {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
-        Self::key_empty("name", &self.name)?;
+        Self::field_string_empty("name", &self.name)?;
         self.operator.validate()?;
         self.trigger.validate()?;
         Ok(())

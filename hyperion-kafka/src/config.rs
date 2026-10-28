@@ -12,9 +12,9 @@ pub struct KafkaConfiguration {
 
 impl Validatable for KafkaConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
-        Self::key_empty("host", &self.host)?;
-        Self::key_empty("topic", &self.topic)?;
-        Self::key_empty("group", &self.group)?;
+        Self::field_string_empty("host", &self.host)?;
+        Self::field_string_empty("topic", &self.topic)?;
+        Self::field_string_empty("group", &self.group)?;
 
         Ok(())
     }

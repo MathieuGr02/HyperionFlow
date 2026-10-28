@@ -12,10 +12,10 @@ pub struct PostgreSQLConfiguration {
 
 impl Validatable for PostgreSQLConfiguration {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
-        Self::key_empty("host", &self.host)?;
-        Self::key_empty("user", &self.user)?;
-        Self::key_empty("dbname", &self.dbname)?;
-        Self::key_empty("password", &self.password)?;
+        Self::field_string_empty("host", &self.host)?;
+        Self::field_string_empty("user", &self.user)?;
+        Self::field_string_empty("dbname", &self.dbname)?;
+        Self::field_string_empty("password", &self.password)?;
 
         Ok(())
     }

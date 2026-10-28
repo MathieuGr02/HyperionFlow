@@ -27,7 +27,7 @@ pub struct SinkConfig {
 
 impl Validatable for SinkConfig {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
-        Self::key_empty("name", &self.name)?;
+        Self::field_string_empty("name", &self.name)?;
         self.producer.validate()?;
         self.reader.validate()?;
         self.serializer.validate()?;

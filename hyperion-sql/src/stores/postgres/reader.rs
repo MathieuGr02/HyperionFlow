@@ -25,7 +25,7 @@ pub struct PostgreSQLReaderConfiguration {
 impl Validatable for PostgreSQLReaderConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         self.client_config.validate()?;
-        Self::key_empty("query", &self.query)?;
+        Self::field_string_empty("query", &self.query)?;
         Ok(())
     }
 }

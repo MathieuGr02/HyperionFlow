@@ -24,7 +24,7 @@ pub struct PostgreSQLOperatorConfiguration {
 impl Validatable for PostgreSQLOperatorConfiguration {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
         self.client_config.validate()?;
-        Self::key_empty("query", &self.query)?;
+        Self::field_string_empty("query", &self.query)?;
         Ok(())
     }
 }

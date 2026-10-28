@@ -13,7 +13,7 @@ pub struct PipelineConfig {
 
 impl Validatable for PipelineConfig {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
-        Self::key_empty("name", &self.name)?;
+        Self::field_string_empty("name", &self.name)?;
         self.source.validate()?;
         self.task.validate()?;
         self.sink.validate()?;

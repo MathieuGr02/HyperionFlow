@@ -1,16 +1,16 @@
 use thiserror::Error;
 
 pub trait Validatable {
-    /// Check if key's value is an empty string
+    /// Check if a field's string value is empty
     ///
-    /// - key: The name of the key
-    /// - value: The actual value of the key
-    fn key_empty(key: &str, value: &str) -> Result<(), ValidationError> {
+    /// - field: The name of the field in the struct. Used for the throwing of an [ValidationError]
+    /// - value: The actual value of the field
+    fn field_string_empty(field: &str, value: &str) -> Result<(), ValidationError> {
         if value.is_empty() {
             return Err(ValidationError::InvalidValue {
-                key: key.into(),
+                field: field.into(),
                 value: "".into(),
-                reason: format!("{} is empty", key),
+                reason: format!("{} is empty", field),
             });
         }
 
@@ -22,9 +22,9 @@ pub trait Validatable {
 
 #[derive(Debug, Error)]
 pub enum ValidationError {
-    #[error("Invalid value ({value}) for ({key}). Reason = {reason}")]
+    #[error("Invalid value ({value}) for ({field}). Reason = {reason}")]
     InvalidValue {
-        key: String,
+        field: String,
         value: String,
         reason: String,
     },

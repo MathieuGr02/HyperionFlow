@@ -1,13 +1,13 @@
 use std::path::PathBuf;
 
 use hyperion_core::{components::log::checkpoint::Checkpoint, validatable::Validatable};
-use hyperion_sql::stores::postgres::operator::PostgreSQLOperator;
+use hyperion_sql::stores::postgres::processor::PostgreSQLProcessor;
 use serde::Deserialize;
 
 use crate::{
     config::{
         comm::{EventChannelReceiver, EventChannelSender},
-        operator::{Operator, OperatorConfig},
+        processor::{Processor, ProcessorConfig},
         trigger::TriggerType,
     },
     runtime::{engine::EngineError, task::RuntimeTask},
@@ -16,7 +16,7 @@ use crate::{
 #[derive(Debug, Deserialize)]
 pub struct TaskConfig {
     pub name: String,
-    pub operator: OperatorConfig,
+    pub operator: ProcessorConfig,
     pub trigger: TriggerType,
 }
 
@@ -38,8 +38,8 @@ impl TaskConfig {
     ) -> Result<(String, RuntimeTask), EngineError> {
         let operator = match self.operator {
             #[cfg(feature = "sql")]
-            OperatorConfig::Postgres(config) => Operator::Postgres(
-                PostgreSQLOperator::connect(config)
+            ProcessorConfig::Postgres(config) => Processor::Postgres(
+                PostgreSQLProcessor::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
         };

@@ -1,4 +1,4 @@
 pub mod error;
-pub mod operator;
+pub mod processor;
 pub mod reader;
 pub mod writer;

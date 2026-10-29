@@ -82,3 +82,18 @@ impl Trigger for CountTrigger {
         self.counter = 0;
     }
 }
+
+pub struct WindowTrigger {}
+
+impl Trigger for WindowTrigger {
+    fn on_event<'event>(
+        &mut self,
+        event: &EventRecord<'event>,
+    ) -> Result<TriggerAction, TriggerError> {
+        todo!()
+    }
+
+    fn reset(&mut self) {
+        todo!()
+    }
+}

@@ -1,5 +1,5 @@
 use hyperion_core::{
-    components::store::{error::StoreError, operator::StoreOperator},
+    components::store::{error::StoreError, processor::StoreProcessor},
     validatable::Validatable,
 };
 use postgres::Statement;
@@ -14,7 +14,7 @@ use crate::{
 };
 
 #[derive(Debug, Deserialize)]
-pub struct PostgreSQLOperatorConfiguration {
+pub struct PostgreSQLProcessorConfiguration {
     #[serde(flatten)]
     client_config: PostgreSQLConfiguration,
     table: Table,
@@ -23,7 +23,7 @@ pub struct PostgreSQLOperatorConfiguration {
     output_name: String,
 }
 
-impl Validatable for PostgreSQLOperatorConfiguration {
+impl Validatable for PostgreSQLProcessorConfiguration {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
         self.client_config.validate()?;
         Self::field_string_empty("query", &self.query)?;
@@ -32,16 +32,16 @@ impl Validatable for PostgreSQLOperatorConfiguration {
 }
 
 #[allow(dead_code)]
-pub struct PostgreSQLOperator {
+pub struct PostgreSQLProcessor {
     client: PostgreSQLClient,
     table: Table,
     query: String,
     statement: Statement,
 }
 
-impl PostgreSQLOperator {
-    pub fn connect(config: PostgreSQLOperatorConfiguration) -> Result<Self, PostgreSQLError> {
-        let PostgreSQLOperatorConfiguration {
+impl PostgreSQLProcessor {
+    pub fn connect(config: PostgreSQLProcessorConfiguration) -> Result<Self, PostgreSQLError> {
+        let PostgreSQLProcessorConfiguration {
             client_config,
             table,
             query,
@@ -51,7 +51,7 @@ impl PostgreSQLOperator {
         let mut client = PostgreSQLClient::connect(client_config)?;
         let statement = Self::prepare_statement(&mut client, &table, &query, output_name)?;
 
-        Ok(PostgreSQLOperator {
+        Ok(PostgreSQLProcessor {
             client,
             table,
             query,
@@ -79,8 +79,8 @@ impl PostgreSQLOperator {
     }
 }
 
-impl StoreOperator for PostgreSQLOperator {
-    fn operate(&mut self) -> Result<(), StoreError> {
+impl StoreProcessor for PostgreSQLProcessor {
+    fn process(&mut self) -> Result<(), StoreError> {
         let res = self.client.pgclient.execute(&self.statement, &[]);
 
         if let Err(e) = res

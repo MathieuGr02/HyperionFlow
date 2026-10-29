@@ -5,13 +5,13 @@ use hyperion_core::components::{component::Component, task::Task};
 use crate::{
     config::{
         comm::{EventChannelReceiver, EventChannelSender},
-        operator::Operator,
+        processor::Processor,
         trigger::TriggerType,
     },
     runtime::{engine::EngineError, runnable::Runnable},
 };
 
-pub type RuntimeTask = Task<EventChannelSender, EventChannelReceiver, Operator, TriggerType>;
+pub type RuntimeTask = Task<EventChannelSender, EventChannelReceiver, Processor, TriggerType>;
 
 impl Runnable for RuntimeTask {
     type Output = Result<(), EngineError>;

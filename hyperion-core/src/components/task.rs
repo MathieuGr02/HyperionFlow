@@ -8,7 +8,7 @@ use tracing::{Level, error, info, span, trace};
 
 use crate::components::{
     component::Component, log::checkpoint::Checkpoint, receiver::EventReceiver,
-    sender::EventSender, store::operator::StoreOperator, trigger::Trigger,
+    sender::EventSender, store::processor::StoreProcessor, trigger::Trigger,
 };
 
 #[derive(Debug, Error)]
@@ -26,7 +26,7 @@ impl<ES, ER, O, T> Task<ES, ER, O, T>
 where
     ER: EventReceiver,
     ES: EventSender,
-    O: StoreOperator,
+    O: StoreProcessor,
     T: Trigger,
 {
     pub fn new(
@@ -50,7 +50,7 @@ impl<ES, ER, O, T> Component for Task<ES, ER, O, T>
 where
     ER: EventReceiver,
     ES: EventSender,
-    O: StoreOperator,
+    O: StoreProcessor,
     T: Trigger,
 {
     type Output = ();
@@ -81,7 +81,7 @@ where
                     .is_ok_and(|e| e.fire());
                 if should_fire {
                     trace!("Calling operate");
-                    if let Err(e) = self.operator.operate() {
+                    if let Err(e) = self.operator.process() {
                         error!(error = %e, "Error while executing task operation");
                     }
 

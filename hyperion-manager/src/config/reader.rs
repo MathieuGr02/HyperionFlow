@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
-    message::data::DataMessage,
+    message::{data::DataMessage, read::ReadMessage},
     validatable::{Validatable, ValidationError},
 };
 use serde::Deserialize;
@@ -30,10 +30,10 @@ pub enum Reader {
 }
 
 impl StoreReader for Reader {
-    fn read(&mut self) -> Result<Vec<DataMessage>, StoreError> {
+    fn read(&mut self, m: ReadMessage) -> Result<Vec<DataMessage>, StoreError> {
         match self {
             #[cfg(feature = "sql")]
-            Reader::Postgres(postgres) => postgres.read(),
+            Reader::Postgres(postgres) => postgres.read(m),
         }
     }
 }

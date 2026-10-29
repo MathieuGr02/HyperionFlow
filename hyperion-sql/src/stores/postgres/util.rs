@@ -70,7 +70,6 @@ impl<'a> FromSql<'a> for Value {
             }
             Type::INT2 | Type::INT8 => {
                 let v: i64 = i64::from_sql(ty, raw)?;
-                dbg!("{:?}", "HERE");
                 Ok(Self::Integer(v))
             }
             Type::TEXT | Type::VARCHAR => {

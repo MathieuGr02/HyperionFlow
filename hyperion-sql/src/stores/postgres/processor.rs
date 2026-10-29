@@ -1,16 +1,19 @@
 use hyperion_core::{
     components::store::{error::StoreError, processor::StoreProcessor},
+    message::process::ProcessMessage,
     validatable::Validatable,
 };
 use postgres::Statement;
 use serde::Deserialize;
-use tracing::info;
+use tracing::{info, trace};
 
 use crate::{
+    query::QueryBuilder,
     stores::postgres::{
         client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
+        util::SQLError,
     },
-    table::Table,
+    table::{Column, Table},
 };
 
 #[derive(Debug, Deserialize)]
@@ -43,13 +46,15 @@ impl PostgreSQLProcessor {
     pub fn connect(config: PostgreSQLProcessorConfiguration) -> Result<Self, PostgreSQLError> {
         let PostgreSQLProcessorConfiguration {
             client_config,
-            table,
+            mut table,
             query,
             output_name,
         } = config;
 
         let mut client = PostgreSQLClient::connect(client_config)?;
-        let statement = Self::prepare_statement(&mut client, &table, &query, output_name)?;
+        Self::extend_table(&mut table);
+        Self::create_table(&mut client, &table)?;
+        let statement = client.prepare_statement(&query)?;
 
         Ok(PostgreSQLProcessor {
             client,
@@ -59,34 +64,43 @@ impl PostgreSQLProcessor {
         })
     }
 
-    fn prepare_statement(
-        client: &mut PostgreSQLClient,
-        table: &Table,
-        query: &String,
-        output_name: String,
-    ) -> Result<Statement, PostgreSQLError> {
-        let create_materialized_view = format!(
-            "CREATE MATERIALIZED VIEW IF NOT EXISTS {} AS {}",
-            output_name, query
-        );
+    fn extend_table(table: &mut Table) -> Result<(), PostgreSQLError> {
+        let processing_time_column = Column::new(
+            "_processing_time",
+            crate::value_types::ValueType::Timestamp,
+            false,
+            Some(String::from("extract(epoch from now())")),
+        )?;
+        table.add_column(processing_time_column);
 
-        client.execute_ddl(&create_materialized_view)?;
+        Ok(())
+    }
 
-        info!("Created materialized view {}", output_name);
+    fn create_table(client: &mut PostgreSQLClient, table: &Table) -> Result<(), PostgreSQLError> {
+        let table_query = QueryBuilder::create_table(table.name.clone(), &table.columns, true)?;
+        client.execute_ddl(&table_query)?;
 
-        let refresh_materialized_view = format!("REFRESH MATERIALIZED VIEW {}", output_name);
-        client.prepare_statement(&refresh_materialized_view)
+        Ok(())
     }
 }
 
 impl StoreProcessor for PostgreSQLProcessor {
-    fn process(&mut self) -> Result<(), StoreError> {
-        let res = self.client.pgclient.execute(&self.statement, &[]);
+    fn process(&mut self, m: ProcessMessage) -> Result<(), StoreError> {
+        dbg!(&m);
 
-        if let Err(e) = res
-            && let Some(e) = e.as_db_error()
-        {
-            return Err(PostgreSQLError::from(e).into());
+        let res = self
+            .client
+            .pgclient
+            .execute(&self.statement, &[&m.data.from, &m.data.to]);
+
+        if let Err(e) = res {
+            if let Some(e) = e.as_db_error() {
+                return Err(PostgreSQLError::from(e).into());
+            }
+
+            return Err(PostgreSQLError::ExecuteError(e.to_string()).into());
+        } else if let Ok(n) = res {
+            trace!("Altered {n} rows")
         }
 
         Ok(())

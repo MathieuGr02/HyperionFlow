@@ -11,6 +11,8 @@ pub struct Column {
     pub name: String,
     pub data_type: ValueType,
     pub nullable: bool,
+    #[serde(default)]
+    pub default: Option<String>,
 }
 
 impl Column {
@@ -20,6 +22,7 @@ impl Column {
         name: impl Into<String>,
         data_type: ValueType,
         nullable: bool,
+        default: Option<String>,
     ) -> Result<Self, SQLError> {
         let name = name.into();
 
@@ -27,6 +30,7 @@ impl Column {
             name: name.into(),
             data_type,
             nullable,
+            default,
         };
 
         column.check()?;

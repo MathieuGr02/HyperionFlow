@@ -2,7 +2,7 @@
 name = "test"
 
 ###################
-# Source
+# source
 ###################
 [pipelines.source]
 name = "test"
@@ -24,8 +24,8 @@ password = "postgres"
 [pipelines.source.writer.config.table]
 name = "test_source"
 columns = [
-    { "name" = "id", "data_type" = "Integer", nullable = false },
-    { "name" = "name", "data_type" = "Text", nullable = false }
+    { "name" = "id", "data_type" = "integer", nullable = false },
+    { "name" = "value", "data_type" = "float", nullable = false }
 ]
 
 [pipelines.source.deserializer]
@@ -33,27 +33,27 @@ type = "json"
 config = { }
 
 ###################
-# Task
+# task
 ###################
 [pipelines.task]
 name = "test_task"
 
-[pipelines.task.operator]
+[pipelines.task.processor]
 type = "postgres"
 
-[pipelines.task.operator.config]
-query = "SELECT name FROM test_source"
+[pipelines.task.processor.config]
+query = "INSERT INTO test_process (id, value) SELECT id, EXP(value) FROM test_source WHERE _ingestion_time >= $1 AND _ingestion_time <= $2"
 host = "localhost"
 port = 5432
 user = "postgres"
 dbname = "postgres"
 password = "postgres"
 
-[pipelines.task.operator.config.table]
-name = "test_source"
+[pipelines.task.processor.config.table]
+name = "test_process"
 columns = [
-    { "name" = "id", "data_type" = "Integer", nullable = false },
-    { "name" = "name", "data_type" = "Text", nullable = false }
+    { "name" = "id", "data_type" = "integer", nullable = false },
+    { "name" = "value", "data_type" = "float", nullable = false },
 ]
 
 [pipelines.task.trigger]
@@ -61,7 +61,7 @@ type = "count_trigger"
 config = { max = 10 }
 
 ###################
-# Sink
+# sink
 ###################
 [pipelines.sink]
 name = "test_sink"
@@ -72,8 +72,21 @@ config = { }
 
 [pipelines.sink.reader]
 type = "postgres"
-config = { host = "localhost", port = 5432, user = "postgres", dbname = "postgres", password = "postgres", query = "SELECT name FROM test_source_op" }
+
+[pipelines.sink.reader.config]
+host = "localhost"
+port = 5432
+user = "postgres"
+dbname = "postgres"
+password = "postgres"
+query = "SELECT id, value, _processing_time FROM test_process WHERE _processing_time > $1"
 
 [pipelines.sink.producer]
 type = "kafka"
-config = { host = "localhost", port = 9092, topic = "test_out", group = "test", partition = 1 }
+
+[pipelines.sink.producer.config]
+host = "localhost"
+port = 9092
+topic = "test_out"
+group = "test"
+partition = 1

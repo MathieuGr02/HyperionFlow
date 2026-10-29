@@ -2,6 +2,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
 use serde_json::json;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
+#[serde(rename_all = "snake_case")]
 pub enum ValueType {
     Null,
     Bool,

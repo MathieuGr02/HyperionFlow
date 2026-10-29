@@ -14,7 +14,7 @@ impl DecodedMessage {
             DataMessage {
                 key: self.key.clone(),
                 value: self.value,
-                ingestion_time: self.ingestion_time,
+                time: self.ingestion_time,
             },
             EventMessage {
                 key: self.key,

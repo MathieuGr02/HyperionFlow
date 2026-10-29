@@ -8,6 +8,7 @@ use serde::Deserialize;
 use tracing::info;
 
 use crate::{
+    query::QueryBuilder,
     record::Record,
     row_decoder::RowDecoder,
     stores::postgres::{
@@ -34,8 +35,6 @@ impl Validatable for PostgreSQLWriterConfiguration {
 }
 
 /// The PostgreSQL writer
-///
-/// T
 pub struct PostgreSQLWriter {
     pub client: PostgreSQLClient,
     pub table: Table,
@@ -49,31 +48,18 @@ impl PostgreSQLWriter {
             Some(key) => key,
             None => String::from("_key"),
         };
-        let key_column = Column::new(key_column_name, ValueType::Bytes, true)?;
+        let key_column = Column::new(key_column_name, ValueType::Bytes, true, None)?;
         table.add_column(key_column)?;
 
-        let ingestion_time_column = Column::new("_ingestion_time", ValueType::Timestamp, false)?;
+        let ingestion_time_column =
+            Column::new("_ingestion_time", ValueType::Timestamp, false, None)?;
         table.add_column(ingestion_time_column)?;
 
         Ok(())
     }
 
     fn create_table(client: &mut PostgreSQLClient, table: &Table) -> Result<(), PostgreSQLError> {
-        let columns: Vec<String> = table
-            .columns
-            .iter()
-            .filter(|c| c.data_type != ValueType::Null)
-            .map(|c| {
-                let mut s = format!("{} {}", c.name, c.data_type);
-                if !c.nullable {
-                    s = format!("{} {}", s, "NOT NULL")
-                }
-                s
-            })
-            .collect();
-
-        let columns = columns.join(", ");
-        let table_query = format!("CREATE TABLE IF NOT EXISTS {} ({})", table.name, columns);
+        let table_query = QueryBuilder::create_table(table.name.clone(), &table.columns, true)?;
         client.execute_ddl(&table_query)?;
 
         info!("Created table {}", table.name);
@@ -86,16 +72,8 @@ impl PostgreSQLWriter {
         table: &Table,
     ) -> Result<Statement, PostgreSQLError> {
         let column_names: Vec<String> = table.columns.iter().map(|c| c.name.clone()).collect();
-        let columns_amount = column_names.len();
 
-        let values: Vec<String> = (1..columns_amount + 1).map(|i| format!("${}", i)).collect();
-        let values = values.join(", ");
-        let column_names = column_names.join(", ");
-        let insert_query = format!(
-            "INSERT INTO {} ({}) VALUES ({})",
-            &table.name, column_names, values
-        );
-
+        let insert_query = QueryBuilder::insert(table.name.clone(), column_names)?;
         client.prepare_statement(&insert_query)
     }
 
@@ -137,7 +115,7 @@ impl StoreWriter for PostgreSQLWriter {
         let key: Option<&Vec<u8>> = item.key.as_ref();
         params.push(&key);
 
-        let value: &(dyn ToSql + Sync) = &item.ingestion_time;
+        let value: &(dyn ToSql + Sync) = &item.time;
         params.push(value);
 
         let res = self.client.pgclient.execute(&self.statement, &params);

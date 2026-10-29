@@ -6,51 +6,54 @@ use std::sync::{
 use thiserror::Error;
 use tracing::{Level, error, info, span, trace};
 
-use crate::components::{
-    component::Component, log::checkpoint::Checkpoint, receiver::EventReceiver,
-    sender::EventSender, store::processor::StoreProcessor, trigger::Trigger,
+use crate::{
+    components::{
+        component::Component, log::checkpoint::Checkpoint, receiver::EventReceiver,
+        sender::EventSender, store::processor::StoreProcessor, trigger::Trigger,
+    },
+    event_handler::{Event, EventHandler},
 };
 
 #[derive(Debug, Error)]
 pub enum TaskError {}
 
-pub struct Task<ES, ER, O, T> {
+pub struct Task<ES, ER, P, T> {
     sender: ES,
     receiver: ER,
-    operator: O,
-    trigger: T,
+    processor: P,
     checkpoint: Checkpoint,
+    event_handler: EventHandler<T>,
 }
 
-impl<ES, ER, O, T> Task<ES, ER, O, T>
+impl<ES, ER, P, T> Task<ES, ER, P, T>
 where
     ER: EventReceiver,
     ES: EventSender,
-    O: StoreProcessor,
+    P: StoreProcessor,
     T: Trigger,
 {
     pub fn new(
-        operator: O,
+        processor: P,
         sender: ES,
         receiver: ER,
         trigger: T,
         checkpoint: Checkpoint,
     ) -> Result<Self, ()> {
         Ok(Task {
-            operator,
+            event_handler: EventHandler::new(trigger),
+            processor,
             sender,
             receiver,
-            trigger,
             checkpoint,
         })
     }
 }
 
-impl<ES, ER, O, T> Component for Task<ES, ER, O, T>
+impl<ES, ER, P, T> Component for Task<ES, ER, P, T>
 where
     ER: EventReceiver,
     ES: EventSender,
-    O: StoreProcessor,
+    P: StoreProcessor,
     T: Trigger,
 {
     type Output = ();
@@ -75,13 +78,16 @@ where
             };
 
             for event in events {
-                let should_fire = self
-                    .trigger
-                    .on_event(&event.as_event_record())
-                    .is_ok_and(|e| e.fire());
-                if should_fire {
+                let res = self.event_handler.handle_event(event.as_event_record());
+                if let Err(e) = res {
+                    error!(error = %e, "Error during event handling");
+                    continue;
+                }
+                let process_event = res.unwrap();
+
+                if let Event::Fire(m) = process_event {
                     trace!("Calling operate");
-                    if let Err(e) = self.operator.process() {
+                    if let Err(e) = self.processor.process(m) {
                         error!(error = %e, "Error while executing task operation");
                     }
 
@@ -89,7 +95,7 @@ where
                         error!(error = %e, "Error writing task checkpoint file");
                     }
 
-                    self.trigger.reset();
+                    self.event_handler.flush();
 
                     if let Err(e) = self.sender.send(vec![event]) {
                         error!(error = %e, "Error while sending event message");

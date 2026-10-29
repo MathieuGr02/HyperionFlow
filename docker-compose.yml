@@ -25,6 +25,9 @@ services:
       KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
       # Randomly generated Cluster ID for KRaft
       CLUSTER_ID: 'Mk3OEYBSD3TuVPWCGVj-Hw'
+    post_start:
+      - command: /bin/kafka-topics --create --if-not-exists --topic test_in --bootstrap-server localhost:9092
+      - command: /bin/kafka-topics --create --if-not-exists --topic test_out --bootstrap-server localhost:9092
     networks:
       - kafka-net
     healthcheck:
@@ -60,6 +63,18 @@ services:
 
   producer:
     build: ./producer
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC: test
+    networks:
+      - kafka-net
+    restart: "no"
+
+  consumer:
+    build: ./consumer
     depends_on:
       kafka:
         condition: service_healthy

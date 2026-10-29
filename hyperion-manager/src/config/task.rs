@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use hyperion_core::{components::log::checkpoint::Checkpoint, validatable::Validatable};
+use hyperion_core::{
+    components::log::checkpoint::Checkpoint,
+    validatable::{Validatable, ValidationError},
+};
 use hyperion_sql::stores::postgres::processor::PostgreSQLProcessor;
 use serde::Deserialize;
 
@@ -16,14 +19,14 @@ use crate::{
 #[derive(Debug, Deserialize)]
 pub struct TaskConfig {
     pub name: String,
-    pub operator: ProcessorConfig,
+    pub processor: ProcessorConfig,
     pub trigger: TriggerType,
 }
 
 impl Validatable for TaskConfig {
-    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
+    fn validate(&self) -> Result<(), ValidationError> {
         Self::field_string_empty("name", &self.name)?;
-        self.operator.validate()?;
+        self.processor.validate()?;
         self.trigger.validate()?;
         Ok(())
     }
@@ -36,7 +39,7 @@ impl TaskConfig {
         receiver: EventChannelReceiver,
         sender: EventChannelSender,
     ) -> Result<(String, RuntimeTask), EngineError> {
-        let operator = match self.operator {
+        let operator = match self.processor {
             #[cfg(feature = "sql")]
             ProcessorConfig::Postgres(config) => Processor::Postgres(
                 PostgreSQLProcessor::connect(config)

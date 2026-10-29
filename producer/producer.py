@@ -1,5 +1,6 @@
 import json
 import os
+from random import random
 from time import sleep
 
 from kafka import KafkaProducer
@@ -13,6 +14,6 @@ producer = KafkaProducer(
 )
 
 while True:
-    producer.send("test_in", key=str(CURRENT_KEY), value={"id": CURRENT_KEY, "name": "Test"})
+    producer.send("test_in", key=str(CURRENT_KEY), value={"id": CURRENT_KEY, "value": random()})
     CURRENT_KEY += 1
     sleep(1)

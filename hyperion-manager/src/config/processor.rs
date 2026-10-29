@@ -1,5 +1,6 @@
 use hyperion_core::{
     components::store::{error::StoreError, processor::StoreProcessor},
+    message::process::ProcessMessage,
     validatable::{Validatable, ValidationError},
 };
 use serde::Deserialize;
@@ -31,9 +32,9 @@ pub enum Processor {
 }
 
 impl StoreProcessor for Processor {
-    fn process(&mut self) -> Result<(), StoreError> {
+    fn process(&mut self, m: ProcessMessage) -> Result<(), StoreError> {
         match self {
-            Processor::Postgres(postgres) => postgres.process(),
+            Processor::Postgres(postgres) => postgres.process(m),
         }
     }
 }

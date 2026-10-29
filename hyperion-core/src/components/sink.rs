@@ -6,12 +6,15 @@ use std::sync::{
 use thiserror::Error;
 use tracing::{error, trace};
 
-use crate::components::{
-    event::producer::EventProducer, receiver::EventReceiver, store::reader::StoreReader,
-};
 use crate::{
     components::{component::Component, log::checkpoint::Checkpoint},
     serializer::Serializer,
+};
+use crate::{
+    components::{
+        event::producer::EventProducer, receiver::EventReceiver, store::reader::StoreReader,
+    },
+    message::read::ReadMessage,
 };
 
 #[derive(Debug, Error)]
@@ -67,6 +70,8 @@ where
     type Error = SinkError;
 
     fn main_loop(&mut self, shutdown: Arc<AtomicBool>) -> Result<Self::Output, Self::Error> {
+        let mut latest: i64 = 0;
+
         loop {
             if shutdown.load(Ordering::SeqCst) {
                 trace!("Shutting down");
@@ -87,7 +92,8 @@ where
                 }
             }
 
-            let res = self.reader.read();
+            let m = ReadMessage { time: latest };
+            let res = self.reader.read(m);
             let data = match res {
                 Ok(data) => data,
                 Err(e) => {
@@ -100,6 +106,8 @@ where
                 trace!("No data");
                 continue;
             }
+
+            latest = data.last().unwrap().time;
 
             let ser: Vec<Vec<_>> = data
                 .into_iter()

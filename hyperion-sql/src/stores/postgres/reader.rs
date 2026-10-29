@@ -2,11 +2,12 @@ use std::panic;
 
 use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
-    message::data::DataMessage,
+    message::{data::DataMessage, read::ReadMessage},
     validatable::{Validatable, ValidationError},
 };
 use postgres::{Row, Statement};
 use serde::Deserialize;
+use serde_json::json;
 
 use crate::{
     stores::postgres::{
@@ -62,19 +63,26 @@ impl PostgreSQLReader {
             }
         }
 
+        dbg!(&map);
+
+        let time = match map.get("_processing_time") {
+            Some(v) => v.as_i64().unwrap(),
+            None => 0,
+        };
+
         Ok(DataMessage {
             key: None,
             value: serde_json::Value::Object(map),
-            ingestion_time: 0,
+            time,
         })
     }
 }
 
 impl StoreReader for PostgreSQLReader {
-    fn read(&mut self) -> Result<Vec<DataMessage>, StoreError> {
+    fn read(&mut self, m: ReadMessage) -> Result<Vec<DataMessage>, StoreError> {
         let mut data_messages: Vec<DataMessage> = Vec::new();
-
-        let res = self.client.pgclient.query(&self.statement, &[]);
+        dbg!(&m);
+        let res = self.client.pgclient.query(&self.statement, &[&m.time]);
         if let Ok(rows) = res {
             for row in rows {
                 if row.is_empty() {

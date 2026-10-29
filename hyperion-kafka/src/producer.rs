@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use hyperion_core::components::event::{error::EventError, producer::EventProducer};
 use kafka::producer::{Producer, Record};
 use tracing::trace;
@@ -13,6 +15,8 @@ impl KafkaProducer {
     pub fn connect(config: KafkaConfiguration) -> Result<Self, KafkaError> {
         let connection_string = format!("{}:{}", config.host, config.port);
         let client = Producer::from_hosts(vec![connection_string])
+            .with_ack_timeout(Duration::from_secs(1))
+            .with_required_acks(kafka::client::RequiredAcks::One)
             .create()
             .map_err(|e| KafkaError::ConnectionError {
                 host: config.host.to_owned(),

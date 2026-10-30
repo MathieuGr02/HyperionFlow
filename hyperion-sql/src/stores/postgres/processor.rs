@@ -1,17 +1,16 @@
 use hyperion_core::{
     components::store::{error::StoreError, processor::StoreProcessor},
-    message::process::ProcessMessage,
+    message::process::{ProcessMessage, Range},
     validatable::Validatable,
 };
 use postgres::Statement;
 use serde::Deserialize;
-use tracing::{info, trace};
+use tracing::trace;
 
 use crate::{
     query::QueryBuilder,
     stores::postgres::{
         client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
-        util::SQLError,
     },
     table::{Column, Table},
 };
@@ -52,7 +51,7 @@ impl PostgreSQLProcessor {
         } = config;
 
         let mut client = PostgreSQLClient::connect(client_config)?;
-        Self::extend_table(&mut table);
+        Self::extend_table(&mut table)?;
         Self::create_table(&mut client, &table)?;
         let statement = client.prepare_statement(&query)?;
 
@@ -71,7 +70,7 @@ impl PostgreSQLProcessor {
             false,
             Some(String::from("extract(epoch from now())")),
         )?;
-        table.add_column(processing_time_column);
+        table.add_column(processing_time_column)?;
 
         Ok(())
     }
@@ -84,14 +83,14 @@ impl PostgreSQLProcessor {
     }
 }
 
-impl StoreProcessor for PostgreSQLProcessor {
-    fn process(&mut self, m: ProcessMessage) -> Result<(), StoreError> {
+impl StoreProcessor<Range> for PostgreSQLProcessor {
+    fn process(&mut self, m: ProcessMessage<Range>) -> Result<(), StoreError> {
         dbg!(&m);
 
         let res = self
             .client
             .pgclient
-            .execute(&self.statement, &[&m.data.from, &m.data.to]);
+            .execute(&self.statement, &[m.data.lower(), m.data.upper()]);
 
         if let Err(e) = res {
             if let Some(e) = e.as_db_error() {

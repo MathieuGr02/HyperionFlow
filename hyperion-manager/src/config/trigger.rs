@@ -1,6 +1,9 @@
 use hyperion_core::{
     components::trigger::{Trigger, TriggerAction, TriggerError},
-    message::event_record::EventRecord,
+    message::{
+        event_record::EventRecord,
+        process::{ProcessMessage, Range},
+    },
     validatable::{Validatable, ValidationError},
 };
 use serde::Deserialize;
@@ -22,10 +25,12 @@ impl Validatable for TriggerType {
 }
 
 impl Trigger for TriggerType {
+    type ActionType = Range;
+
     fn on_event<'event>(
         &mut self,
-        event: &'event EventRecord,
-    ) -> Result<TriggerAction, TriggerError> {
+        event: EventRecord<'event>,
+    ) -> Result<TriggerAction<Self::ActionType>, TriggerError> {
         match self {
             TriggerType::CountTrigger(trigger) => trigger.on_event(event),
         }
@@ -41,6 +46,8 @@ impl Trigger for TriggerType {
 /// The [CountTrigger] is a trigger which fires after `max` events have been observed
 #[derive(Debug, Deserialize)]
 pub struct CountTrigger {
+    lower_timestamp: Option<i64>,
+
     max: usize,
     #[serde(skip, default = "CountTrigger::default_counter")]
     counter: usize,
@@ -55,6 +62,7 @@ impl Validatable for CountTrigger {
 impl CountTrigger {
     pub fn new(max: usize) -> Self {
         CountTrigger {
+            lower_timestamp: None,
             counter: Self::default_counter(),
             max,
         }
@@ -66,7 +74,16 @@ impl CountTrigger {
 }
 
 impl Trigger for CountTrigger {
-    fn on_event<'event>(&mut self, _: &'event EventRecord) -> Result<TriggerAction, TriggerError> {
+    type ActionType = Range;
+
+    fn on_event<'event>(
+        &mut self,
+        event: EventRecord<'event>,
+    ) -> Result<TriggerAction<Self::ActionType>, TriggerError> {
+        if self.lower_timestamp.is_none() {
+            self.lower_timestamp = Some(*event.ingestion_time);
+        }
+
         self.counter += 1;
 
         if self.counter < self.max {
@@ -74,26 +91,18 @@ impl Trigger for CountTrigger {
         }
 
         trace!("Count trigger fire action");
-        Ok(TriggerAction::Fire)
+
+        let range = Range {
+            lower: self.lower_timestamp.unwrap(),
+            upper: *event.ingestion_time,
+        };
+
+        Ok(TriggerAction::Fire(ProcessMessage { data: range }))
     }
 
     fn reset(&mut self) {
         trace!("Resetting count trigger");
+        self.lower_timestamp = None;
         self.counter = 0;
-    }
-}
-
-pub struct WindowTrigger {}
-
-impl Trigger for WindowTrigger {
-    fn on_event<'event>(
-        &mut self,
-        event: &EventRecord<'event>,
-    ) -> Result<TriggerAction, TriggerError> {
-        todo!()
-    }
-
-    fn reset(&mut self) {
-        todo!()
     }
 }

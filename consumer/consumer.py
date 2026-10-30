@@ -1,9 +1,7 @@
 import json
 import os
-from random import random
-from time import sleep
 
-from kafka import KafkaConsumer, KafkaProducer
+from kafka import KafkaConsumer
 
 CURRENT_KEY = 0
 

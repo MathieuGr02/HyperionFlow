@@ -1,16 +1,29 @@
 use thiserror::Error;
 
-use crate::message::event_record::EventRecord;
+use crate::message::{
+    event_record::EventRecord,
+    process::{MessageType, ProcessMessage},
+};
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum TriggerAction {
-    Fire,
+#[derive(Debug)]
+pub enum TriggerAction<T: MessageType> {
+    Fire(ProcessMessage<T>),
     Continue,
 }
 
-impl TriggerAction {
+impl<T> TriggerAction<T>
+where
+    T: MessageType,
+{
     pub fn fire(&self) -> bool {
-        TriggerAction::Fire.eq(self)
+        matches!(self, Self::Fire(_))
+    }
+
+    pub fn to_process_message(self) -> Option<ProcessMessage<T>> {
+        match self {
+            TriggerAction::Fire(m) => Some(m),
+            TriggerAction::Continue => None,
+        }
     }
 }
 
@@ -18,9 +31,11 @@ impl TriggerAction {
 pub enum TriggerError {}
 
 pub trait Trigger {
+    type ActionType: MessageType;
+
     fn on_event<'event>(
         &mut self,
-        event: &EventRecord<'event>,
-    ) -> Result<TriggerAction, TriggerError>;
+        event: EventRecord<'event>,
+    ) -> Result<TriggerAction<Self::ActionType>, TriggerError>;
     fn reset(&mut self);
 }

@@ -1,5 +1,8 @@
-use crate::{components::store::error::StoreError, message::process::ProcessMessage};
+use crate::{
+    components::store::error::StoreError,
+    message::process::{MessageType, ProcessMessage},
+};
 
-pub trait StoreProcessor {
-    fn process(&mut self, m: ProcessMessage) -> Result<(), StoreError>;
+pub trait StoreProcessor<T: MessageType> {
+    fn process(&mut self, m: ProcessMessage<T>) -> Result<(), StoreError>;
 }

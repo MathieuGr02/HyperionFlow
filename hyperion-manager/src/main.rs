@@ -1,20 +1,25 @@
 use std::fs;
 
+use clap::Parser;
 use hyperion_manager::{
-    config::components::ComponentsConfig,
+    config::{args::Args, components::ComponentsConfig},
     runtime::engine::{Engine, EngineError},
     tracing::init_tracing,
 };
 use toml::de::Error;
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 fn main() -> Result<(), EngineError> {
+    let args = Args::parse();
+
     init_tracing();
 
     debug!("Initializing engine");
     let mut engine = Engine::init();
 
-    let t = fs::read_to_string("config.toml").unwrap();
+    info!("Loading configuration file {}", args.config_file);
+
+    let t = fs::read_to_string(args.config_file).expect("Unable to find config file");
     let res: Result<ComponentsConfig, Error> = toml::from_str(&t);
     if let Ok(config) = res {
         config

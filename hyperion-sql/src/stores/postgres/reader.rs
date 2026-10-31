@@ -7,7 +7,6 @@ use hyperion_core::{
 };
 use postgres::{Row, Statement};
 use serde::Deserialize;
-use serde_json::json;
 
 use crate::{
     stores::postgres::{
@@ -63,8 +62,6 @@ impl PostgreSQLReader {
             }
         }
 
-        dbg!(&map);
-
         let time = match map.get("_processing_time") {
             Some(v) => v.as_i64().unwrap(),
             None => 0,
@@ -81,7 +78,6 @@ impl PostgreSQLReader {
 impl StoreReader for PostgreSQLReader {
     fn read(&mut self, m: ReadMessage) -> Result<Vec<DataMessage>, StoreError> {
         let mut data_messages: Vec<DataMessage> = Vec::new();
-        dbg!(&m);
         let res = self.client.pgclient.query(&self.statement, &[&m.time]);
         if let Ok(rows) = res {
             for row in rows {

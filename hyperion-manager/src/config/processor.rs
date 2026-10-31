@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::store::{error::StoreError, processor::StoreProcessor},
-    message::process::{MessageType, ProcessMessage, Range},
+    message::process::{ProcessMessage, Range},
     validatable::{Validatable, ValidationError},
 };
 use serde::Deserialize;

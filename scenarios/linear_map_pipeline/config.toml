@@ -9,13 +9,19 @@ name = "test"
 
 [pipelines.source.consumer]
 type = "kafka"
-config = { host = "localhost", port = 9092, topic = "test_in", group = "test", partition = 1 }
+
+[pipelines.source.consumer.config]
+host = "kafka"
+port = 29092
+topic = "test_in"
+group = "test"
+partition = 1
 
 [pipelines.source.writer]
 type = "postgres"
 
 [pipelines.source.writer.config]
-host = "localhost"
+host = "postgres"
 port = 5432
 user = "postgres"
 dbname = "postgres"
@@ -43,7 +49,7 @@ type = "postgres"
 
 [pipelines.task.processor.config]
 query = "INSERT INTO test_process (id, value) SELECT id, EXP(value) FROM test_source WHERE _ingestion_time >= $1 AND _ingestion_time <= $2"
-host = "localhost"
+host = "postgres"
 port = 5432
 user = "postgres"
 dbname = "postgres"
@@ -74,7 +80,7 @@ config = { }
 type = "postgres"
 
 [pipelines.sink.reader.config]
-host = "localhost"
+host = "postgres"
 port = 5432
 user = "postgres"
 dbname = "postgres"
@@ -85,8 +91,8 @@ query = "SELECT id, value, _processing_time FROM test_process WHERE _processing_
 type = "kafka"
 
 [pipelines.sink.producer.config]
-host = "localhost"
-port = 9092
+host = "kafka"
+port = 29092
 topic = "test_out"
 group = "test"
 partition = 1

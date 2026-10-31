@@ -20,6 +20,7 @@ impl Validatable for ReaderConfig {
         match self {
             #[cfg(feature = "sql")]
             ReaderConfig::Postgres(postgres) => postgres.validate(),
+            _ => panic!(""),
         }
     }
 }
@@ -34,6 +35,7 @@ impl StoreReader for Reader {
         match self {
             #[cfg(feature = "sql")]
             Reader::Postgres(postgres) => postgres.read(m),
+            _ => panic!(""),
         }
     }
 }

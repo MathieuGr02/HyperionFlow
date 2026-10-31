@@ -85,8 +85,6 @@ impl PostgreSQLProcessor {
 
 impl StoreProcessor<Range> for PostgreSQLProcessor {
     fn process(&mut self, m: ProcessMessage<Range>) -> Result<(), StoreError> {
-        dbg!(&m);
-
         let res = self
             .client
             .pgclient

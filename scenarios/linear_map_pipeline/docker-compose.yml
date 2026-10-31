@@ -52,6 +52,8 @@ services:
 
   postgres:
     image: postgres
+    hostname: postgres
+    container_name: postgres
     restart: always
     shm_size: 128mb
     environment:
@@ -60,21 +62,23 @@ services:
       POSTGRES_DB: postgres
     ports:
       - "5432:5432"
+    networks:
+      - kafka-net
 
-  producer:
-    build: ./producer
+  hyperion:
+    build: ../..
     depends_on:
       kafka:
         condition: service_healthy
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      KAFKA_TOPIC: test
+      CONFIG_FILE: /config.toml
+    volumes:
+      - ./config.toml:/config.toml
     networks:
       - kafka-net
-    restart: "no"
 
-  consumer:
-    build: ./consumer
+  verifier:
+    build: ./verifier
     depends_on:
       kafka:
         condition: service_healthy

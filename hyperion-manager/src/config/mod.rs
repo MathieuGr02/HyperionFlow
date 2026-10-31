@@ -1,3 +1,4 @@
+pub mod args;
 pub mod comm;
 pub mod components;
 pub mod consumer;

@@ -1,30 +1,68 @@
-use hyperion_core::components::store_writer::StoreWriter;
+use hyperion_core::{
+    components::store::{error::StoreError, writer::StoreWriter},
+    message::data::DataMessage,
+    validatable::{Validatable, ValidationError},
+};
+use mongodb::sync::Collection;
+use serde::Deserialize;
 
-use crate::{client::MongoDBClient, config::MongoDBConfig, error::MongoDBError};
+use crate::{client::MongoDBClient, config::MongoDBConfiguration, error::MongoDBError};
+
+#[derive(Debug, Deserialize)]
+pub struct MongoDBWriterConfiguration {
+    #[serde(flatten)]
+    client_config: MongoDBConfiguration,
+    database: String,
+    collection: String,
+}
+
+impl Validatable for MongoDBWriterConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        self.client_config.validate()?;
+        Self::field_string_empty("database", &self.database)?;
+        Self::field_string_empty("collection", &self.collection)?;
+        Ok(())
+    }
+}
 
 pub struct MongoDBWriter {
     client: MongoDBClient,
+    collection: Collection<serde_json::Value>,
 }
 
 impl MongoDBWriter {
-    pub fn connect(config: MongoDBConfig) -> Result<Self, MongoDBError> {
-        let client = MongoDBClient::connect(config)?;
-        Ok(MongoDBWriter { client })
+    pub fn connect(config: MongoDBWriterConfiguration) -> Result<Self, MongoDBError> {
+        let MongoDBWriterConfiguration {
+            client_config,
+            database,
+            collection,
+        } = config;
+
+        let client = MongoDBClient::connect(client_config)?;
+        let database = client.mgclient.database(&database);
+        let collection = database.collection(&collection);
+
+        Ok(MongoDBWriter { client, collection })
     }
 }
 
 impl StoreWriter for MongoDBWriter {
-    fn write(
-        &mut self,
-        item: hyperion_core::message::DataMessage,
-    ) -> Result<(), hyperion_core::components::store_error::StoreError> {
-        todo!()
+    fn write(&mut self, item: DataMessage) -> Result<(), StoreError> {
+        let insert = self
+            .collection
+            .insert_one(item.value)
+            .run()
+            .map_err(|e| MongoDBError::InsertError(e.to_string()).into())?;
+        Ok(())
     }
 
-    fn write_batch(
-        &mut self,
-        items: Vec<hyperion_core::message::DataMessage>,
-    ) -> Result<(), hyperion_core::components::store_error::StoreError> {
-        todo!()
+    fn write_batch(&mut self, items: Vec<DataMessage>) -> Result<(), StoreError> {
+        let data: Vec<serde_json::Value> = items.into_iter().map(|item| item.value).collect();
+        let res = self
+            .collection
+            .insert_many(data)
+            .run()
+            .map_err(|e| MongoDBError::InsertError(e.to_string()).into())?;
+        Ok(())
     }
 }

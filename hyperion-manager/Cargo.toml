@@ -5,12 +5,17 @@ edition = "2024"
 
 [features]
 sql = ["dep:hyperion-sql"]
+mql = ["dep:hyperion-mql"]
 kafka = ["dep:hyperion-kafka"]
-all = ["sql", "kafka"]
+all = ["sql", "mql", "kafka"]
 
 [dependencies]
 hyperion-core = { path = "../hyperion-core" }
+
+# Store adapters
+hyperion-mql = { path = "../hyperion-mql", optional = true }
 hyperion-sql = { path = "../hyperion-sql", optional = true }
+
 hyperion-kafka = { path = "../hyperion-kafka", optional = true }
 
 clap = { version = "4.6.7", features = ["derive"] }

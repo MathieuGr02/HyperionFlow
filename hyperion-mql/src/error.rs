@@ -4,6 +4,8 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum MongoDBError {
     #[error("{0}")]
+    MQLError(String),
+    #[error("{0}")]
     AggregateError(String),
     #[error("{0}")]
     InsertError(String),
@@ -16,6 +18,7 @@ pub enum MongoDBError {
 impl Into<StoreError> for MongoDBError {
     fn into(self) -> StoreError {
         match self {
+            MongoDBError::MQLError(error) => StoreError::Custom(error),
             MongoDBError::AggregateError(error) => StoreError::Custom(error),
             MongoDBError::ConnectionError(error) => StoreError::ConnectionError(error),
             MongoDBError::InsertError(error) => StoreError::WriteError(error),

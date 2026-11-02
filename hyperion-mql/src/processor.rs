@@ -1,17 +1,14 @@
 use hyperion_core::{
     components::store::{error::StoreError, processor::StoreProcessor},
-    message::{
-        data,
-        process::{ProcessMessage, Range},
-    },
+    message::process::{ProcessMessage, Range},
     validatable::{Validatable, ValidationError},
 };
 use mongodb::{
-    bson::{Document, doc, document},
+    bson::{self, Document, doc},
     sync::Collection,
 };
 use serde::Deserialize;
-use serde_json::json;
+use tracing::error;
 
 use crate::{client::MongoDBClient, config::MongoDBConfiguration, error::MongoDBError};
 
@@ -21,6 +18,7 @@ pub struct MongoDBProcessorConfiguration {
     client_config: MongoDBConfiguration,
     database: String,
     collection: String,
+    query: String,
 }
 
 impl Validatable for MongoDBProcessorConfiguration {
@@ -35,6 +33,7 @@ impl Validatable for MongoDBProcessorConfiguration {
 pub struct MongoDBProcessor {
     client: MongoDBClient,
     collection: Collection<serde_json::Value>,
+    query: Document,
 }
 
 impl MongoDBProcessor {
@@ -43,6 +42,7 @@ impl MongoDBProcessor {
             client_config,
             database,
             collection,
+            query,
         } = config;
 
         let client = MongoDBClient::connect(client_config)?;
@@ -50,7 +50,17 @@ impl MongoDBProcessor {
         let database = client.mgclient.database(&database);
         let collection = database.collection(&collection);
 
-        Ok(MongoDBProcessor { client, collection })
+        dbg!(&query);
+        let json: serde_json::Value =
+            serde_json::from_str(&query).map_err(|e| MongoDBError::MQLError(e.to_string()))?;
+        dbg!(&json);
+        let res = bson::to_document(&json).map_err(|e| MongoDBError::MQLError(e.to_string()))?;
+
+        Ok(MongoDBProcessor {
+            client,
+            collection,
+            query: res,
+        })
     }
 }
 
@@ -61,7 +71,7 @@ impl StoreProcessor<Range> for MongoDBProcessor {
 
         let pipeline = vec![
             doc! { "$match": { "_processing_time": { "$gte": from, "$lte": to  } } },
-            doc! { "$addFields": { "value": { "$exp": "$value" } } },
+            self.query.clone(),
             doc! { "$merge": { "into": "test_out", "on": "_id" } },
         ];
 

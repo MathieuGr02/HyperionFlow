@@ -54,7 +54,7 @@ impl SourceConfig {
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
             #[cfg(feature = "mql")]
-            WriterConfig::MongoDB(config) => Writer::MongoDB(
+            WriterConfig::Mongodb(config) => Writer::Mongodb(
                 MongoDBWriter::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),

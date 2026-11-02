@@ -15,7 +15,7 @@ use crate::{
         store::{error::StoreError, writer::StoreWriter},
     },
     deserializer::{DeserializationError, Deserializer},
-    message::{data::DataMessage, decoded::DecodedMessage, event::EventMessage},
+    message::{data::DataMessage, event::EventMessage},
 };
 
 #[derive(Debug, Error)]
@@ -105,21 +105,25 @@ where
 
             trace!("Fetched {} items", batch.len());
 
-            let batch: Vec<_> = batch
+            let (batch, errors): (Vec<_>, Vec<_>) = batch
                 .into_iter()
                 .map(|item| {
-                    let value = self.deserializer.deserialize(item.value).unwrap();
-                    DecodedMessage {
-                        key: item.key,
-                        value: value,
-                        position: item.position,
-                        ingestion_time: item.ingestion_time,
-                    }
+                    trace!("Decoding message position {:?}", &item.position);
+                    item.decode(&self.deserializer)
                 })
-                .collect();
+                .partition(Result::is_ok);
 
-            let (data, events): (Vec<DataMessage>, Vec<EventMessage>) =
-                batch.into_iter().map(|m| m.split()).collect();
+            let errors: Vec<DeserializationError> =
+                errors.into_iter().map(Result::unwrap_err).collect();
+            if !errors.is_empty() {
+                error!("{:?}", errors);
+            }
+
+            let (data, events): (Vec<DataMessage>, Vec<EventMessage>) = batch
+                .into_iter()
+                .map(Result::unwrap)
+                .map(|m| m.split())
+                .collect();
 
             // Write checkpoint for latest record from external event source
             let latest_position = &events.last().unwrap().position;

@@ -1,5 +1,10 @@
-use crate::message::position::Position;
+use crate::{
+    deserializer::{DeserializationError, Deserializer},
+    message::{decoded::DecodedMessage, position::Position},
+};
 
+/// The encoded message.
+/// Defines the raw data consumed from an external event source.
 #[derive(Debug)]
 pub struct EncodedMessage {
     pub key: Option<Vec<u8>>,
@@ -16,5 +21,20 @@ impl EncodedMessage {
             position,
             ingestion_time: time::OffsetDateTime::now_utc().unix_timestamp(),
         }
+    }
+
+    /// Decode the raw encoded message into a decoded message given a deserializer,
+    /// Deserializes the `value` field of the encoded message.
+    pub fn decode<D: Deserializer>(
+        self,
+        deserializer: &D,
+    ) -> Result<DecodedMessage, DeserializationError> {
+        let value = deserializer.deserialize(self.value)?;
+        Ok(DecodedMessage {
+            key: self.key,
+            value,
+            position: self.position,
+            ingestion_time: self.ingestion_time,
+        })
     }
 }

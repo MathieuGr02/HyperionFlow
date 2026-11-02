@@ -1,5 +1,7 @@
 use crate::message::{data::DataMessage, event::EventMessage, position::Position};
 
+/// The decoded message.
+/// Defines the parsed data consumed from an external event source.
 #[derive(Debug)]
 pub struct DecodedMessage {
     pub key: Option<Vec<u8>>,
@@ -9,6 +11,7 @@ pub struct DecodedMessage {
 }
 
 impl DecodedMessage {
+    /// Split the decoded message into a data message and an event message
     pub fn split(self) -> (DataMessage, EventMessage) {
         (
             DataMessage {

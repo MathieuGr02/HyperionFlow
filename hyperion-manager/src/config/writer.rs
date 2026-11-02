@@ -17,7 +17,7 @@ pub enum WriterConfig {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLWriterConfiguration),
     #[cfg(feature = "mql")]
-    MongoDB(MongoDBWriterConfiguration),
+    Mongodb(MongoDBWriterConfiguration),
 }
 
 impl Validatable for WriterConfig {
@@ -26,7 +26,7 @@ impl Validatable for WriterConfig {
             #[cfg(feature = "sql")]
             WriterConfig::Postgres(postgres) => postgres.validate(),
             #[cfg(feature = "mql")]
-            WriterConfig::MongoDB(mongodb) => mongodb.validate(),
+            WriterConfig::Mongodb(mongodb) => mongodb.validate(),
         }
     }
 }
@@ -35,7 +35,7 @@ pub enum Writer {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLWriter),
     #[cfg(feature = "mql")]
-    MongoDB(MongoDBWriter),
+    Mongodb(MongoDBWriter),
 }
 
 impl StoreWriter for Writer {
@@ -44,7 +44,7 @@ impl StoreWriter for Writer {
             #[cfg(feature = "sql")]
             Writer::Postgres(postgres) => postgres.write(item),
             #[cfg(feature = "mql")]
-            Writer::MongoDB(mongodb) => mongodb.write(item),
+            Writer::Mongodb(mongodb) => mongodb.write(item),
         }
     }
 
@@ -53,7 +53,7 @@ impl StoreWriter for Writer {
             #[cfg(feature = "sql")]
             Writer::Postgres(postgres) => postgres.write_batch(items),
             #[cfg(feature = "mql")]
-            Writer::MongoDB(mongodb) => mongodb.write_batch(items),
+            Writer::Mongodb(mongodb) => mongodb.write_batch(items),
         }
     }
 }

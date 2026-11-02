@@ -11,9 +11,9 @@ use crate::{client::MongoDBClient, config::MongoDBConfiguration, error::MongoDBE
 #[derive(Debug, Deserialize)]
 pub struct MongoDBReaderConfiguration {
     #[serde(flatten)]
-    client_config: MongoDBConfiguration,
-    database: String,
-    collection: String,
+    pub client_config: MongoDBConfiguration,
+    pub database: String,
+    pub collection: String,
 }
 
 impl Validatable for MongoDBReaderConfiguration {

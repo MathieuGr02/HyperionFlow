@@ -17,7 +17,7 @@ pub enum ReaderConfig {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLReaderConfiguration),
     #[cfg(feature = "mql")]
-    MongoDB(MongoDBReaderConfiguration),
+    Mongodb(MongoDBReaderConfiguration),
 }
 
 impl Validatable for ReaderConfig {
@@ -26,7 +26,7 @@ impl Validatable for ReaderConfig {
             #[cfg(feature = "sql")]
             ReaderConfig::Postgres(postgres) => postgres.validate(),
             #[cfg(feature = "mql")]
-            ReaderConfig::MongoDB(mongodb) => mongodb.validate(),
+            ReaderConfig::Mongodb(mongodb) => mongodb.validate(),
         }
     }
 }
@@ -35,7 +35,7 @@ pub enum Reader {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLReader),
     #[cfg(feature = "mql")]
-    MongoDB(MongoDBReader),
+    Mongodb(MongoDBReader),
 }
 
 impl StoreReader for Reader {
@@ -44,7 +44,7 @@ impl StoreReader for Reader {
             #[cfg(feature = "sql")]
             Reader::Postgres(postgres) => postgres.read(m),
             #[cfg(feature = "mql")]
-            Reader::MongoDB(mongodb) => mongodb.read(m),
+            Reader::Mongodb(mongodb) => mongodb.read(m),
         }
     }
 }

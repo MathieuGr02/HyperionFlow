@@ -23,7 +23,8 @@ type = "mongodb"
 [pipelines.source.writer.config]
 host = "mongodb"
 port = 27017
-user = "mongodb"
+username = "mongodb"
+password = "mongodb"
 database = "test"
 collection = "test_in"
 
@@ -44,7 +45,8 @@ type = "mongodb"
 query = "INSERT INTO test_process (id, value) SELECT id, EXP(value) FROM test_source WHERE _ingestion_time >= $1 AND _ingestion_time <= $2"
 host = "mongodb"
 port = 27017
-user = "mongodb"
+username = "mongodb"
+password = "mongodb"
 database = "test"
 collection = "test_in"
 
@@ -69,9 +71,10 @@ type = "mongodb"
 query = "SELECT id, value, _processing_time FROM test_process WHERE _processing_time > $1"
 host = "mongodb"
 port = 27017
-user = "mongodb"
+username = "mongodb"
+password = "mongodb"
 database = "test"
-collection = "test_in"
+collection = "test_out"
 
 [pipelines.sink.producer]
 type = "kafka"

@@ -48,7 +48,7 @@ impl TaskConfig {
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
             #[cfg(feature = "mql")]
-            ProcessorConfig::MongoDB(config) => Processor::MongoDB(
+            ProcessorConfig::Mongodb(config) => Processor::Mongodb(
                 MongoDBProcessor::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),

@@ -88,7 +88,7 @@ where
                 let action = res.unwrap();
 
                 if let TriggerAction::Fire(m) = action {
-                    trace!("Calling operate");
+                    trace!("Calling operate {:?}", &m);
                     if let Err(e) = self.processor.process(m) {
                         error!(error = %e, "Error while executing task operation");
                     }

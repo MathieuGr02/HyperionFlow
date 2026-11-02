@@ -5,15 +5,16 @@ use hyperion_core::{
 };
 use mongodb::sync::Collection;
 use serde::Deserialize;
+use serde_json::json;
 
 use crate::{client::MongoDBClient, config::MongoDBConfiguration, error::MongoDBError};
 
 #[derive(Debug, Deserialize)]
 pub struct MongoDBWriterConfiguration {
     #[serde(flatten)]
-    client_config: MongoDBConfiguration,
-    database: String,
-    collection: String,
+    pub client_config: MongoDBConfiguration,
+    pub database: String,
+    pub collection: String,
 }
 
 impl Validatable for MongoDBWriterConfiguration {
@@ -44,10 +45,18 @@ impl MongoDBWriter {
 
         Ok(MongoDBWriter { client, collection })
     }
+
+    pub fn process_datamessage(m: &mut DataMessage) {
+        if let Some(map) = m.value.as_object_mut() {
+            map.insert("_processing_time".to_string(), json!(&m.time));
+        }
+    }
 }
 
 impl StoreWriter for MongoDBWriter {
-    fn write(&mut self, item: DataMessage) -> Result<(), StoreError> {
+    fn write(&mut self, mut item: DataMessage) -> Result<(), StoreError> {
+        Self::process_datamessage(&mut item);
+
         let insert = self
             .collection
             .insert_one(item.value)
@@ -57,7 +66,14 @@ impl StoreWriter for MongoDBWriter {
     }
 
     fn write_batch(&mut self, items: Vec<DataMessage>) -> Result<(), StoreError> {
-        let data: Vec<serde_json::Value> = items.into_iter().map(|item| item.value).collect();
+        let data: Vec<serde_json::Value> = items
+            .into_iter()
+            .map(|mut item| {
+                Self::process_datamessage(&mut item);
+                item.value
+            })
+            .collect();
+
         let res = self
             .collection
             .insert_many(data)

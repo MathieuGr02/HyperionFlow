@@ -21,7 +21,7 @@ pub enum ProcessorConfig {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLProcessorConfiguration),
     #[cfg(feature = "mql")]
-    MongoDB(MongoDBProcessorConfiguration),
+    Mongodb(MongoDBProcessorConfiguration),
 }
 
 impl Validatable for ProcessorConfig {
@@ -30,7 +30,7 @@ impl Validatable for ProcessorConfig {
             #[cfg(feature = "sql")]
             ProcessorConfig::Postgres(postgres) => postgres.validate(),
             #[cfg(feature = "mql")]
-            ProcessorConfig::MongoDB(mongodb) => mongodb.validate(),
+            ProcessorConfig::Mongodb(mongodb) => mongodb.validate(),
         }
     }
 }
@@ -39,7 +39,7 @@ pub enum Processor {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLProcessor),
     #[cfg(feature = "mql")]
-    MongoDB(MongoDBProcessor),
+    Mongodb(MongoDBProcessor),
 }
 
 impl StoreProcessor<Range> for Processor {
@@ -48,7 +48,7 @@ impl StoreProcessor<Range> for Processor {
             #[cfg(feature = "sql")]
             Processor::Postgres(postgres) => postgres.process(m),
             #[cfg(feature = "mql")]
-            Processor::MongoDB(mongodb) => mongodb.process(m),
+            Processor::Mongodb(mongodb) => mongodb.process(m),
         }
     }
 }

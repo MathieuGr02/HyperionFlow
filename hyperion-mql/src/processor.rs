@@ -1,10 +1,17 @@
 use hyperion_core::{
     components::store::{error::StoreError, processor::StoreProcessor},
-    message::process::{ProcessMessage, Range},
+    message::{
+        data,
+        process::{ProcessMessage, Range},
+    },
     validatable::{Validatable, ValidationError},
 };
-use mongodb::sync::Collection;
+use mongodb::{
+    bson::{Document, doc, document},
+    sync::Collection,
+};
 use serde::Deserialize;
+use serde_json::json;
 
 use crate::{client::MongoDBClient, config::MongoDBConfiguration, error::MongoDBError};
 
@@ -49,7 +56,19 @@ impl MongoDBProcessor {
 
 impl StoreProcessor<Range> for MongoDBProcessor {
     fn process(&mut self, m: ProcessMessage<Range>) -> Result<(), StoreError> {
-        todo!()
-        //self.collection.aggregate(pipeline)
+        let from = m.data.lower();
+        let to = m.data.upper();
+
+        let pipeline = vec![
+            doc! { "$match": { "_processing_time": { "$gte": from, "$lte": to  } } },
+            doc! { "$addFields": { "value": { "$exp": "$value" } } },
+            doc! { "$merge": { "into": "test_out", "on": "_id" } },
+        ];
+
+        self.collection
+            .aggregate(pipeline)
+            .run()
+            .map_err(|e| MongoDBError::AggregateError(e.to_string()).into())?;
+        Ok(())
     }
 }

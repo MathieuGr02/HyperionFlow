@@ -1,9 +1,13 @@
+use std::fmt::Debug;
+
+/// The process message.
+/// Provides the relevant information for the processing step to the underlying data store.
 #[derive(Debug)]
 pub struct ProcessMessage<T: MessageType> {
     pub data: T,
 }
 
-pub trait MessageType {}
+pub trait MessageType: Debug {}
 
 #[derive(Debug)]
 pub struct Range {

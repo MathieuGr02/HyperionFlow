@@ -6,6 +6,7 @@ COPY hyperion-core ./hyperion-core
 COPY hyperion-kafka ./hyperion-kafka
 COPY hyperion-manager ./hyperion-manager
 COPY hyperion-sql ./hyperion-sql
+COPY hyperion-mql ./hyperion-mql
 COPY Cargo.toml .
 COPY Cargo.toml .
 

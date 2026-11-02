@@ -1,6 +1,7 @@
 use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
     message::{data::DataMessage, read::ReadMessage},
+    validatable::Validatable,
 };
 use mongodb::{bson::doc, sync::Collection};
 use serde::Deserialize;
@@ -13,6 +14,15 @@ pub struct MongoDBReaderConfiguration {
     client_config: MongoDBConfiguration,
     database: String,
     collection: String,
+}
+
+impl Validatable for MongoDBReaderConfiguration {
+    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
+        self.client_config.validate()?;
+        Self::field_string_empty("database", &self.database)?;
+        Self::field_string_empty("collection", &self.collection)?;
+        Ok(())
+    }
 }
 
 pub struct MongoDBReader {

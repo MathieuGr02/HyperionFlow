@@ -1,6 +1,7 @@
 use hyperion_core::{
     components::store::{error::StoreError, processor::StoreProcessor},
     message::process::{ProcessMessage, Range},
+    validatable::{Validatable, ValidationError},
 };
 use mongodb::sync::Collection;
 use serde::Deserialize;
@@ -13,6 +14,15 @@ pub struct MongoDBProcessorConfiguration {
     client_config: MongoDBConfiguration,
     database: String,
     collection: String,
+}
+
+impl Validatable for MongoDBProcessorConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        self.client_config.validate()?;
+        Self::field_string_empty("database", &self.database)?;
+        Self::field_string_empty("collection", &self.collection)?;
+        Ok(())
+    }
 }
 
 pub struct MongoDBProcessor {

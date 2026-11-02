@@ -1,0 +1,84 @@
+[[pipelines]]
+name = "test"
+
+###################
+# source
+###################
+[pipelines.source]
+name = "test"
+
+[pipelines.source.consumer]
+type = "kafka"
+
+[pipelines.source.consumer.config]
+host = "kafka"
+port = 29092
+topic = "test_in"
+group = "test"
+partition = 1
+
+[pipelines.source.writer]
+type = "mongodb"
+
+[pipelines.source.writer.config]
+host = "mongodb"
+port = 27017
+user = "mongodb"
+database = "test"
+collection = "test_in"
+
+[pipelines.source.deserializer]
+type = "json"
+config = { }
+
+###################
+# task
+###################
+[pipelines.task]
+name = "test_task"
+
+[pipelines.task.processor]
+type = "mongodb"
+
+[pipelines.task.processor.config]
+query = "INSERT INTO test_process (id, value) SELECT id, EXP(value) FROM test_source WHERE _ingestion_time >= $1 AND _ingestion_time <= $2"
+host = "mongodb"
+port = 27017
+user = "mongodb"
+database = "test"
+collection = "test_in"
+
+[pipelines.task.trigger]
+type = "count_trigger"
+config = { max = 10 }
+
+###################
+# sink
+###################
+[pipelines.sink]
+name = "test_sink"
+
+[pipelines.sink.serializer]
+type = "json"
+config = { }
+
+[pipelines.sink.reader]
+type = "mongodb"
+
+[pipelines.sink.reader.config]
+query = "SELECT id, value, _processing_time FROM test_process WHERE _processing_time > $1"
+host = "mongodb"
+port = 27017
+user = "mongodb"
+database = "test"
+collection = "test_in"
+
+[pipelines.sink.producer]
+type = "kafka"
+
+[pipelines.sink.producer.config]
+host = "kafka"
+port = 29092
+topic = "test_out"
+group = "test"
+partition = 1

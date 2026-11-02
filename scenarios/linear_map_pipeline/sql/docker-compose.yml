@@ -37,19 +37,6 @@ services:
       retries: 20
       start_period: 20s
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
-    ports:
-      - "8080:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local-kraft-cluster
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-    depends_on:
-      - kafka
-    networks:
-      - kafka-net
-
   postgres:
     image: postgres
     hostname: postgres
@@ -66,7 +53,7 @@ services:
       - kafka-net
 
   hyperion:
-    build: ../..
+    build: ../../..
     depends_on:
       kafka:
         condition: service_healthy
@@ -78,7 +65,7 @@ services:
       - kafka-net
 
   verifier:
-    build: ./verifier
+    build: ../verifier
     depends_on:
       kafka:
         condition: service_healthy

@@ -3,6 +3,9 @@ use hyperion_core::{
     message::data::DataMessage,
     validatable::{Validatable, ValidationError},
 };
+#[cfg(feature = "mql")]
+use hyperion_mql::writer::MongoDBWriter;
+use hyperion_mql::writer::MongoDBWriterConfiguration;
 use serde::Deserialize;
 
 #[cfg(feature = "sql")]
@@ -13,6 +16,8 @@ use hyperion_sql::stores::postgres::writer::{PostgreSQLWriter, PostgreSQLWriterC
 pub enum WriterConfig {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLWriterConfiguration),
+    #[cfg(feature = "mql")]
+    MongoDB(MongoDBWriterConfiguration),
 }
 
 impl Validatable for WriterConfig {
@@ -20,6 +25,8 @@ impl Validatable for WriterConfig {
         match self {
             #[cfg(feature = "sql")]
             WriterConfig::Postgres(postgres) => postgres.validate(),
+            #[cfg(feature = "mql")]
+            WriterConfig::MongoDB(mongodb) => mongodb.validate(),
         }
     }
 }
@@ -27,6 +34,8 @@ impl Validatable for WriterConfig {
 pub enum Writer {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLWriter),
+    #[cfg(feature = "mql")]
+    MongoDB(MongoDBWriter),
 }
 
 impl StoreWriter for Writer {
@@ -34,6 +43,8 @@ impl StoreWriter for Writer {
         match self {
             #[cfg(feature = "sql")]
             Writer::Postgres(postgres) => postgres.write(item),
+            #[cfg(feature = "mql")]
+            Writer::MongoDB(mongodb) => mongodb.write(item),
         }
     }
 
@@ -41,6 +52,8 @@ impl StoreWriter for Writer {
         match self {
             #[cfg(feature = "sql")]
             Writer::Postgres(postgres) => postgres.write_batch(items),
+            #[cfg(feature = "mql")]
+            Writer::MongoDB(mongodb) => mongodb.write_batch(items),
         }
     }
 }

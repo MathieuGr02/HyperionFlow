@@ -4,6 +4,8 @@ use hyperion_core::{
     components::log::checkpoint::Checkpoint,
     validatable::{Validatable, ValidationError},
 };
+#[cfg(feature = "mql")]
+use hyperion_mql::processor::MongoDBProcessor;
 use hyperion_sql::stores::postgres::processor::PostgreSQLProcessor;
 use serde::Deserialize;
 
@@ -43,6 +45,11 @@ impl TaskConfig {
             #[cfg(feature = "sql")]
             ProcessorConfig::Postgres(config) => Processor::Postgres(
                 PostgreSQLProcessor::connect(config)
+                    .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
+            ),
+            #[cfg(feature = "mql")]
+            ProcessorConfig::MongoDB(config) => Processor::MongoDB(
+                MongoDBProcessor::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
         };

@@ -3,6 +3,9 @@ use hyperion_core::{
     message::{data::DataMessage, read::ReadMessage},
     validatable::{Validatable, ValidationError},
 };
+#[cfg(feature = "mql")]
+use hyperion_mql::reader::MongoDBReader;
+use hyperion_mql::reader::MongoDBReaderConfiguration;
 use serde::Deserialize;
 
 #[cfg(feature = "sql")]
@@ -13,6 +16,8 @@ use hyperion_sql::stores::postgres::reader::{PostgreSQLReader, PostgreSQLReaderC
 pub enum ReaderConfig {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLReaderConfiguration),
+    #[cfg(feature = "mql")]
+    MongoDB(MongoDBReaderConfiguration),
 }
 
 impl Validatable for ReaderConfig {
@@ -20,7 +25,8 @@ impl Validatable for ReaderConfig {
         match self {
             #[cfg(feature = "sql")]
             ReaderConfig::Postgres(postgres) => postgres.validate(),
-            _ => panic!(""),
+            #[cfg(feature = "mql")]
+            ReaderConfig::MongoDB(mongodb) => mongodb.validate(),
         }
     }
 }
@@ -28,6 +34,8 @@ impl Validatable for ReaderConfig {
 pub enum Reader {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLReader),
+    #[cfg(feature = "mql")]
+    MongoDB(MongoDBReader),
 }
 
 impl StoreReader for Reader {
@@ -35,7 +43,8 @@ impl StoreReader for Reader {
         match self {
             #[cfg(feature = "sql")]
             Reader::Postgres(postgres) => postgres.read(m),
-            _ => panic!(""),
+            #[cfg(feature = "mql")]
+            Reader::MongoDB(mongodb) => mongodb.read(m),
         }
     }
 }

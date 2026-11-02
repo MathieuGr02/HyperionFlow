@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use hyperion_core::{components::log::checkpoint::Checkpoint, validatable::Validatable};
 use hyperion_kafka::consumer::KafkaConsumer;
+#[cfg(feature = "mql")]
+use hyperion_mql::writer::MongoDBWriter;
 use hyperion_sql::stores::postgres::writer::PostgreSQLWriter;
 use serde::Deserialize;
 
@@ -49,6 +51,11 @@ impl SourceConfig {
             #[cfg(feature = "sql")]
             WriterConfig::Postgres(config) => Writer::Postgres(
                 PostgreSQLWriter::connect(config)
+                    .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
+            ),
+            #[cfg(feature = "mql")]
+            WriterConfig::MongoDB(config) => Writer::MongoDB(
+                MongoDBWriter::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
         };

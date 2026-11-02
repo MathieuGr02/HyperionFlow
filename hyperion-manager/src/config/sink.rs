@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use hyperion_core::{components::log::checkpoint::Checkpoint, validatable::Validatable};
 use hyperion_kafka::producer::KafkaProducer;
+#[cfg(feature = "mql")]
+use hyperion_mql::reader::MongoDBReader;
 use hyperion_sql::stores::postgres::reader::PostgreSQLReader;
 use serde::Deserialize;
 
@@ -45,6 +47,11 @@ impl SinkConfig {
             #[cfg(feature = "sql")]
             ReaderConfig::Postgres(config) => Reader::Postgres(
                 PostgreSQLReader::connect(config)
+                    .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
+            ),
+            #[cfg(feature = "mql")]
+            ReaderConfig::MongoDB(config) => Reader::MongoDB(
+                MongoDBReader::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
         };

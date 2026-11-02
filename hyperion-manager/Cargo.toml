@@ -6,15 +6,18 @@ edition = "2024"
 [features]
 sql = ["dep:hyperion-sql"]
 mql = ["dep:hyperion-mql"]
+cypher = ["dep:hyperion-cypher"]
+
 kafka = ["dep:hyperion-kafka"]
-all = ["sql", "mql", "kafka"]
+all = ["sql", "mql", "cypher", "kafka"]
 
 [dependencies]
 hyperion-core = { path = "../hyperion-core" }
 
 # Store adapters
-hyperion-mql = { path = "../hyperion-mql", optional = true }
 hyperion-sql = { path = "../hyperion-sql", optional = true }
+hyperion-mql = { path = "../hyperion-mql", optional = true }
+hyperion-cypher = { path = "../hyperion-cypher", optional = true }
 
 hyperion-kafka = { path = "../hyperion-kafka", optional = true }
 

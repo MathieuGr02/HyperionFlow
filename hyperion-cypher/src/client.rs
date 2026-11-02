@@ -1,5 +1,5 @@
 use hyperion_core::components::store::error::StoreError;
-use neo4rs::{BoltString, BoltType, Graph, query};
+use neo4rs::{BoltString, BoltType, Graph, Query, query};
 use tokio::runtime::{self, Runtime};
 
 use crate::{config::Neo4jConfiguration, error::Neo4jError};
@@ -30,17 +30,17 @@ impl Neo4jClient {
 
     pub fn execute<K, V>(
         &mut self,
-        query: &str,
+        query: Query,
         params: impl IntoIterator<Item = (K, V)>,
     ) -> Result<(), StoreError>
     where
         K: Into<BoltString>,
         V: Into<BoltType>,
     {
-        let q = neo4rs::query(query).params(params);
+        let parameterised = query.params(params);
         let _ = self
             .rt
-            .block_on(self.graph.execute(q))
+            .block_on(self.graph.execute(parameterised))
             .map_err(|e| Neo4jError::Custom(e.to_string()).into())?;
 
         Ok(())

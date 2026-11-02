@@ -10,8 +10,8 @@ use crate::{client::Neo4jClient, config::Neo4jConfiguration, error::Neo4jError};
 #[derive(Debug, Deserialize)]
 pub struct Neo4jWriterConfiguration {
     #[serde(flatten)]
-    client_config: Neo4jConfiguration,
-    query: String,
+    pub client_config: Neo4jConfiguration,
+    pub query: String,
 }
 
 pub struct Neo4jWriter {
@@ -34,7 +34,11 @@ impl Neo4jWriter {
 }
 
 impl StoreWriter for Neo4jWriter {
-    fn write(&mut self, item: DataMessage) -> Result<(), StoreError> {}
+    fn write(&mut self, item: DataMessage) -> Result<(), StoreError> {
+        todo!()
+    }
 
-    fn write_batch(&mut self, items: Vec<DataMessage>) -> Result<(), StoreError> {}
+    fn write_batch(&mut self, items: Vec<DataMessage>) -> Result<(), StoreError> {
+        todo!()
+    }
 }

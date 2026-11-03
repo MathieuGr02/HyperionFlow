@@ -8,7 +8,6 @@ use mongodb::{
     sync::Collection,
 };
 use serde::Deserialize;
-use tracing::error;
 
 use crate::{client::MongoDBClient, config::MongoDBConfiguration, error::MongoDBError};
 

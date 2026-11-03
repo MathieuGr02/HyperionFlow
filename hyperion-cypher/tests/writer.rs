@@ -5,8 +5,18 @@ mod tests {
         config::Neo4jConfiguration,
         writer::{Neo4jWriter, Neo4jWriterConfiguration},
     };
+    use neo4rs::{BoltMap, BoltType};
+    use serde::Deserialize;
     use serde_json::json;
 
+    #[test]
+    fn test() {
+        let x = json!({"id": 1, "name": "mg"});
+        let bolt = BoltMap::deserialize(x);
+        panic!("{:?}", bolt);
+    }
+
+    /*
     fn get_default_config() -> Neo4jConfiguration {
         Neo4jConfiguration {
             host: "localhost".to_string(),
@@ -19,7 +29,7 @@ mod tests {
     fn writer() {
         let config = Neo4jWriterConfiguration {
             client_config: get_default_config(),
-            query: "CREATE (p:Person {})".to_string(),
+            query: "CREATE (p:Person $person)".to_string(),
         };
 
         let mut writer = Neo4jWriter::connect(config).unwrap();
@@ -29,4 +39,5 @@ mod tests {
             time: 10,
         });
     }
+    */
 }

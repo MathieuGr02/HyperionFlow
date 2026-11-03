@@ -2,8 +2,8 @@ use hyperion_core::{
     components::store::{error::StoreError, writer::StoreWriter},
     message::data::DataMessage,
 };
-use neo4rs::Query;
-use serde::Deserialize;
+use neo4rs::{BoltType, Query};
+use serde::{Deserialize, de::IntoDeserializer};
 
 use crate::{client::Neo4jClient, config::Neo4jConfiguration, error::Neo4jError};
 

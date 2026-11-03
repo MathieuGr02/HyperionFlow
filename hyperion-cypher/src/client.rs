@@ -1,6 +1,7 @@
 use hyperion_core::components::store::error::StoreError;
-use neo4rs::{BoltString, BoltType, Graph, Query, query};
-use tokio::runtime::{self, Runtime};
+use neo4rs::{BoltString, BoltType, Graph, Query};
+use serde::Deserialize;
+use tokio::runtime::Runtime;
 
 use crate::{config::Neo4jConfiguration, error::Neo4jError};
 
@@ -8,6 +9,11 @@ pub struct Neo4jClient {
     pub config: Neo4jConfiguration,
     pub graph: Graph,
     pub rt: Runtime,
+}
+
+#[derive(Debug, Deserialize)]
+struct X {
+    data: BoltType,
 }
 
 impl Neo4jClient {
@@ -37,6 +43,8 @@ impl Neo4jClient {
         K: Into<BoltString>,
         V: Into<BoltType>,
     {
+        let x = serde_json::Value::Null;
+        let x = BoltType::deserialize(x);
         let parameterised = query.params(params);
         let _ = self
             .rt

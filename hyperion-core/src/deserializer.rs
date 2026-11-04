@@ -2,8 +2,8 @@ use serde::Deserialize;
 use thiserror::Error;
 
 use crate::{
-    Value,
     validatable::{Validatable, ValidationError},
+    value::Value,
 };
 
 #[derive(Debug, Error)]

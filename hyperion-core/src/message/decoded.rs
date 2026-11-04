@@ -1,7 +1,6 @@
 use crate::{
-    Value,
     message::{data::DataMessage, event::EventMessage, position::Position},
-    value::{Bytes, Timestamp},
+    value::{Bytes, Timestamp, Value},
 };
 
 /// The decoded message.

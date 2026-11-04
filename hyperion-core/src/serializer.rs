@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::{Value, validatable::Validatable};
+use crate::{validatable::Validatable, value::Value};
 
 #[derive(Debug, Error)]
 pub enum SerializationError {

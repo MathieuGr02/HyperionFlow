@@ -1,7 +1,4 @@
-use crate::{
-    Value,
-    value::{Bytes, Timestamp},
-};
+use crate::value::{Bytes, Timestamp, Value};
 
 #[derive(Debug)]
 pub struct DataMessage {

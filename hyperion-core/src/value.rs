@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Value {
     Null,
+    Bytes(Vec<u8>),
     Boolean(bool),
     Integer(i64),
     Float(f64),

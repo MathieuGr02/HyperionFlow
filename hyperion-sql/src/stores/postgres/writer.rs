@@ -2,6 +2,7 @@ use hyperion_core::{
     components::store::{error::StoreError, writer::StoreWriter},
     message::data::DataMessage,
     validatable::Validatable,
+    value::Bytes,
 };
 use postgres::{Statement, types::ToSql};
 use serde::Deserialize;
@@ -104,7 +105,7 @@ impl PostgreSQLWriter {
 
 impl StoreWriter for PostgreSQLWriter {
     fn write(&mut self, item: DataMessage) -> Result<(), StoreError> {
-        let record = Record::decode(item.value, &self.decoder);
+        let record = Record::decode(item.value.into(), &self.decoder);
 
         let mut params: Vec<&(dyn ToSql + Sync)> = record
             .data
@@ -112,10 +113,10 @@ impl StoreWriter for PostgreSQLWriter {
             .map(|v| v as &(dyn ToSql + Sync))
             .collect();
 
-        let key: Option<&Vec<u8>> = item.key.as_ref();
+        let key: Option<&[u8]> = item.key.as_ref().map(Bytes::as_array);
         params.push(&key);
 
-        let value: &(dyn ToSql + Sync) = &item.time;
+        let value: &(dyn ToSql + Sync) = &item.time.as_i64();
         params.push(value);
 
         let res = self.client.pgclient.execute(&self.statement, &params);

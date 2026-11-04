@@ -1,6 +1,7 @@
 use crate::{
     deserializer::{DeserializationError, Deserializer},
     message::{decoded::DecodedMessage, position::Position},
+    value::{Bytes, Timestamp},
 };
 
 /// The encoded message.
@@ -10,7 +11,7 @@ pub struct EncodedMessage {
     pub key: Option<Vec<u8>>,
     pub value: Vec<u8>,
     pub position: Position,
-    pub ingestion_time: i64,
+    pub ingestion_time: Timestamp,
 }
 
 impl EncodedMessage {
@@ -19,7 +20,7 @@ impl EncodedMessage {
             key,
             value,
             position,
-            ingestion_time: time::OffsetDateTime::now_utc().unix_timestamp(),
+            ingestion_time: Timestamp::now(),
         }
     }
 
@@ -31,7 +32,7 @@ impl EncodedMessage {
     ) -> Result<DecodedMessage, DeserializationError> {
         let value = deserializer.deserialize(self.value)?;
         Ok(DecodedMessage {
-            key: self.key,
+            key: self.key.map(Bytes::from),
             value,
             position: self.position,
             ingestion_time: self.ingestion_time,

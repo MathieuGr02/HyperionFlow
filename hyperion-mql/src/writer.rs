@@ -2,10 +2,10 @@ use hyperion_core::{
     components::store::{error::StoreError, writer::StoreWriter},
     message::data::DataMessage,
     validatable::{Validatable, ValidationError},
+    value::Value,
 };
 use mongodb::sync::Collection;
 use serde::Deserialize;
-use serde_json::json;
 
 use crate::{client::MongoDBClient, config::MongoDBConfiguration, error::MongoDBError};
 
@@ -28,7 +28,7 @@ impl Validatable for MongoDBWriterConfiguration {
 
 pub struct MongoDBWriter {
     client: MongoDBClient,
-    collection: Collection<serde_json::Value>,
+    collection: Collection<Value>,
 }
 
 impl MongoDBWriter {
@@ -47,8 +47,8 @@ impl MongoDBWriter {
     }
 
     pub fn process_datamessage(m: &mut DataMessage) {
-        if let Some(map) = m.value.as_object_mut() {
-            map.insert("_processing_time".to_string(), json!(&m.time));
+        if let Some(map) = m.value.as_map_mut() {
+            map.insert("_processing_time".to_string(), m.time.into());
         }
     }
 }
@@ -66,7 +66,7 @@ impl StoreWriter for MongoDBWriter {
     }
 
     fn write_batch(&mut self, items: Vec<DataMessage>) -> Result<(), StoreError> {
-        let data: Vec<serde_json::Value> = items
+        let data: Vec<Value> = items
             .into_iter()
             .map(|mut item| {
                 Self::process_datamessage(&mut item);

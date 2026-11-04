@@ -26,8 +26,8 @@ impl RowDecoder {
     /// Get the index of the of the column
     ///
     /// Returns `Some(usize)` if the column is present, otherwise `None`
-    pub fn get_index(&self, column: &str) -> Option<usize> {
-        self.order.get(column).copied()
+    pub fn get_index<T: AsRef<str>>(&self, column: T) -> Option<usize> {
+        self.order.get(column.as_ref()).copied()
     }
 
     /// Get the amount of columns

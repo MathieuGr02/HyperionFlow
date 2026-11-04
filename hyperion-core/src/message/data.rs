@@ -1,6 +1,8 @@
+use crate::value::{Bytes, Timestamp, Value};
+
 #[derive(Debug)]
 pub struct DataMessage {
-    pub key: Option<Vec<u8>>,
-    pub value: serde_json::Value,
-    pub time: i64,
+    pub key: Option<Bytes>,
+    pub value: Value,
+    pub time: Timestamp,
 }

@@ -2,6 +2,7 @@ use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
     message::{data::DataMessage, read::ReadMessage},
     validatable::Validatable,
+    value::{Integer, Timestamp, Value},
 };
 use mongodb::{bson::doc, sync::Collection};
 use serde::Deserialize;
@@ -27,7 +28,7 @@ impl Validatable for MongoDBReaderConfiguration {
 
 pub struct MongoDBReader {
     client: MongoDBClient,
-    collection: Collection<serde_json::Value>,
+    collection: Collection<Value>,
 }
 
 impl MongoDBReader {
@@ -50,7 +51,7 @@ impl MongoDBReader {
 impl StoreReader for MongoDBReader {
     fn read(&mut self, m: ReadMessage) -> Result<Vec<DataMessage>, StoreError> {
         let time = m.time;
-        let doc = doc! { "_processing_time": { "$gt": time } };
+        let doc = doc! { "_processing_time": { "$gt": time.as_i64() } };
         let cursor = self
             .collection
             .find(doc)
@@ -61,15 +62,18 @@ impl StoreReader for MongoDBReader {
             .into_iter()
             .filter_map(|item| item.ok())
             .map(|value| {
-                let processing_time = match value.get("_processing_time") {
-                    Some(time) => time.as_i64().unwrap(),
-                    None => 0,
-                };
+                let map = value.as_map_ref();
+                let mut timestamp = Timestamp::empty();
+                if let Some(map) = map {
+                    if let Some(Value::Integer(int)) = map.get("_processing_time") {
+                        timestamp = Timestamp::from(int.as_i64());
+                    }
+                }
 
                 DataMessage {
                     key: None,
                     value,
-                    time: processing_time,
+                    time: timestamp,
                 }
             })
             .collect();

@@ -21,7 +21,9 @@ def producer(produced_items: Queue):
 
     while True:
         key, value = str(CURRENT_KEY), {"id": CURRENT_KEY, "value": random()}
-        producer.send("test_in", key=key, value=value)
+        res = producer.send("test_in", key=key, value=value)
+        while not res.is_done:
+            pass
         CURRENT_KEY += 1
         print(f"Adding produced message {(key, value)}")
         produced_items.put((key, value))

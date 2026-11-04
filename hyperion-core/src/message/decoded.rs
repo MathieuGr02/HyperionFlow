@@ -1,13 +1,17 @@
-use crate::message::{data::DataMessage, event::EventMessage, position::Position};
+use crate::{
+    Value,
+    message::{data::DataMessage, event::EventMessage, position::Position},
+    value::{Bytes, Timestamp},
+};
 
 /// The decoded message.
 /// Defines the parsed data consumed from an external event source.
 #[derive(Debug)]
 pub struct DecodedMessage {
-    pub key: Option<Vec<u8>>,
-    pub value: serde_json::Value,
+    pub key: Option<Bytes>,
+    pub value: Value,
     pub position: Position,
-    pub ingestion_time: i64,
+    pub ingestion_time: Timestamp,
 }
 
 impl DecodedMessage {
@@ -17,7 +21,7 @@ impl DecodedMessage {
             DataMessage {
                 key: self.key.clone(),
                 value: self.value,
-                time: self.ingestion_time,
+                time: self.ingestion_time.clone(),
             },
             EventMessage {
                 key: self.key,

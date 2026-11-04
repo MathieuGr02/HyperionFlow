@@ -1,4 +1,6 @@
+use crate::value::Timestamp;
+
 #[derive(Debug)]
 pub struct ReadMessage {
-    pub time: i64,
+    pub time: Timestamp,
 }

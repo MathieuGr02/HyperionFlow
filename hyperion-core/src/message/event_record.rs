@@ -1,4 +1,6 @@
+use crate::value::{Bytes, Timestamp};
+
 pub struct EventRecord<'event> {
-    pub key: &'event Option<Vec<u8>>,
-    pub ingestion_time: &'event i64,
+    pub key: &'event Option<Bytes>,
+    pub ingestion_time: &'event Timestamp,
 }

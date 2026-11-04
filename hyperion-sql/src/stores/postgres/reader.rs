@@ -70,7 +70,6 @@ impl PostgreSQLReader {
             }
         }
 
-        dbg!(&map);
         let time = match map.remove("_processing_time") {
             Some(Value::Integer(timestamp)) => Timestamp::from(timestamp.as_i64()),
             _ => Timestamp::empty(),

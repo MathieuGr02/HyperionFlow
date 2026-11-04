@@ -2,8 +2,7 @@ use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
     message::{data::DataMessage, read::ReadMessage},
     validatable::Validatable,
-    value::Timestamp,
-    value::Value,
+    value::{Integer, Timestamp, Value},
 };
 use mongodb::{bson::doc, sync::Collection};
 use serde::Deserialize;
@@ -65,10 +64,10 @@ impl StoreReader for MongoDBReader {
             .map(|value| {
                 let map = value.as_map_ref();
                 let mut timestamp = Timestamp::empty();
-                if let Some(map) = map
-                    && let Some(t) = map.get("_processing_time")
-                {
-                    timestamp = t.as_timestamp().unwrap().clone();
+                if let Some(map) = map {
+                    if let Some(Value::Integer(int)) = map.get("_processing_time") {
+                        timestamp = Timestamp::from(int.as_i64());
+                    }
                 }
 
                 DataMessage {

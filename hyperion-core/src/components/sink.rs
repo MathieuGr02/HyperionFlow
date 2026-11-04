@@ -117,7 +117,7 @@ where
                 .map(|d| self.serializer.serialize(d.value).unwrap())
                 .collect();
 
-            trace!("Pushing files {}", ser.len());
+            trace!("Pushing {} records", ser.len());
             if let Err(e) = self.producer.push(ser) {
                 error!(error = %e, "Error pushing data to external source");
             }

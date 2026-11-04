@@ -1,4 +1,4 @@
-use postgres::{Client, NoTls, Statement};
+use postgres::{Client, NoTls, Statement, types::ToSql};
 use tracing::trace;
 
 use crate::stores::postgres::{config::PostgreSQLConfiguration, error::PostgreSQLError};

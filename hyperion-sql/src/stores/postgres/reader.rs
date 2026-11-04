@@ -10,6 +10,7 @@ use hyperion_core::{
 };
 use postgres::{Row, Statement};
 use serde::Deserialize;
+use tracing::trace;
 
 use crate::{
     stores::postgres::{
@@ -36,6 +37,7 @@ impl Validatable for PostgreSQLReaderConfiguration {
 pub struct PostgreSQLReader {
     pub client: PostgreSQLClient,
     statement: Statement,
+    query: String,
 }
 
 impl PostgreSQLReader {
@@ -49,7 +51,11 @@ impl PostgreSQLReader {
 
         let statement = client.prepare_statement(&query)?;
 
-        Ok(PostgreSQLReader { client, statement })
+        Ok(PostgreSQLReader {
+            client,
+            statement,
+            query,
+        })
     }
 
     pub fn row_to_datamessage(row: Row) -> Result<DataMessage, PostgreSQLError> {
@@ -64,8 +70,9 @@ impl PostgreSQLReader {
             }
         }
 
+        dbg!(&map);
         let time = match map.remove("_processing_time") {
-            Some(Value::Timestamp(timestamp)) => timestamp,
+            Some(Value::Integer(timestamp)) => Timestamp::from(timestamp.as_i64()),
             _ => Timestamp::empty(),
         };
 
@@ -80,6 +87,13 @@ impl PostgreSQLReader {
 impl StoreReader for PostgreSQLReader {
     fn read(&mut self, m: ReadMessage) -> Result<Vec<DataMessage>, StoreError> {
         let mut data_messages: Vec<DataMessage> = Vec::new();
+
+        trace!(
+            "Executing SQL query {} with timestamp={}",
+            &self.query,
+            m.time.as_i64()
+        );
+
         let res = self
             .client
             .pgclient

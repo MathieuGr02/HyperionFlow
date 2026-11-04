@@ -1,18 +1,22 @@
-use crate::{row_decoder::RowDecoder, value_types::Value};
+use hyperion_core::value::Value;
+
+use crate::{row_decoder::RowDecoder, value_types::SQLValue};
 
 pub struct Record {
-    pub data: Vec<Value>,
+    pub data: Vec<SQLValue>,
 }
 
 impl Record {
-    pub fn decode(json: serde_json::Value, decoder: &RowDecoder) -> Self {
-        let mut data: Vec<Value> = (0..decoder.get_size()).map(|_| Value::Null).collect();
+    pub fn decode(values: Value, decoder: &RowDecoder) -> Self {
+        let mut data: Vec<SQLValue> = (0..decoder.get_size())
+            .map(|_| Value::Null.into())
+            .collect();
 
-        let object = json.as_object().unwrap();
+        let object = values.as_map().unwrap();
 
-        for (k, v) in object.iter() {
+        for (k, v) in object.into_iter() {
             if let Some(index) = decoder.get_index(k) {
-                data[index] = Value::from(v);
+                data[index] = SQLValue(v);
             }
         }
 

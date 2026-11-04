@@ -1,9 +1,12 @@
 use std::panic;
 
+use hyperion_core::value::Map;
+use hyperion_core::value::Timestamp;
 use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
     message::{data::DataMessage, read::ReadMessage},
     validatable::{Validatable, ValidationError},
+    value::Value::{self},
 };
 use postgres::{Row, Statement};
 use serde::Deserialize;
@@ -12,7 +15,7 @@ use crate::{
     stores::postgres::{
         client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
     },
-    value_types::Value,
+    value_types::SQLValue,
 };
 
 #[derive(Debug, Deserialize)]
@@ -50,26 +53,25 @@ impl PostgreSQLReader {
     }
 
     pub fn row_to_datamessage(row: Row) -> Result<DataMessage, PostgreSQLError> {
-        let mut map = serde_json::Map::new();
+        let mut map = Map::new();
         for col in row.columns() {
             let col_name = col.name();
-            let res = row.try_get::<_, Value>(col_name);
+            let res = row.try_get::<_, SQLValue>(col_name);
             if let Ok(value) = res {
-                let value = value.into();
-                map.insert(col.name().to_string(), value);
+                map.insert(col.name().to_string(), value.0);
             } else if let Err(error) = res {
                 panic!("{:?}", error);
             }
         }
 
-        let time = match map.get("_processing_time") {
-            Some(v) => v.as_i64().unwrap(),
-            None => 0,
+        let time = match map.remove("_processing_time") {
+            Some(Value::Timestamp(timestamp)) => timestamp,
+            _ => Timestamp::empty(),
         };
 
         Ok(DataMessage {
             key: None,
-            value: serde_json::Value::Object(map),
+            value: map.into(),
             time,
         })
     }
@@ -78,7 +80,10 @@ impl PostgreSQLReader {
 impl StoreReader for PostgreSQLReader {
     fn read(&mut self, m: ReadMessage) -> Result<Vec<DataMessage>, StoreError> {
         let mut data_messages: Vec<DataMessage> = Vec::new();
-        let res = self.client.pgclient.query(&self.statement, &[&m.time]);
+        let res = self
+            .client
+            .pgclient
+            .query(&self.statement, &[&m.time.as_i64()]);
         if let Ok(rows) = res {
             for row in rows {
                 if row.is_empty() {

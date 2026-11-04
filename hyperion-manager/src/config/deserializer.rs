@@ -1,6 +1,7 @@
 use hyperion_core::{
     deserializer::{DeserializationError, Deserializer, JsonDeserializer},
-    validatable::Validatable,
+    validatable::{Validatable, ValidationError},
+    value::Value,
 };
 use serde::Deserialize;
 
@@ -12,7 +13,7 @@ pub enum DeserializerType {
 }
 
 impl Validatable for DeserializerType {
-    fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
+    fn validate(&self) -> Result<(), ValidationError> {
         match self {
             DeserializerType::Json(json) => json.validate(),
         }
@@ -20,16 +21,13 @@ impl Validatable for DeserializerType {
 }
 
 impl Deserializer for DeserializerType {
-    fn deserialize(&self, item: Vec<u8>) -> Result<serde_json::Value, DeserializationError> {
+    fn deserialize(&self, item: Vec<u8>) -> Result<Value, DeserializationError> {
         match self {
             DeserializerType::Json(json) => json.deserialize(item),
         }
     }
 
-    fn deserialize_batch(
-        &self,
-        items: Vec<Vec<u8>>,
-    ) -> Result<Vec<serde_json::Value>, DeserializationError> {
+    fn deserialize_batch(&self, items: Vec<Vec<u8>>) -> Result<Vec<Value>, DeserializationError> {
         match self {
             DeserializerType::Json(json) => json.deserialize_batch(items),
         }

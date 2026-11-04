@@ -1,29 +1,32 @@
 use std::error::Error;
 
+use hyperion_core::value::Value;
 use postgres::types::{FromSql, IsNull, ToSql, Type, private::BytesMut, to_sql_checked};
 use thiserror::Error;
 
-use crate::value_types::Value;
+use crate::value_types::SQLValue;
 
-impl ToSql for Value {
+impl ToSql for SQLValue {
     fn to_sql(
         &self,
         ty: &Type,
         out: &mut BytesMut,
     ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
-        match self {
+        match &self.0 {
             Value::Null => Ok(IsNull::Yes),
-            Value::Bool(v) => v.to_sql(ty, out),
+            Value::Boolean(v) => v.to_sql(ty, out),
             Value::Integer(v) => match *ty {
-                Type::INT2 => i16::try_from(*v)?.to_sql(ty, out),
-                Type::INT4 => i32::try_from(*v)?.to_sql(ty, out),
-                Type::INT8 => v.to_sql(ty, out),
-                _ => v.to_sql(ty, out),
+                Type::INT2 => i16::try_from(v.as_i64())?.to_sql(ty, out),
+                Type::INT4 => i32::try_from(v.as_i64())?.to_sql(ty, out),
+                Type::INT8 => v.as_i64().to_sql(ty, out),
+                _ => v.as_i64().to_sql(ty, out),
             },
-            Value::Float(v) => v.to_sql(ty, out),
-            Value::Text(v) => v.to_sql(ty, out),
-            Value::Bytes(v) => v.to_sql(ty, out),
-            Value::Timestamp(v) => v.to_sql(ty, out),
+            Value::Float(v) => v.as_f64().to_sql(ty, out),
+            Value::String(v) => v.to_sql(ty, out),
+            Value::Bytes(v) => v.as_array().to_sql(ty, out),
+            Value::Timestamp(v) => v.as_i64().to_sql(ty, out),
+            Value::Array(array) => todo!(),
+            Value::Map(map) => todo!(),
         }
     }
 
@@ -50,38 +53,40 @@ pub enum SQLError {
     Custom(String),
 }
 
-impl<'a> FromSql<'a> for Value {
+impl<'a> FromSql<'a> for SQLValue {
     fn from_sql(
         ty: &postgres::types::Type,
         raw: &'a [u8],
     ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
-        match *ty {
+        let value: Value = match *ty {
             Type::BOOL => {
                 let v: bool = bool::from_sql(ty, raw)?;
-                Ok(Self::Bool(v))
+                Value::from(v)
             }
             Type::FLOAT4 | Type::FLOAT8 => {
                 let v: f64 = f64::from_sql(ty, raw)?;
-                Ok(Self::Float(v))
+                Value::from(v)
             }
             Type::INT4 => {
                 let v: i32 = i32::from_sql(ty, raw)?;
-                Ok(Self::Integer(v as i64))
+                Value::from(v as i64)
             }
             Type::INT2 | Type::INT8 => {
                 let v: i64 = i64::from_sql(ty, raw)?;
-                Ok(Self::Integer(v))
+                Value::from(v)
             }
             Type::TEXT | Type::VARCHAR => {
                 let v: String = String::from_sql(ty, raw)?;
-                Ok(Self::Text(v))
+                Value::from(v)
             }
             Type::BYTEA => {
                 let v: Vec<u8> = raw.into();
-                Ok(Self::Bytes(v))
+                Value::from(v)
             }
-            _ => Err(SQLError::Custom("".to_string()).into()),
-        }
+            _ => return Err(SQLError::Custom("".to_string()).into()),
+        };
+
+        Ok(SQLValue(value))
     }
 
     fn accepts(ty: &postgres::types::Type) -> bool {

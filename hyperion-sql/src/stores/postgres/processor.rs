@@ -85,10 +85,10 @@ impl PostgreSQLProcessor {
 
 impl StoreProcessor<Range> for PostgreSQLProcessor {
     fn process(&mut self, m: ProcessMessage<Range>) -> Result<(), StoreError> {
-        let res = self
-            .client
-            .pgclient
-            .execute(&self.statement, &[m.data.lower(), m.data.upper()]);
+        let res = self.client.pgclient.execute(
+            &self.statement,
+            &[m.data.lower().as_i64_ref(), m.data.upper().as_i64_ref()],
+        );
 
         if let Err(e) = res {
             if let Some(e) = e.as_db_error() {

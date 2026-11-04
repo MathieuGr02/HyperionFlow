@@ -5,6 +5,11 @@ pub struct Integer {
     inner: i64,
 }
 
+enum IntType {
+    Signed(i64),
+    Unsigned(u64),
+}
+
 impl From<i8> for Integer {
     fn from(value: i8) -> Self {
         Integer {

@@ -21,6 +21,10 @@ impl ToSql for SQLValue {
                 Type::INT8 => v.as_i64().to_sql(ty, out),
                 _ => v.as_i64().to_sql(ty, out),
             },
+            Value::UInteger(v) => match *ty {
+                Type::INT4 => u32::try_from(v.as_u64())?.to_sql(ty, out),
+                _ => todo!(),
+            },
             Value::Float(v) => v.as_f64().to_sql(ty, out),
             Value::String(v) => v.to_sql(ty, out),
             Value::Bytes(v) => v.as_array().to_sql(ty, out),
@@ -32,7 +36,7 @@ impl ToSql for SQLValue {
 
     fn accepts(ty: &Type) -> bool {
         <bool as ToSql>::accepts(ty)
-            || <i16 as ToSql>::accepts(ty)
+            || <u32 as ToSql>::accepts(ty)
             || <i32 as ToSql>::accepts(ty)
             || <i64 as ToSql>::accepts(ty)
             || <f64 as ToSql>::accepts(ty)

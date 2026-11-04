@@ -7,7 +7,8 @@ use serde::{
 };
 
 use crate::value::{
-    array::Array, bytes::Bytes, float::Float, integer::Integer, map::Map, timestamp::Timestamp,
+    UInteger, array::Array, bytes::Bytes, float::Float, integer::Integer, map::Map,
+    timestamp::Timestamp, uinteger,
 };
 
 #[derive(Debug)]
@@ -15,6 +16,7 @@ pub enum Value {
     Null,
     Boolean(bool),
     Bytes(Bytes),
+    UInteger(UInteger),
     Integer(Integer),
     Float(Float),
     String(String),
@@ -119,7 +121,7 @@ impl<'de> Deserialize<'de> for Value {
             type Value = Value;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                todo!()
+                formatter.write_str("Error deserializing to hyperion-core Value")
             }
 
             fn visit_none<E>(self) -> Result<Self::Value, E>
@@ -136,25 +138,11 @@ impl<'de> Deserialize<'de> for Value {
                 Ok(Value::Boolean(v))
             }
 
-            fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E>
+            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {
-                Ok(Value::Integer(Integer::from(v)))
-            }
-
-            fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                Ok(Value::Integer(Integer::from(v)))
-            }
-
-            fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                Ok(Value::Integer(Integer::from(v)))
+                Ok(Value::UInteger(UInteger::from(v)))
             }
 
             fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
@@ -162,13 +150,6 @@ impl<'de> Deserialize<'de> for Value {
                 E: serde::de::Error,
             {
                 Ok(Value::Integer(Integer::from(v)))
-            }
-
-            fn visit_f32<E>(self, v: f32) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                Ok(Value::Float(Float::from(v)))
             }
 
             fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
@@ -238,6 +219,7 @@ impl Serialize for Value {
             Value::Null => serializer.serialize_none(),
             Value::Boolean(v) => serializer.serialize_bool(*v),
             Value::Bytes(bytes) => serializer.serialize_bytes(bytes.as_array()),
+            Value::UInteger(uinteger) => serializer.serialize_u64(uinteger.as_u64()),
             Value::Integer(integer) => serializer.serialize_i64(integer.as_i64()),
             Value::Float(float) => serializer.serialize_f64(float.as_f64()),
             Value::String(string) => serializer.serialize_str(string.as_str()),

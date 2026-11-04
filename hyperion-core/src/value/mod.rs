@@ -1,9 +1,6 @@
 pub mod array;
 pub use array::Array;
 
-pub mod boolean;
-pub use boolean::Boolean;
-
 pub mod bytes;
 pub use bytes::Bytes;
 

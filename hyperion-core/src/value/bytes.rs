@@ -13,8 +13,22 @@ impl From<Vec<u8>> for Bytes {
     }
 }
 
+impl From<&[u8]> for Bytes {
+    fn from(value: &[u8]) -> Self {
+        Bytes {
+            inner: value.to_vec(),
+        }
+    }
+}
+
 impl Into<Value> for Bytes {
     fn into(self) -> Value {
         Value::Bytes(self)
+    }
+}
+
+impl Bytes {
+    pub fn as_array(&self) -> &[u8] {
+        self.inner.as_ref()
     }
 }

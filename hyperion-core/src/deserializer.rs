@@ -1,9 +1,14 @@
+use std::collections::HashMap;
+
 use serde::Deserialize;
 use thiserror::Error;
 
 use crate::{
     validatable::{Validatable, ValidationError},
-    value::Value,
+    value::{
+        Array, Float, Integer, Map,
+        Value::{self},
+    },
 };
 
 #[derive(Debug, Error)]
@@ -20,9 +25,37 @@ pub trait Deserializer {
 #[derive(Debug, Deserialize)]
 pub struct JsonDeserializer;
 
+impl JsonDeserializer {
+    fn parse(json: serde_json::Value) -> Value {
+        match json {
+            serde_json::Value::Null => Value::Null,
+            serde_json::Value::Bool(bool) => Value::Boolean(bool),
+            serde_json::Value::Number(number) => {
+                if let Some(float) = number.as_f64() {
+                    return Value::Float(Float::from(float));
+                } else if let Some(integer) = number.as_i64() {
+                    return Value::Integer(Integer::from(integer));
+                } else {
+                    Value::Null
+                }
+            }
+            serde_json::Value::String(string) => Value::String(string),
+            serde_json::Value::Array(values) => {
+                let vec: Vec<Value> = values.into_iter().map(|v| Self::parse(v)).collect();
+                return Value::Array(Array::from(vec));
+            }
+            serde_json::Value::Object(map) => {
+                let hashmap: HashMap<String, Value> =
+                    map.into_iter().map(|(k, v)| (k, Self::parse(v))).collect();
+                return Value::Map(Map::from(hashmap));
+            }
+        }
+    }
+}
+
 impl Deserializer for JsonDeserializer {
     fn deserialize(&self, item: Vec<u8>) -> Result<Value, DeserializationError> {
-        let data = serde_json::from_slice(&item)
+        let data: Value = serde_json::from_slice(&item)
             .map_err(|e| DeserializationError::ParsingError(e.to_string()))?;
         Ok(data)
     }

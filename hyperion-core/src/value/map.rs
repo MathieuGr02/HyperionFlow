@@ -1,10 +1,17 @@
-use std::collections::HashMap;
+use std::{
+    borrow::Borrow,
+    collections::{
+        HashMap,
+        hash_map::{IntoIter, Iter},
+    },
+    hash::Hash,
+};
 
-use serde::{Deserialize, Serialize};
+use delegate::delegate;
 
 use crate::value::value::Value;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
 pub struct Map {
     inner: HashMap<String, Value>,
 }
@@ -22,11 +29,30 @@ impl Into<Value> for Map {
 }
 
 impl Map {
-    pub fn get(&self, key: &str) -> Option<&Value> {
-        self.inner.get(key)
+    pub fn new() -> Self {
+        Map {
+            inner: HashMap::new(),
+        }
     }
 
-    pub fn insert(&mut self, key: String, value: Value) {
-        self.inner.insert(key, value);
+    delegate! {
+        to self.inner {
+            pub fn contains_key(&self, k: &String) -> bool;
+            pub fn get<Q>(&self, k: &Q) -> Option<&Value> where Q: Hash + Eq + ?Sized, String: Borrow<Q>;
+            pub fn get_mut(&mut self, k: &String) -> Option<&mut Value>;
+            pub fn insert(&mut self, k: String, v: Value) -> Option<Value>;
+            pub fn iter(&self) -> Iter<'_, String, Value>;
+            pub fn remove<Q>(&mut self, k: &Q) -> Option<Value> where Q: Hash + Eq + ?Sized, String: Borrow<Q>;
+            pub fn len(&self) -> usize;
+        }
+    }
+}
+
+impl IntoIterator for Map {
+    type Item = (String, Value);
+    type IntoIter = IntoIter<String, Value>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter()
     }
 }

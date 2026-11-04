@@ -69,7 +69,7 @@ impl StoreProcessor<Range> for MongoDBProcessor {
         let to = m.data.upper();
 
         let pipeline = vec![
-            doc! { "$match": { "_processing_time": { "$gte": from, "$lte": to  } } },
+            doc! { "$match": { "_processing_time": { "$gte": from.as_i64_ref(), "$lte": to.as_i64_ref() } } },
             self.query.clone(),
             doc! { "$merge": { "into": "test_out", "on": "_id" } },
         ];

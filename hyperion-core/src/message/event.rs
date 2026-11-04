@@ -1,9 +1,12 @@
-use crate::message::{event_record::EventRecord, position::Position};
+use crate::{
+    message::{event_record::EventRecord, position::Position},
+    value::{Bytes, Timestamp},
+};
 
 #[derive(Debug)]
 pub struct EventMessage {
-    pub key: Option<Vec<u8>>,
-    pub ingestion_time: i64,
+    pub key: Option<Bytes>,
+    pub ingestion_time: Timestamp,
     pub position: Position,
 }
 

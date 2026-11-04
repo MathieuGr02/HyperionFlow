@@ -5,6 +5,7 @@ use hyperion_core::{
         process::{ProcessMessage, Range},
     },
     validatable::{Validatable, ValidationError},
+    value::Timestamp,
 };
 use serde::Deserialize;
 use tracing::trace;
@@ -46,7 +47,7 @@ impl Trigger for TriggerType {
 /// The [CountTrigger] is a trigger which fires after `max` events have been observed
 #[derive(Debug, Deserialize)]
 pub struct CountTrigger {
-    lower_timestamp: Option<i64>,
+    lower_timestamp: Option<Timestamp>,
 
     max: usize,
     #[serde(skip, default = "CountTrigger::default_counter")]

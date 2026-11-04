@@ -9,6 +9,7 @@ use tracing::{error, trace};
 use crate::{
     components::{component::Component, log::checkpoint::Checkpoint},
     serializer::Serializer,
+    value::Timestamp,
 };
 use crate::{
     components::{
@@ -70,7 +71,7 @@ where
     type Error = SinkError;
 
     fn main_loop(&mut self, shutdown: Arc<AtomicBool>) -> Result<Self::Output, Self::Error> {
-        let mut latest: i64 = 0;
+        let mut latest: Timestamp = Timestamp::empty();
 
         loop {
             if shutdown.load(Ordering::SeqCst) {
@@ -92,7 +93,9 @@ where
                 }
             }
 
-            let m = ReadMessage { time: latest };
+            let m = ReadMessage {
+                time: latest.clone(),
+            };
             let res = self.reader.read(m);
             let data = match res {
                 Ok(data) => data,
@@ -114,7 +117,7 @@ where
                 .map(|d| self.serializer.serialize(d.value).unwrap())
                 .collect();
 
-            trace!("Pushing files {}", ser.len());
+            trace!("Pushing {} records", ser.len());
             if let Err(e) = self.producer.push(ser) {
                 error!(error = %e, "Error pushing data to external source");
             }

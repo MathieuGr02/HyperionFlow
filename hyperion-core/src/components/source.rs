@@ -15,7 +15,10 @@ use crate::{
         store::{error::StoreError, writer::StoreWriter},
     },
     deserializer::{DeserializationError, Deserializer},
-    message::{data::DataMessage, event::EventMessage},
+    message::{
+        data::{DataMapper, DataMessage},
+        event::EventMessage,
+    },
 };
 
 #[derive(Debug, Error)]
@@ -37,6 +40,7 @@ pub enum SourceError {
 pub struct Source<C, W, D, S> {
     consumer: C,
     deserializer: D,
+    mapper: DataMapper,
     writer: W,
     sender: S,
     checkpoint: Checkpoint,
@@ -53,6 +57,7 @@ where
         external: C,
         internal: W,
         deserializer: D,
+        mapper: DataMapper,
         sender: S,
         checkpoint: Checkpoint,
     ) -> Result<Self, ()> {
@@ -60,6 +65,7 @@ where
             consumer: external,
             writer: internal,
             deserializer: deserializer,
+            mapper,
             sender,
             checkpoint,
         })
@@ -119,11 +125,15 @@ where
                 error!("{:?}", errors);
             }
 
-            let (data, events): (Vec<DataMessage>, Vec<EventMessage>) = batch
+            let (data, events): (Vec<DataMessage>, Vec<EventMessage>) =
+                batch.into_iter().map(|m| m.unwrap().split()).collect();
+
+            let (data, errors): (Vec<_>, Vec<_>) = data
                 .into_iter()
-                .map(Result::unwrap)
-                .map(|m| m.split())
-                .collect();
+                .map(|d| self.mapper.map(d))
+                .partition(Result::is_ok);
+
+            let data = data.into_iter().map(Result::unwrap).collect();
 
             // Write checkpoint for latest record from external event source
             let latest_position = &events.last().unwrap().position;

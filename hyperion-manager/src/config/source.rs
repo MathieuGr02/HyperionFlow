@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use hyperion_core::{components::log::checkpoint::Checkpoint, validatable::Validatable};
+use hyperion_core::{
+    components::log::checkpoint::Checkpoint, message::data::DataMapper, validatable::Validatable,
+};
 use hyperion_kafka::consumer::KafkaConsumer;
 #[cfg(feature = "mql")]
 use hyperion_mql::writer::MongoDBWriter;
@@ -12,7 +14,7 @@ use crate::{
         comm::EventChannelSender,
         consumer::{Consumer, ConsumerConfig},
         deserializer::DeserializerType,
-        writer::{Writer, WriterConfig},
+        writer::{Writer, WriterConfig, WriterConfigType},
     },
     runtime::{engine::EngineError, source::RuntimeSource},
 };
@@ -46,15 +48,15 @@ impl SourceConfig {
         Ok(external)
     }
 
-    fn build_writer(config: WriterConfig) -> Result<Writer, EngineError> {
+    fn build_writer(config: WriterConfigType) -> Result<Writer, EngineError> {
         let writer = match config {
             #[cfg(feature = "sql")]
-            WriterConfig::Postgres(config) => Writer::Postgres(
+            WriterConfigType::Postgres(config) => Writer::Postgres(
                 PostgreSQLWriter::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
             #[cfg(feature = "mql")]
-            WriterConfig::Mongodb(config) => Writer::Mongodb(
+            WriterConfigType::Mongodb(config) => Writer::Mongodb(
                 MongoDBWriter::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
@@ -69,12 +71,21 @@ impl SourceConfig {
         sender: EventChannelSender,
     ) -> Result<(String, RuntimeSource), EngineError> {
         let external = Self::build_external(self.consumer)?;
-        let internal = Self::build_writer(self.writer)?;
+        let internal = Self::build_writer(self.writer.config_type)?;
+        let mapper = DataMapper {
+            key_name: self.writer.key_name,
+            time_name: self.writer.time_name,
+        };
         let checkpoint = Checkpoint::new(checkpoint_path, self.name.clone());
-        let source = RuntimeSource::new(external, internal, self.deserializer, sender, checkpoint)
-            .map_err(|_| {
-                EngineError::ConnectionError("Error building runtime source".to_string())
-            })?;
+        let source = RuntimeSource::new(
+            external,
+            internal,
+            self.deserializer,
+            mapper,
+            sender,
+            checkpoint,
+        )
+        .map_err(|_| EngineError::ConnectionError("Error building runtime source".to_string()))?;
         Ok((self.name, source))
     }
 }

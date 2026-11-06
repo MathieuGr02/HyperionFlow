@@ -8,8 +8,21 @@ use serde::{
 
 use crate::value::{
     UInteger, array::Array, bytes::Bytes, float::Float, integer::Integer, map::Map,
-    timestamp::Timestamp, uinteger,
+    timestamp::Timestamp,
 };
+
+#[derive(Debug)]
+pub enum ValueType {
+    Boolean,
+    Bytes,
+    UInteger,
+    Integer,
+    Float,
+    String,
+    Timestamp,
+    Array,
+    Map,
+}
 
 #[derive(Debug)]
 pub enum Value {

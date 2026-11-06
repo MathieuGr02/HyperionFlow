@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::store::{error::StoreError, writer::StoreWriter},
-    message::data::DataMessage,
+    message::data::{DataMessage, Record},
     validatable::Validatable,
     value::Bytes,
 };
@@ -10,7 +10,7 @@ use tracing::info;
 
 use crate::{
     query::QueryBuilder,
-    record::Record,
+    record::RowRecord,
     row_decoder::RowDecoder,
     stores::postgres::{
         client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
@@ -104,20 +104,14 @@ impl PostgreSQLWriter {
 }
 
 impl StoreWriter for PostgreSQLWriter {
-    fn write(&mut self, item: DataMessage) -> Result<(), StoreError> {
-        let record = Record::decode(item.value.into(), &self.decoder);
+    fn write(&mut self, item: Record) -> Result<(), StoreError> {
+        let record = RowRecord::decode(item, &self.decoder);
 
-        let mut params: Vec<&(dyn ToSql + Sync)> = record
+        let params: Vec<&(dyn ToSql + Sync)> = record
             .data
             .iter()
             .map(|v| v as &(dyn ToSql + Sync))
             .collect();
-
-        let key: Option<&[u8]> = item.key.as_ref().map(Bytes::as_array);
-        params.push(&key);
-
-        let value: &(dyn ToSql + Sync) = &item.time.as_i64();
-        params.push(value);
 
         let res = self.client.pgclient.execute(&self.statement, &params);
         if let Err(e) = res {
@@ -131,7 +125,7 @@ impl StoreWriter for PostgreSQLWriter {
         Ok(())
     }
 
-    fn write_batch(&mut self, items: Vec<DataMessage>) -> Result<(), StoreError> {
+    fn write_batch(&mut self, items: Vec<Record>) -> Result<(), StoreError> {
         items.into_iter().for_each(|item| self.write(item).unwrap());
         Ok(())
     }

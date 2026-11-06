@@ -518,6 +518,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "delegate"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "780eb241654bf097afb00fc5f054a09b687dad862e485fdcf8399bb056565370"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "deranged"
 version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -933,6 +944,7 @@ dependencies = [
 name = "hyperion-core"
 version = "0.1.0"
 dependencies = [
+ "delegate 0.13.5",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -945,6 +957,7 @@ dependencies = [
 name = "hyperion-cypher"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "hyperion-core",
  "neo4rs",
  "serde",
@@ -1503,7 +1516,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "deadpool",
- "delegate",
+ "delegate 0.10.0",
  "futures",
  "log",
  "neo4rs-macros",

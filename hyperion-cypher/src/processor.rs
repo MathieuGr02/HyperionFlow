@@ -1,6 +1,7 @@
 use hyperion_core::{
     components::store::{error::StoreError, processor::StoreProcessor},
     message::process::{ProcessMessage, Range},
+    validatable::{Validatable, ValidationError},
 };
 use neo4rs::Query;
 use serde::Deserialize;
@@ -12,6 +13,14 @@ pub struct Neo4jProcessorConfiguration {
     #[serde(flatten)]
     client_config: Neo4jConfiguration,
     query: String,
+}
+
+impl Validatable for Neo4jProcessorConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        self.client_config.validate()?;
+        Self::field_string_empty("query", &self.query)?;
+        Ok(())
+    }
 }
 
 pub struct Neo4jProcessor {
@@ -34,7 +43,7 @@ impl Neo4jProcessor {
     }
 }
 
-impl StoreProcessor<Range> for Neo4jProcessorConfiguration {
+impl StoreProcessor<Range> for Neo4jProcessor {
     fn process(&mut self, m: ProcessMessage<Range>) -> Result<(), StoreError> {
         todo!()
     }

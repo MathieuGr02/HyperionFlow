@@ -3,21 +3,26 @@ use hyperion_core::{
     message::{data::DataMessage, read::ReadMessage},
     validatable::{Validatable, ValidationError},
 };
-#[cfg(feature = "mql")]
-use hyperion_mql::reader::MongoDBReader;
-use hyperion_mql::reader::MongoDBReaderConfiguration;
+
 use serde::Deserialize;
 
+#[cfg(feature = "cypher")]
+use hyperion_cypher::reader::{Neo4jReader, Neo4jReaderConfiguration};
+#[cfg(feature = "mql")]
+use hyperion_mql::reader::{MongoDBReader, MongoDBReaderConfiguration};
 #[cfg(feature = "sql")]
 use hyperion_sql::stores::postgres::reader::{PostgreSQLReader, PostgreSQLReaderConfiguration};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "type", content = "config")]
+#[serde(deny_unknown_fields)]
 pub enum ReaderConfig {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLReaderConfiguration),
     #[cfg(feature = "mql")]
     Mongodb(MongoDBReaderConfiguration),
+    #[cfg(feature = "cypher")]
+    Neo4j(Neo4jReaderConfiguration),
 }
 
 impl Validatable for ReaderConfig {
@@ -27,6 +32,8 @@ impl Validatable for ReaderConfig {
             ReaderConfig::Postgres(postgres) => postgres.validate(),
             #[cfg(feature = "mql")]
             ReaderConfig::Mongodb(mongodb) => mongodb.validate(),
+            #[cfg(feature = "cypher")]
+            ReaderConfig::Neo4j(neo4j) => neo4j.validate(),
         }
     }
 }
@@ -36,6 +43,8 @@ pub enum Reader {
     Postgres(PostgreSQLReader),
     #[cfg(feature = "mql")]
     Mongodb(MongoDBReader),
+    #[cfg(feature = "cypher")]
+    Neo4j(Neo4jReader),
 }
 
 impl StoreReader for Reader {
@@ -45,6 +54,8 @@ impl StoreReader for Reader {
             Reader::Postgres(postgres) => postgres.read(m),
             #[cfg(feature = "mql")]
             Reader::Mongodb(mongodb) => mongodb.read(m),
+            #[cfg(feature = "cypher")]
+            Reader::Neo4j(neo4j) => neo4j.read(m),
         }
     }
 }

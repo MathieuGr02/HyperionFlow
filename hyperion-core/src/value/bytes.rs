@@ -28,6 +28,10 @@ impl Into<Value> for Bytes {
 }
 
 impl Bytes {
+    pub fn as_vec(self) -> Vec<u8> {
+        self.inner
+    }
+
     pub fn as_array(&self) -> &[u8] {
         self.inner.as_ref()
     }

@@ -4,9 +4,6 @@ use hyperion_core::{
     components::log::checkpoint::Checkpoint,
     validatable::{Validatable, ValidationError},
 };
-#[cfg(feature = "mql")]
-use hyperion_mql::processor::MongoDBProcessor;
-use hyperion_sql::stores::postgres::processor::PostgreSQLProcessor;
 use serde::Deserialize;
 
 use crate::{
@@ -17,6 +14,13 @@ use crate::{
     },
     runtime::{engine::EngineError, task::RuntimeTask},
 };
+
+#[cfg(feature = "cypher")]
+use hyperion_cypher::processor::Neo4jProcessor;
+#[cfg(feature = "mql")]
+use hyperion_mql::processor::MongoDBProcessor;
+#[cfg(feature = "sql")]
+use hyperion_sql::stores::postgres::processor::PostgreSQLProcessor;
 
 #[derive(Debug, Deserialize)]
 pub struct TaskConfig {
@@ -50,6 +54,11 @@ impl TaskConfig {
             #[cfg(feature = "mql")]
             ProcessorConfig::Mongodb(config) => Processor::Mongodb(
                 MongoDBProcessor::connect(config)
+                    .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
+            ),
+            #[cfg(feature = "cypher")]
+            ProcessorConfig::Neo4j(config) => Processor::Neo4j(
+                Neo4jProcessor::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
         };

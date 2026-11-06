@@ -1,10 +1,6 @@
 use std::path::PathBuf;
 
 use hyperion_core::{components::log::checkpoint::Checkpoint, validatable::Validatable};
-use hyperion_kafka::consumer::KafkaConsumer;
-#[cfg(feature = "mql")]
-use hyperion_mql::writer::MongoDBWriter;
-use hyperion_sql::stores::postgres::writer::PostgreSQLWriter;
 use serde::Deserialize;
 
 use crate::{
@@ -16,6 +12,15 @@ use crate::{
     },
     runtime::{engine::EngineError, source::RuntimeSource},
 };
+
+#[cfg(feature = "cypher")]
+use hyperion_cypher::writer::Neo4jWriter;
+#[cfg(feature = "kafka")]
+use hyperion_kafka::consumer::KafkaConsumer;
+#[cfg(feature = "mql")]
+use hyperion_mql::writer::MongoDBWriter;
+#[cfg(feature = "sql")]
+use hyperion_sql::stores::postgres::writer::PostgreSQLWriter;
 
 #[derive(Debug, Deserialize)]
 pub struct SourceConfig {
@@ -56,6 +61,11 @@ impl SourceConfig {
             #[cfg(feature = "mql")]
             WriterConfig::Mongodb(config) => Writer::Mongodb(
                 MongoDBWriter::connect(config)
+                    .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
+            ),
+            #[cfg(feature = "cypher")]
+            WriterConfig::Neo4j(config) => Writer::Neo4j(
+                Neo4jWriter::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
         };

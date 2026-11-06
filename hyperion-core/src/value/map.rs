@@ -35,6 +35,10 @@ impl Map {
         }
     }
 
+    pub fn as_hashmap(self) -> HashMap<String, Value> {
+        self.inner
+    }
+
     delegate! {
         to self.inner {
             pub fn contains_key(&self, k: &String) -> bool;

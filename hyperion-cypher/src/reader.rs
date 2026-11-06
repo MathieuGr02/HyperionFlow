@@ -1,8 +1,9 @@
 use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
     message::{data::DataMessage, read::ReadMessage},
+    validatable::{Validatable, ValidationError},
 };
-use neo4rs::{Query, query};
+use neo4rs::Query;
 use serde::Deserialize;
 
 use crate::{client::Neo4jClient, config::Neo4jConfiguration, error::Neo4jError};
@@ -12,6 +13,14 @@ pub struct Neo4jReaderConfiguration {
     #[serde(flatten)]
     client_config: Neo4jConfiguration,
     query: String,
+}
+
+impl Validatable for Neo4jReaderConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        self.client_config.validate()?;
+        Self::field_string_empty("query", &self.query)?;
+        Ok(())
+    }
 }
 
 pub struct Neo4jReader {

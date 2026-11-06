@@ -18,15 +18,14 @@ group = "test"
 partition = 1
 
 [pipelines.source.writer]
-type = "mongodb"
+type = "neo4j"
 
 [pipelines.source.writer.config]
-host = "mongodb"
+host = "neo4j"
 port = 27017
-username = "mongodb"
-password = "mongodb"
-database = "test"
-collection = "test_in"
+username = "neo4j"
+password = "neo4j"
+schema = { nodes = [ { name = "Person" } ] }
 
 [pipelines.source.deserializer]
 type = "json"
@@ -39,14 +38,14 @@ config = { }
 name = "test_task"
 
 [pipelines.task.processor]
-type = "mongodb"
+type = "neo4j"
 
 [pipelines.task.processor.config]
 query = "{ \"$addFields\": { \"value\": { \"$exp\": \"$value\" } } }"
-host = "mongodb"
-port = 27017
-username = "mongodb"
-password = "mongodb"
+host = "neo4j"
+port = 7687
+username = "neo4j"
+password = "neo4j"
 database = "test"
 collection = "test_in"
 
@@ -65,13 +64,13 @@ type = "json"
 config = { }
 
 [pipelines.sink.reader]
-type = "mongodb"
+type = "neo4j"
 
 [pipelines.sink.reader.config]
-host = "mongodb"
-port = 27017
-username = "mongodb"
-password = "mongodb"
+host = "neo4j"
+port = 7687
+username = "neo4j"
+password = "neo4j"
 database = "test"
 collection = "test_out"
 

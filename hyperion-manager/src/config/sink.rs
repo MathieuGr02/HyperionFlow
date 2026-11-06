@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
 use hyperion_core::{components::log::checkpoint::Checkpoint, validatable::Validatable};
+#[cfg(feature = "cypher")]
+use hyperion_cypher::reader::Neo4jReader;
 use hyperion_kafka::producer::KafkaProducer;
 #[cfg(feature = "mql")]
 use hyperion_mql::reader::MongoDBReader;
@@ -52,6 +54,11 @@ impl SinkConfig {
             #[cfg(feature = "mql")]
             ReaderConfig::Mongodb(config) => Reader::Mongodb(
                 MongoDBReader::connect(config)
+                    .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
+            ),
+            #[cfg(feature = "cypher")]
+            ReaderConfig::Neo4j(config) => Reader::Neo4j(
+                Neo4jReader::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
         };

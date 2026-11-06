@@ -3,7 +3,7 @@ use neo4rs::{BoltString, BoltType, Graph, Query};
 use serde::Deserialize;
 use tokio::runtime::Runtime;
 
-use crate::{config::Neo4jConfiguration, error::Neo4jError};
+use crate::{config::Neo4jConfiguration, error::Neo4jError, value::CypherError};
 
 pub struct Neo4jClient {
     pub config: Neo4jConfiguration,
@@ -34,22 +34,15 @@ impl Neo4jClient {
         Ok(Neo4jClient { config, graph, rt })
     }
 
-    pub fn execute<K, V>(
-        &mut self,
-        query: Query,
-        params: impl IntoIterator<Item = (K, V)>,
-    ) -> Result<(), StoreError>
+    pub fn execute<V>(&mut self, query: Query, key: &str, param: V) -> Result<(), Neo4jError>
     where
-        K: Into<BoltString>,
         V: Into<BoltType>,
     {
-        let x = serde_json::Value::Null;
-        let x = BoltType::deserialize(x);
-        let parameterised = query.params(params);
+        let parameterised = query.param(key, param);
         let _ = self
             .rt
             .block_on(self.graph.execute(parameterised))
-            .map_err(|e| Neo4jError::Custom(e.to_string()).into())?;
+            .map_err(|e| Neo4jError::Custom(e.to_string()))?;
 
         Ok(())
     }

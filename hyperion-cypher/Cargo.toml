@@ -8,6 +8,7 @@ hyperion-core = { version = "0.1.0", path = "../hyperion-core" }
 
 neo4rs = "0.8.0"
 tokio = "1.54.1"
+bytes = "1.12.1"
 
 serde = { workspace = true }
 serde_json = { workspace = true }

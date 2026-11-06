@@ -3,12 +3,13 @@ use hyperion_core::{
     message::process::{ProcessMessage, Range},
     validatable::{Validatable, ValidationError},
 };
-#[cfg(feature = "sql")]
-use hyperion_mql::processor::MongoDBProcessor;
-#[cfg(feature = "mql")]
-use hyperion_mql::processor::MongoDBProcessorConfiguration;
+
 use serde::Deserialize;
 
+#[cfg(feature = "cypher")]
+use hyperion_cypher::processor::{Neo4jProcessor, Neo4jProcessorConfiguration};
+#[cfg(feature = "mql")]
+use hyperion_mql::processor::{MongoDBProcessor, MongoDBProcessorConfiguration};
 #[cfg(feature = "sql")]
 use hyperion_sql::stores::postgres::processor::{
     PostgreSQLProcessor, PostgreSQLProcessorConfiguration,
@@ -22,6 +23,8 @@ pub enum ProcessorConfig {
     Postgres(PostgreSQLProcessorConfiguration),
     #[cfg(feature = "mql")]
     Mongodb(MongoDBProcessorConfiguration),
+    #[cfg(feature = "cypher")]
+    Neo4j(Neo4jProcessorConfiguration),
 }
 
 impl Validatable for ProcessorConfig {
@@ -31,6 +34,8 @@ impl Validatable for ProcessorConfig {
             ProcessorConfig::Postgres(postgres) => postgres.validate(),
             #[cfg(feature = "mql")]
             ProcessorConfig::Mongodb(mongodb) => mongodb.validate(),
+            #[cfg(feature = "cypher")]
+            ProcessorConfig::Neo4j(neo4j) => neo4j.validate(),
         }
     }
 }
@@ -40,6 +45,8 @@ pub enum Processor {
     Postgres(PostgreSQLProcessor),
     #[cfg(feature = "mql")]
     Mongodb(MongoDBProcessor),
+    #[cfg(feature = "cypher")]
+    Neo4j(Neo4jProcessor),
 }
 
 impl StoreProcessor<Range> for Processor {
@@ -49,6 +56,8 @@ impl StoreProcessor<Range> for Processor {
             Processor::Postgres(postgres) => postgres.process(m),
             #[cfg(feature = "mql")]
             Processor::Mongodb(mongodb) => mongodb.process(m),
+            #[cfg(feature = "cypher")]
+            Processor::Neo4j(neo4j) => neo4j.process(m),
         }
     }
 }

@@ -11,6 +11,7 @@ pub mod reader;
 pub mod serializer;
 pub mod sink;
 pub mod source;
+pub mod stores;
 pub mod task;
 pub mod trigger;
 pub mod writer;

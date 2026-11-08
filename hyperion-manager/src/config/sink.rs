@@ -51,7 +51,7 @@ impl SinkConfig {
             ),
             #[cfg(feature = "mql")]
             ReaderConfig::Mongodb(config) => Reader::Mongodb(
-                MongoDBReader::connect(config)
+                MongoDBReader::new(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
         };

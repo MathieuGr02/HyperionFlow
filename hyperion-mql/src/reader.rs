@@ -1,25 +1,24 @@
+use std::sync::Arc;
+
 use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
     message::{data::DataMessage, read::ReadMessage},
     validatable::Validatable,
-    value::{Integer, Timestamp, Value},
+    value::{Timestamp, Value},
 };
-use mongodb::{bson::doc, sync::Collection};
+use mongodb::bson::doc;
 use serde::Deserialize;
 
-use crate::{client::MongoDBClient, config::MongoDBConfiguration, error::MongoDBError};
+use crate::{error::MongoDBError, pool::MongoPool};
 
 #[derive(Debug, Deserialize)]
 pub struct MongoDBReaderConfiguration {
-    #[serde(flatten)]
-    pub client_config: MongoDBConfiguration,
     pub database: String,
     pub collection: String,
 }
 
 impl Validatable for MongoDBReaderConfiguration {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
-        self.client_config.validate()?;
         Self::field_string_empty("database", &self.database)?;
         Self::field_string_empty("collection", &self.collection)?;
         Ok(())
@@ -27,24 +26,24 @@ impl Validatable for MongoDBReaderConfiguration {
 }
 
 pub struct MongoDBReader {
-    client: MongoDBClient,
-    collection: Collection<Value>,
+    collection: mongodb::Collection<Value>,
 }
 
 impl MongoDBReader {
-    pub fn connect(config: MongoDBReaderConfiguration) -> Result<Self, MongoDBError> {
+    pub fn new(
+        pool: Arc<MongoPool>,
+        config: MongoDBReaderConfiguration,
+    ) -> Result<Self, MongoDBError> {
         let MongoDBReaderConfiguration {
-            client_config,
             database,
             collection,
         } = config;
 
-        let client = MongoDBClient::connect(client_config)?;
+        let client = pool.get_connection();
 
-        let database = client.mgclient.database(&database);
-        let collection = database.collection(&collection);
+        let collection = client.database(&database).collection(&collection);
 
-        Ok(MongoDBReader { client, collection })
+        Ok(MongoDBReader { collection })
     }
 }
 

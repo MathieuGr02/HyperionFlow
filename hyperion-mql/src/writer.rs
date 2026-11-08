@@ -1,25 +1,24 @@
+use std::sync::Arc;
+
 use hyperion_core::{
     components::store::{error::StoreError, writer::StoreWriter},
     message::data::DataMessage,
     validatable::{Validatable, ValidationError},
     value::Value,
 };
-use mongodb::sync::Collection;
+use mongodb::Collection;
 use serde::Deserialize;
 
-use crate::{client::MongoDBClient, config::MongoDBConfiguration, error::MongoDBError};
+use crate::{error::MongoDBError, pool::MongoPool};
 
 #[derive(Debug, Deserialize)]
 pub struct MongoDBWriterConfiguration {
-    #[serde(flatten)]
-    pub client_config: MongoDBConfiguration,
     pub database: String,
     pub collection: String,
 }
 
 impl Validatable for MongoDBWriterConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
-        self.client_config.validate()?;
         Self::field_string_empty("database", &self.database)?;
         Self::field_string_empty("collection", &self.collection)?;
         Ok(())
@@ -27,23 +26,23 @@ impl Validatable for MongoDBWriterConfiguration {
 }
 
 pub struct MongoDBWriter {
-    client: MongoDBClient,
     collection: Collection<Value>,
 }
 
 impl MongoDBWriter {
-    pub fn connect(config: MongoDBWriterConfiguration) -> Result<Self, MongoDBError> {
+    pub fn new(
+        pool: Arc<MongoPool>,
+        config: MongoDBWriterConfiguration,
+    ) -> Result<Self, MongoDBError> {
         let MongoDBWriterConfiguration {
-            client_config,
             database,
             collection,
         } = config;
 
-        let client = MongoDBClient::connect(client_config)?;
-        let database = client.mgclient.database(&database);
-        let collection = database.collection(&collection);
+        let client = pool.get_connection();
+        let collection = client.database(&database).collection(&collection);
 
-        Ok(MongoDBWriter { client, collection })
+        Ok(MongoDBWriter { collection })
     }
 
     pub fn process_datamessage(m: &mut DataMessage) {

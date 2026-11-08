@@ -1,12 +1,15 @@
+use std::collections::HashMap;
 use std::{fs, sync::mpsc};
 
 use hyperion_core::{
     components::{sink::SinkError, source::SourceError, task::TaskError},
     validatable::{Validatable, ValidationError},
 };
+
 use thiserror::Error;
 use tracing::debug;
 
+use crate::config::stores::{StoreConfig, StoreConfigType};
 use crate::{
     config::{
         comm::{EventChannelReceiver, EventChannelSender},
@@ -16,6 +19,9 @@ use crate::{
     runtime::thread_manager::{ThreadManager, ThreadManagerError},
 };
 
+#[cfg(feature = "mql")]
+use hyperion_mql::pool::MongoPool;
+
 /// The [Engine] type if the main runner of the manager.
 ///
 /// It handles the setup of the different components of the pipeline as well as their lifecycle
@@ -24,6 +30,9 @@ use crate::{
 pub struct Engine {
     config: EngineConfig,
     manager: ThreadManager<Result<(), EngineError>>,
+
+    #[cfg(feature = "mql")]
+    mongo_pool: HashMap<String, MongoPool>,
 }
 
 #[derive(Debug, Error)]
@@ -66,7 +75,23 @@ impl Engine {
         Engine {
             manager: ThreadManager::new(),
             config,
+            mongo_pool: HashMap::new(),
         }
+    }
+
+    fn build_stores(&mut self, config: StoreConfig) -> Result<(), EngineError> {
+        match config.config_type {
+            #[cfg(feature = "sql")]
+            StoreConfigType::Postgres(postgres_config) => {}
+            #[cfg(feature = "mql")]
+            StoreConfigType::MongoDB(mongodb_config) => {
+                let pool = MongoPool::connect(mongodb_config)
+                    .map_err(|e| EngineError::ConnectionError(e.to_string()))?;
+                self.mongo_pool.insert(config.name, pool);
+            }
+        };
+
+        Ok(())
     }
 
     fn build_channel(bound: usize) -> (EventChannelSender, EventChannelReceiver) {

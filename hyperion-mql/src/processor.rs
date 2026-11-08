@@ -1,20 +1,21 @@
+use std::sync::Arc;
+
 use hyperion_core::{
     components::store::{error::StoreError, processor::StoreProcessor},
     message::process::{ProcessMessage, Range},
     validatable::{Validatable, ValidationError},
+    value::Value,
 };
 use mongodb::{
+    Collection,
     bson::{self, Document, doc},
-    sync::Collection,
 };
 use serde::Deserialize;
 
-use crate::{client::MongoDBClient, config::MongoDBConfiguration, error::MongoDBError};
+use crate::{error::MongoDBError, pool::MongoPool};
 
 #[derive(Debug, Deserialize)]
 pub struct MongoDBProcessorConfiguration {
-    #[serde(flatten)]
-    client_config: MongoDBConfiguration,
     database: String,
     collection: String,
     query: String,
@@ -22,7 +23,6 @@ pub struct MongoDBProcessorConfiguration {
 
 impl Validatable for MongoDBProcessorConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
-        self.client_config.validate()?;
         Self::field_string_empty("database", &self.database)?;
         Self::field_string_empty("collection", &self.collection)?;
         Ok(())
@@ -30,36 +30,30 @@ impl Validatable for MongoDBProcessorConfiguration {
 }
 
 pub struct MongoDBProcessor {
-    client: MongoDBClient,
-    collection: Collection<serde_json::Value>,
+    collection: Collection<Value>,
     query: Document,
 }
 
 impl MongoDBProcessor {
-    pub fn connect(config: MongoDBProcessorConfiguration) -> Result<Self, MongoDBError> {
+    pub fn new(
+        pool: Arc<MongoPool>,
+        config: MongoDBProcessorConfiguration,
+    ) -> Result<MongoDBProcessor, MongoDBError> {
         let MongoDBProcessorConfiguration {
-            client_config,
             database,
             collection,
             query,
         } = config;
 
-        let client = MongoDBClient::connect(client_config)?;
+        let client = pool.get_connection();
 
-        let database = client.mgclient.database(&database);
-        let collection = database.collection(&collection);
+        let collection = client.database(&database).collection(&collection);
 
-        dbg!(&query);
         let json: serde_json::Value =
             serde_json::from_str(&query).map_err(|e| MongoDBError::MQLError(e.to_string()))?;
-        dbg!(&json);
-        let res = bson::to_document(&json).map_err(|e| MongoDBError::MQLError(e.to_string()))?;
+        let query = bson::to_document(&json).map_err(|e| MongoDBError::MQLError(e.to_string()))?;
 
-        Ok(MongoDBProcessor {
-            client,
-            collection,
-            query: res,
-        })
+        Ok(MongoDBProcessor { collection, query })
     }
 }
 

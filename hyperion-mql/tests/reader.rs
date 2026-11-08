@@ -27,7 +27,7 @@ mod tests {
             collection: "test".to_string(),
         };
 
-        let writer = MongoDBWriter::connect(writer_config);
+        let writer = MongoDBWriter::new(writer_config);
 
         if let Err(e) = writer {
             panic!("{}", e);
@@ -59,7 +59,7 @@ mod tests {
             collection: "test".to_string(),
         };
 
-        let reader = MongoDBReader::connect(reader_config);
+        let reader = MongoDBReader::new(reader_config);
 
         assert!(reader.is_ok());
 

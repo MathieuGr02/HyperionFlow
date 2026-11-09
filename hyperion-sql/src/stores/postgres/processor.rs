@@ -17,8 +17,6 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 pub struct PostgreSQLProcessorConfiguration {
-    #[serde(flatten)]
-    client_config: PostgreSQLConfiguration,
     table: Table,
     query: String,
     #[serde(default)]
@@ -27,7 +25,6 @@ pub struct PostgreSQLProcessorConfiguration {
 
 impl Validatable for PostgreSQLProcessorConfiguration {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
-        self.client_config.validate()?;
         Self::field_string_empty("query", &self.query)?;
         Ok(())
     }

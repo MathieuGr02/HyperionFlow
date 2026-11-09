@@ -1,16 +1,23 @@
+use std::fmt::Debug;
+
 use postgres::{Client, NoTls, Statement};
 use tracing::trace;
 
 use crate::stores::postgres::{config::PostgreSQLConfiguration, error::PostgreSQLError};
 
 pub struct PostgreSQLClient {
-    pub config: PostgreSQLConfiguration,
     pub pgclient: Client,
+}
+
+impl Debug for PostgreSQLClient {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PostgreSQLClient").finish()
+    }
 }
 
 impl PostgreSQLClient {
     /// Connect client to the PostgreSQL database
-    pub fn connect(cfg: PostgreSQLConfiguration) -> Result<Self, PostgreSQLError> {
+    pub fn connect(cfg: &PostgreSQLConfiguration) -> Result<Self, PostgreSQLError> {
         let mut client_config = Client::configure();
         client_config
             .host(&cfg.host)
@@ -28,10 +35,7 @@ impl PostgreSQLClient {
                     error: e.to_string(),
                 })?;
 
-        Ok(PostgreSQLClient {
-            config: cfg,
-            pgclient: client,
-        })
+        Ok(PostgreSQLClient { pgclient: client })
     }
 
     /// Execute a Data Definition Language (DDL) query

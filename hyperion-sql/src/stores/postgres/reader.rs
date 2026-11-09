@@ -21,14 +21,11 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 pub struct PostgreSQLReaderConfiguration {
-    #[serde(flatten)]
-    client_config: PostgreSQLConfiguration,
     query: String,
 }
 
 impl Validatable for PostgreSQLReaderConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
-        self.client_config.validate()?;
         Self::field_string_empty("query", &self.query)?;
         Ok(())
     }

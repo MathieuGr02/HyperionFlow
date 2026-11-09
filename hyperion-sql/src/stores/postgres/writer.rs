@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use hyperion_core::{
     components::store::{error::StoreError, writer::StoreWriter},
     message::data::DataMessage,
@@ -14,7 +16,7 @@ use crate::{
     row_decoder::RowDecoder,
     stores::postgres::{
         client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
-        util::SQLError,
+        pool::PgPool, util::SQLError,
     },
     table::{Column, Table},
     value_types::ValueType,
@@ -22,8 +24,6 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 pub struct PostgreSQLWriterConfiguration {
-    #[serde(flatten)]
-    client_config: PostgreSQLConfiguration,
     table: Table,
     #[serde(default)]
     key_name: Option<String>,
@@ -31,13 +31,13 @@ pub struct PostgreSQLWriterConfiguration {
 
 impl Validatable for PostgreSQLWriterConfiguration {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
-        self.client_config.validate()
+        Ok(())
     }
 }
 
 /// The PostgreSQL writer
 pub struct PostgreSQLWriter {
-    pub client: PostgreSQLClient,
+    pub pool: Arc<PgPool>,
     pub table: Table,
     pub decoder: RowDecoder,
     pub statement: Statement,
@@ -78,9 +78,11 @@ impl PostgreSQLWriter {
         client.prepare_statement(&insert_query)
     }
 
-    pub fn connect(config: PostgreSQLWriterConfiguration) -> Result<Self, PostgreSQLError> {
+    pub fn connect(
+        config: PostgreSQLWriterConfiguration,
+        pool: Arc<PgPool>,
+    ) -> Result<Self, PostgreSQLError> {
         let PostgreSQLWriterConfiguration {
-            client_config,
             mut table,
             key_name,
         } = config;

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::{fs, sync::mpsc};
 
 use hyperion_core::{
@@ -9,6 +8,7 @@ use hyperion_core::{
 use thiserror::Error;
 use tracing::debug;
 
+use crate::config::pool::ConnectionPool;
 use crate::config::stores::{StoreConfig, StoreConfigType};
 use crate::{
     config::{
@@ -31,8 +31,7 @@ pub struct Engine {
     config: EngineConfig,
     manager: ThreadManager<Result<(), EngineError>>,
 
-    #[cfg(feature = "mql")]
-    mongo_pool: HashMap<String, MongoPool>,
+    pools: ConnectionPool,
 }
 
 #[derive(Debug, Error)]
@@ -75,21 +74,23 @@ impl Engine {
         Engine {
             manager: ThreadManager::new(),
             config,
-            mongo_pool: HashMap::new(),
+            pools: ConnectionPool::new(),
         }
     }
 
-    fn build_stores(&mut self, config: StoreConfig) -> Result<(), EngineError> {
-        match config.config_type {
-            #[cfg(feature = "sql")]
-            StoreConfigType::Postgres(postgres_config) => {}
-            #[cfg(feature = "mql")]
-            StoreConfigType::MongoDB(mongodb_config) => {
-                let pool = MongoPool::connect(mongodb_config)
-                    .map_err(|e| EngineError::ConnectionError(e.to_string()))?;
-                self.mongo_pool.insert(config.name, pool);
-            }
-        };
+    fn build_stores(&mut self, configs: Vec<StoreConfig>) -> Result<(), EngineError> {
+        for store_config in configs {
+            match store_config.config_type {
+                #[cfg(feature = "sql")]
+                StoreConfigType::Postgres(postgres_config) => {}
+                #[cfg(feature = "mql")]
+                StoreConfigType::MongoDB(mongodb_config) => {
+                    let pool = MongoPool::connect(mongodb_config)
+                        .map_err(|e| EngineError::ConnectionError(e.to_string()))?;
+                    self.pools.add_mongo_pool(store_config.name, pool);
+                }
+            };
+        }
 
         Ok(())
     }
@@ -109,27 +110,33 @@ impl Engine {
 
         debug!("Building pipeline configuration: {}", config.name);
 
+        Self::build_stores(self, config.stores)?;
+
         let (source_sender, task_receiver) = Self::build_channel(self.config.channel_size);
         let (task_sender, sink_receiver) = Self::build_channel(self.config.channel_size);
 
         debug!("Building source configuration: {}", config.source.name);
 
-        let (source_name, source) = config
-            .source
-            .build(&self.config.checkpoint_path, source_sender)?;
+        let (source_name, source) =
+            config
+                .source
+                .build(&self.pools, &self.config.checkpoint_path, source_sender)?;
 
         debug!("Building task configuration: {}", config.task.name);
 
-        let (task_name, task) =
-            config
-                .task
-                .build(&self.config.checkpoint_path, task_receiver, task_sender)?;
+        let (task_name, task) = config.task.build(
+            &self.pools,
+            &self.config.checkpoint_path,
+            task_receiver,
+            task_sender,
+        )?;
 
         debug!("Building sink configuration: {}", config.sink.name);
 
-        let (sink_name, sink) = config
-            .sink
-            .build(&self.config.checkpoint_path, sink_receiver)?;
+        let (sink_name, sink) =
+            config
+                .sink
+                .build(&self.pools, &self.config.checkpoint_path, sink_receiver)?;
 
         debug!("Adding pipeline configurations to thread manager");
 

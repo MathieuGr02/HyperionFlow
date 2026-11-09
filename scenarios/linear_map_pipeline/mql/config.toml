@@ -1,6 +1,17 @@
 [[pipelines]]
 name = "test"
 
+# MongoDB configuration
+[[pipelines.stores]]
+name = "mongo"
+
+[pipelines.stores.config]
+type = "mongodb"
+host = "mongodb"
+port = 27017
+username = "mongodb"
+password = "mongodb"
+
 ###################
 # source
 ###################
@@ -18,13 +29,10 @@ group = "test"
 partition = 1
 
 [pipelines.source.writer]
-type = "mongodb"
+name = "mongo"
 
 [pipelines.source.writer.config]
-host = "mongodb"
-port = 27017
-username = "mongodb"
-password = "mongodb"
+type = "mongodb"
 database = "test"
 collection = "test_in"
 
@@ -39,14 +47,11 @@ config = { }
 name = "test_task"
 
 [pipelines.task.processor]
-type = "mongodb"
+name = "mongo"
 
 [pipelines.task.processor.config]
+type = "mongodb"
 query = "{ \"$addFields\": { \"value\": { \"$exp\": \"$value\" } } }"
-host = "mongodb"
-port = 27017
-username = "mongodb"
-password = "mongodb"
 database = "test"
 collection = "test_in"
 
@@ -65,13 +70,10 @@ type = "json"
 config = { }
 
 [pipelines.sink.reader]
-type = "mongodb"
+name = "mongo"
 
 [pipelines.sink.reader.config]
-host = "mongodb"
-port = 27017
-username = "mongodb"
-password = "mongodb"
+type = "mongodb"
 database = "test"
 collection = "test_out"
 

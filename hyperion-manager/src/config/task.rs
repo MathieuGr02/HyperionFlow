@@ -4,19 +4,23 @@ use hyperion_core::{
     components::log::checkpoint::Checkpoint,
     validatable::{Validatable, ValidationError},
 };
-#[cfg(feature = "mql")]
-use hyperion_mql::processor::MongoDBProcessor;
-use hyperion_sql::stores::postgres::processor::PostgreSQLProcessor;
+
 use serde::Deserialize;
 
 use crate::{
     config::{
         comm::{EventChannelReceiver, EventChannelSender},
-        processor::{Processor, ProcessorConfig},
+        pool::ConnectionPool,
+        processor::{Processor, ProcessorConfig, ProcessorConfigType},
         trigger::TriggerType,
     },
     runtime::{engine::EngineError, task::RuntimeTask},
 };
+
+#[cfg(feature = "mql")]
+use hyperion_mql::processor::MongoDBProcessor;
+#[cfg(feature = "sql")]
+use hyperion_sql::stores::postgres::processor::PostgreSQLProcessor;
 
 #[derive(Debug, Deserialize)]
 pub struct TaskConfig {
@@ -35,26 +39,41 @@ impl Validatable for TaskConfig {
 }
 
 impl TaskConfig {
-    pub fn build(
-        self,
-        checkpoint_path: &PathBuf,
-        receiver: EventChannelReceiver,
-        sender: EventChannelSender,
-    ) -> Result<(String, RuntimeTask), EngineError> {
-        let operator = match self.processor {
+    pub fn build_processor(
+        processor_config: ProcessorConfig,
+        pools: &ConnectionPool,
+    ) -> Result<Processor, EngineError> {
+        let processor = match processor_config.config_type {
             #[cfg(feature = "sql")]
-            ProcessorConfig::Postgres(config) => Processor::Postgres(
+            ProcessorConfigType::Postgres(config) => Processor::Postgres(
                 PostgreSQLProcessor::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
             #[cfg(feature = "mql")]
-            ProcessorConfig::Mongodb(config) => Processor::Mongodb(
-                MongoDBProcessor::connect(config)
-                    .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
-            ),
+            ProcessorConfigType::Mongodb(config) => {
+                let mongo_pool = pools
+                    .get_mongo_pool(&processor_config.name)
+                    .ok_or(EngineError::Custom(String::new()))?;
+                Processor::Mongodb(
+                    MongoDBProcessor::new(mongo_pool, config)
+                        .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
+                )
+            }
         };
+
+        Ok(processor)
+    }
+
+    pub fn build(
+        self,
+        pools: &ConnectionPool,
+        checkpoint_path: &PathBuf,
+        receiver: EventChannelReceiver,
+        sender: EventChannelSender,
+    ) -> Result<(String, RuntimeTask), EngineError> {
+        let processor = Self::build_processor(self.processor, pools)?;
         let checkpoint = Checkpoint::new(checkpoint_path, self.name.clone());
-        let task = RuntimeTask::new(operator, sender, receiver, self.trigger, checkpoint)
+        let task = RuntimeTask::new(processor, sender, receiver, self.trigger, checkpoint)
             .map_err(|_| EngineError::ConnectionError("Error building runtime task".to_string()))?;
 
         Ok((self.name, task))

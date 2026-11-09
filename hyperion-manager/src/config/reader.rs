@@ -3,30 +3,47 @@ use hyperion_core::{
     message::{data::DataMessage, read::ReadMessage},
     validatable::{Validatable, ValidationError},
 };
-#[cfg(feature = "mql")]
-use hyperion_mql::reader::MongoDBReader;
-use hyperion_mql::reader::MongoDBReaderConfiguration;
+
 use serde::Deserialize;
+
+#[cfg(feature = "mql")]
+use hyperion_mql::reader::{MongoDBReader, MongoDBReaderConfiguration};
 
 #[cfg(feature = "sql")]
 use hyperion_sql::stores::postgres::reader::{PostgreSQLReader, PostgreSQLReaderConfiguration};
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "type", content = "config")]
-pub enum ReaderConfig {
-    #[cfg(feature = "sql")]
-    Postgres(PostgreSQLReaderConfiguration),
-    #[cfg(feature = "mql")]
-    Mongodb(MongoDBReaderConfiguration),
+pub struct ReaderConfig {
+    pub name: String,
+    #[serde(rename = "config")]
+    pub config_type: ReaderConfigType,
 }
 
 impl Validatable for ReaderConfig {
     fn validate(&self) -> Result<(), ValidationError> {
+        self.config_type.validate()?;
+        Self::field_string_empty("name", &self.name)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "type")]
+pub enum ReaderConfigType {
+    #[cfg(feature = "sql")]
+    Postgres(PostgreSQLReaderConfiguration),
+    #[cfg(feature = "mql")]
+    #[serde(rename = "mongodb")]
+    Mongodb(MongoDBReaderConfiguration),
+}
+
+impl Validatable for ReaderConfigType {
+    fn validate(&self) -> Result<(), ValidationError> {
         match self {
             #[cfg(feature = "sql")]
-            ReaderConfig::Postgres(postgres) => postgres.validate(),
+            ReaderConfigType::Postgres(postgres) => postgres.validate(),
             #[cfg(feature = "mql")]
-            ReaderConfig::Mongodb(mongodb) => mongodb.validate(),
+            ReaderConfigType::Mongodb(mongodb) => mongodb.validate(),
         }
     }
 }

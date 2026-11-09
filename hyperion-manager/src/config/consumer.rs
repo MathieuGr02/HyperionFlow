@@ -3,9 +3,11 @@ use hyperion_core::{
     message::encoded::EncodedMessage,
     validatable::Validatable,
 };
+
+use serde::Deserialize;
+
 #[cfg(feature = "kafka")]
 use hyperion_kafka::{config::KafkaConfiguration, consumer::KafkaConsumer};
-use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "type", content = "config")]

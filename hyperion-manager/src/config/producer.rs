@@ -2,9 +2,11 @@ use hyperion_core::{
     components::event::{error::EventError, producer::EventProducer},
     validatable::Validatable,
 };
+
+use serde::Deserialize;
+
 #[cfg(feature = "kafka")]
 use hyperion_kafka::{config::KafkaConfiguration, producer::KafkaProducer};
-use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "type", content = "config")]
@@ -17,6 +19,7 @@ pub enum ProducerConfig {
 impl Validatable for ProducerConfig {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
         match self {
+            #[cfg(feature = "kafka")]
             ProducerConfig::Kafka(kafka) => kafka.validate(),
         }
     }

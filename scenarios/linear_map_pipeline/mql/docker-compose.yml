@@ -49,14 +49,17 @@ services:
       - kafka-net
 
   hyperion:
-    build: ../../..
-    depends_on:
-      kafka:
-        condition: service_healthy
+    build:
+      context: ../../..
+      args:
+        FEATURES: mql,kafka
     environment:
       CONFIG_FILE: /config.toml
     volumes:
       - ./config.toml:/config.toml
+    depends_on:
+      kafka:
+        condition: service_healthy
     networks:
       - kafka-net
 

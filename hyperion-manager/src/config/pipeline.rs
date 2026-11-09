@@ -8,7 +8,7 @@ use crate::config::{
 #[derive(Debug, Deserialize)]
 pub struct PipelineConfig {
     pub name: String,
-    pub stores: StoreConfig,
+    pub stores: Vec<StoreConfig>,
     pub source: SourceConfig,
     pub task: TaskConfig,
     pub sink: SinkConfig,

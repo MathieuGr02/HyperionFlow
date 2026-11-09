@@ -3,11 +3,11 @@ use hyperion_core::{
     message::process::{ProcessMessage, Range},
     validatable::{Validatable, ValidationError},
 };
-#[cfg(feature = "sql")]
-use hyperion_mql::processor::MongoDBProcessor;
-#[cfg(feature = "mql")]
-use hyperion_mql::processor::MongoDBProcessorConfiguration;
+
 use serde::Deserialize;
+
+#[cfg(feature = "mql")]
+use hyperion_mql::processor::{MongoDBProcessor, MongoDBProcessorConfiguration};
 
 #[cfg(feature = "sql")]
 use hyperion_sql::stores::postgres::processor::{
@@ -15,22 +15,38 @@ use hyperion_sql::stores::postgres::processor::{
 };
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "type", content = "config")]
-#[serde(deny_unknown_fields)]
-pub enum ProcessorConfig {
-    #[cfg(feature = "sql")]
-    Postgres(PostgreSQLProcessorConfiguration),
-    #[cfg(feature = "mql")]
-    Mongodb(MongoDBProcessorConfiguration),
+pub struct ProcessorConfig {
+    pub name: String,
+    #[serde(rename = "config")]
+    pub config_type: ProcessorConfigType,
 }
 
 impl Validatable for ProcessorConfig {
     fn validate(&self) -> Result<(), ValidationError> {
+        self.config_type.validate()?;
+        Self::field_string_empty("name", &self.name)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "type")]
+#[serde(deny_unknown_fields)]
+pub enum ProcessorConfigType {
+    #[cfg(feature = "sql")]
+    Postgres(PostgreSQLProcessorConfiguration),
+    #[cfg(feature = "mql")]
+    #[serde(rename = "mongodb")]
+    Mongodb(MongoDBProcessorConfiguration),
+}
+
+impl Validatable for ProcessorConfigType {
+    fn validate(&self) -> Result<(), ValidationError> {
         match self {
             #[cfg(feature = "sql")]
-            ProcessorConfig::Postgres(postgres) => postgres.validate(),
+            ProcessorConfigType::Postgres(postgres) => postgres.validate(),
             #[cfg(feature = "mql")]
-            ProcessorConfig::Mongodb(mongodb) => mongodb.validate(),
+            ProcessorConfigType::Mongodb(mongodb) => mongodb.validate(),
         }
     }
 }

@@ -5,6 +5,7 @@ pub mod consumer;
 pub mod deserializer;
 pub mod engine;
 pub mod pipeline;
+pub mod pool;
 pub mod processor;
 pub mod producer;
 pub mod reader;

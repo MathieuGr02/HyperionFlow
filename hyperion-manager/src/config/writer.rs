@@ -3,30 +3,47 @@ use hyperion_core::{
     message::data::DataMessage,
     validatable::{Validatable, ValidationError},
 };
-#[cfg(feature = "mql")]
-use hyperion_mql::writer::MongoDBWriter;
-use hyperion_mql::writer::MongoDBWriterConfiguration;
+
 use serde::Deserialize;
+
+#[cfg(feature = "mql")]
+use hyperion_mql::writer::{MongoDBWriter, MongoDBWriterConfiguration};
 
 #[cfg(feature = "sql")]
 use hyperion_sql::stores::postgres::writer::{PostgreSQLWriter, PostgreSQLWriterConfiguration};
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "type", content = "config")]
-pub enum WriterConfig {
-    #[cfg(feature = "sql")]
-    Postgres(PostgreSQLWriterConfiguration),
-    #[cfg(feature = "mql")]
-    Mongodb(MongoDBWriterConfiguration),
+pub struct WriterConfig {
+    pub name: String,
+    #[serde(rename = "config")]
+    pub config_type: WriterConfigType,
 }
 
 impl Validatable for WriterConfig {
     fn validate(&self) -> Result<(), ValidationError> {
+        self.config_type.validate()?;
+        Self::field_string_empty("name", &self.name)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "type")]
+pub enum WriterConfigType {
+    #[cfg(feature = "sql")]
+    Postgres(PostgreSQLWriterConfiguration),
+    #[cfg(feature = "mql")]
+    #[serde(rename = "mongodb")]
+    Mongodb(MongoDBWriterConfiguration),
+}
+
+impl Validatable for WriterConfigType {
+    fn validate(&self) -> Result<(), ValidationError> {
         match self {
             #[cfg(feature = "sql")]
-            WriterConfig::Postgres(postgres) => postgres.validate(),
+            WriterConfigType::Postgres(postgres) => postgres.validate(),
             #[cfg(feature = "mql")]
-            WriterConfig::Mongodb(mongodb) => mongodb.validate(),
+            WriterConfigType::Mongodb(mongodb) => mongodb.validate(),
         }
     }
 }

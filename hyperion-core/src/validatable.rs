@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+/// The validatable trait.
+/// Allows the validation of correctness of the type that implements the trait.
 pub trait Validatable {
     /// Check if a field's string value is empty
     ///

@@ -1,4 +1,4 @@
-use crate::value::{Bytes, Timestamp, Value};
+use hyperion_value::{Bytes, Timestamp, Value};
 
 #[derive(Debug)]
 pub struct DataMessage {

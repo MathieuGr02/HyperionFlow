@@ -5,8 +5,8 @@ use hyperion_core::{
         process::{ProcessMessage, Range},
     },
     validatable::{Validatable, ValidationError},
-    value::Timestamp,
 };
+use hyperion_value::Timestamp;
 use serde::Deserialize;
 use tracing::trace;
 

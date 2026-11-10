@@ -2,8 +2,8 @@ use hyperion_core::{
     components::store::{error::StoreError, writer::StoreWriter},
     message::data::DataMessage,
     validatable::{Validatable, ValidationError},
-    value::Value,
 };
+use hyperion_value::Value;
 use mongodb::sync::Collection;
 use serde::Deserialize;
 

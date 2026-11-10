@@ -1,7 +1,8 @@
+use hyperion_value::Value;
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::{validatable::Validatable, value::Value};
+use crate::validatable::Validatable;
 
 #[derive(Debug, Error)]
 pub enum SerializationError {

@@ -1,4 +1,4 @@
-use hyperion_core::value::Value;
+use hyperion_value::Value;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]

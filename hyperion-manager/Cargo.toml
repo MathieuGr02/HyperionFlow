@@ -25,6 +25,8 @@ hyperion-cypher = { path = "../hyperion-cypher", optional = true }
 # Event adapters
 hyperion-kafka = { path = "../hyperion-kafka", optional = true }
 
+hyperion-value = { path = "../hyperion-value" }
+
 clap = { version = "4.6.7", features = ["derive"] }
 
 serde = { workspace = true }

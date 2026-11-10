@@ -1,7 +1,8 @@
+use hyperion_value::{Bytes, Timestamp};
+
 use crate::{
     deserializer::{DeserializationError, Deserializer},
     message::{decoded::DecodedMessage, position::Position},
-    value::{Bytes, Timestamp},
 };
 
 /// The encoded message.

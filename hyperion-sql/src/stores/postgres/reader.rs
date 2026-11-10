@@ -1,13 +1,11 @@
 use std::panic;
 
-use hyperion_core::value::Map;
-use hyperion_core::value::Timestamp;
 use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
     message::{data::DataMessage, read::ReadMessage},
     validatable::{Validatable, ValidationError},
-    value::Value::{self},
 };
+use hyperion_value::{Map, Timestamp, Value};
 use postgres::{Row, Statement};
 use serde::Deserialize;
 use tracing::trace;

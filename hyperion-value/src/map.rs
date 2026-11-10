@@ -9,7 +9,7 @@ use std::{
 
 use delegate::delegate;
 
-use crate::value::value::Value;
+use crate::Value;
 
 #[derive(Debug)]
 pub struct Map {

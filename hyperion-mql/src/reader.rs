@@ -2,8 +2,8 @@ use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
     message::{data::DataMessage, read::ReadMessage},
     validatable::Validatable,
-    value::{Integer, Timestamp, Value},
 };
+use hyperion_value::{Timestamp, Value};
 use mongodb::{bson::doc, sync::Collection};
 use serde::Deserialize;
 

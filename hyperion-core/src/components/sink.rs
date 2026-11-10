@@ -3,13 +3,13 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
+use hyperion_value::Timestamp;
 use thiserror::Error;
 use tracing::{error, trace};
 
 use crate::{
     components::{component::Component, log::checkpoint::Checkpoint},
     serializer::Serializer,
-    value::Timestamp,
 };
 use crate::{
     components::{
@@ -71,7 +71,7 @@ where
     type Error = SinkError;
 
     fn main_loop(&mut self, shutdown: Arc<AtomicBool>) -> Result<Self::Output, Self::Error> {
-        let mut latest: Timestamp = Timestamp::empty();
+        let mut latest = Timestamp::empty();
 
         loop {
             if shutdown.load(Ordering::SeqCst) {

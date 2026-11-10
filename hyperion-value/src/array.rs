@@ -1,6 +1,6 @@
 use std::slice::Iter;
 
-use crate::value::value::Value;
+use crate::Value;
 
 use delegate::delegate;
 

@@ -1,7 +1,6 @@
-use crate::{
-    message::{data::DataMessage, event::EventMessage, position::Position},
-    value::{Bytes, Timestamp, Value},
-};
+use hyperion_value::{Bytes, Timestamp, Value};
+
+use crate::message::{data::DataMessage, event::EventMessage, position::Position};
 
 /// The decoded message.
 /// Defines the parsed data consumed from an external event source.

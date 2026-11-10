@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 hyperion-core = { version = "0.1.0", path = "../hyperion-core" }
+hyperion-value = { path = "../hyperion-value" }
 
 mongodb = { version = "3.9.1", features = ["sync"] }
 

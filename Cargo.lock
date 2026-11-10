@@ -832,7 +832,7 @@ dependencies = [
 name = "hyperion-core"
 version = "0.1.0"
 dependencies = [
- "delegate",
+ "hyperion-value",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -846,6 +846,7 @@ name = "hyperion-kafka"
 version = "0.1.0"
 dependencies = [
  "hyperion-core",
+ "hyperion-value",
  "kafka",
  "serde",
  "serde_json",
@@ -863,6 +864,7 @@ dependencies = [
  "hyperion-kafka",
  "hyperion-mql",
  "hyperion-sql",
+ "hyperion-value",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -876,6 +878,7 @@ name = "hyperion-mql"
 version = "0.1.0"
 dependencies = [
  "hyperion-core",
+ "hyperion-value",
  "mongodb",
  "serde",
  "serde_json",
@@ -889,8 +892,22 @@ name = "hyperion-sql"
 version = "0.1.0"
 dependencies = [
  "hyperion-core",
+ "hyperion-value",
  "postgres",
  "rstest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "time",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "hyperion-value"
+version = "0.1.0"
+dependencies = [
+ "delegate",
  "serde",
  "serde_json",
  "thiserror 2.0.21",

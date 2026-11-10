@@ -1,8 +1,8 @@
 use hyperion_core::{
     deserializer::{DeserializationError, Deserializer, JsonDeserializer},
     validatable::{Validatable, ValidationError},
-    value::Value,
 };
+use hyperion_value::Value;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]

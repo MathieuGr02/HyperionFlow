@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::value::Timestamp;
+use hyperion_value::Timestamp;
 
 /// The process message.
 /// Provides the relevant information for the processing step to the underlying data store.

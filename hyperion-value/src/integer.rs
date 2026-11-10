@@ -1,4 +1,4 @@
-use crate::value::value::Value;
+use crate::Value;
 
 #[derive(Debug)]
 pub struct Integer {

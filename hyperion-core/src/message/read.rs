@@ -1,4 +1,4 @@
-use crate::value::Timestamp;
+use hyperion_value::Timestamp;
 
 #[derive(Debug)]
 pub struct ReadMessage {

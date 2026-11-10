@@ -1,7 +1,6 @@
-use crate::{
-    message::{event_record::EventRecord, position::Position},
-    value::{Bytes, Timestamp},
-};
+use hyperion_value::{Bytes, Timestamp};
+
+use crate::message::{event_record::EventRecord, position::Position};
 
 #[derive(Debug)]
 pub struct EventMessage {

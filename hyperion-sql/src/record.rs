@@ -1,4 +1,4 @@
-use hyperion_core::value::Value;
+use hyperion_value::Value;
 
 use crate::{row_decoder::RowDecoder, value_types::SQLValue};
 

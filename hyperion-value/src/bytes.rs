@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::value::value::Value;
+use crate::Value;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Bytes {

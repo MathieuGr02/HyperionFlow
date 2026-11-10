@@ -2,8 +2,8 @@ use hyperion_core::{
     components::store::{error::StoreError, writer::StoreWriter},
     message::data::DataMessage,
     validatable::Validatable,
-    value::Bytes,
 };
+use hyperion_value::Bytes;
 use postgres::{Statement, types::ToSql};
 use serde::Deserialize;
 use tracing::info;

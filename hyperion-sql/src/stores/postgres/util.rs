@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use hyperion_core::value::Value;
+use hyperion_value::Value;
 use postgres::types::{FromSql, IsNull, ToSql, Type, private::BytesMut, to_sql_checked};
 use thiserror::Error;
 

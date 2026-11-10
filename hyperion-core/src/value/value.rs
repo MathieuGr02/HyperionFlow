@@ -88,6 +88,13 @@ impl Value {
         }
     }
 
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Value::String(string) => Some(string.as_str()),
+            _ => None,
+        }
+    }
+
     pub fn as_map(self) -> Option<Map> {
         match self {
             Value::Map(map) => Some(map),

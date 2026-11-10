@@ -1,15 +1,17 @@
 use std::path::PathBuf;
 
 use hyperion_core::{components::log::checkpoint::Checkpoint, validatable::Validatable};
+use serde::Deserialize;
+
 #[cfg(feature = "cypher")]
 use hyperion_cypher::reader::Neo4jReader;
+#[cfg(feature = "kafka")]
 use hyperion_kafka::producer::KafkaProducer;
 #[cfg(feature = "mql")]
 use hyperion_mql::reader::MongoDBReader;
+#[cfg(feature = "sql")]
 use hyperion_sql::stores::postgres::reader::PostgreSQLReader;
-use serde::Deserialize;
 
-#[cfg(feature = "kafka")]
 use crate::config::producer::Producer;
 use crate::{
     config::{

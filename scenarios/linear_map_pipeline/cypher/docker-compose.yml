@@ -41,7 +41,7 @@ services:
   neo4j:
     image: neo4j:latest
     environment:
-        - NEO4J_AUTH=neo4j/neo4j
+        - NEO4J_AUTH=neo4j/12345678
     ports:
       - "7474:7474"
       - "7687:7687"
@@ -50,7 +50,10 @@ services:
       - kafka-net
 
   hyperion:
-    build: ../../..
+    build:
+      context: ../../..
+      args:
+        FEATURES: cypher,kafka
     depends_on:
       kafka:
         condition: service_healthy

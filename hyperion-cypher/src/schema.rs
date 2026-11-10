@@ -1,12 +1,12 @@
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-struct Node {
+pub struct Node {
     name: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct Relationship {
+pub struct Relationship {
     name: String,
     from: Node,
     to: Node,
@@ -14,6 +14,8 @@ struct Relationship {
 
 #[derive(Debug, Deserialize)]
 pub struct GraphSchema {
-    nodes: Vec<Node>,
-    relationships: Vec<Relationship>,
+    #[serde(default)]
+    pub nodes: Vec<Node>,
+    #[serde(default)]
+    pub relationships: Vec<Relationship>,
 }

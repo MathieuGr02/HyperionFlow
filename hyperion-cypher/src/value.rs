@@ -1,8 +1,11 @@
 use ::bytes::Bytes;
-use hyperion_core::value::{Value, bytes};
+use hyperion_core::message::data::DataMessage;
+use hyperion_core::value::Value;
+use hyperion_core::value::bytes;
 use neo4rs::{
     BoltBoolean, BoltBytes, BoltFloat, BoltInteger, BoltMap, BoltNull, BoltString, BoltType,
 };
+use serde::Deserialize;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -64,4 +67,31 @@ impl TryInto<BoltType> for CypherValue {
 
         Ok(bolt)
     }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "type")]
+pub enum GraphEntity {
+    Node(Node),
+    Relationship(Relationship),
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Node {
+    pub label: String,
+    pub value: Value,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct NodeReference {
+    pub id: String,
+    pub label: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Relationship {
+    pub from: NodeReference,
+    pub to: NodeReference,
+    pub label: String,
+    pub value: Value,
 }

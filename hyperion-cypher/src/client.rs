@@ -2,6 +2,7 @@ use hyperion_core::components::store::error::StoreError;
 use neo4rs::{BoltString, BoltType, Graph, Query};
 use serde::Deserialize;
 use tokio::runtime::Runtime;
+use tracing::info;
 
 use crate::{config::Neo4jConfiguration, error::Neo4jError, value::CypherError};
 
@@ -39,9 +40,8 @@ impl Neo4jClient {
         V: Into<BoltType>,
     {
         let parameterised = query.param(key, param);
-        let _ = self
-            .rt
-            .block_on(self.graph.execute(parameterised))
+        self.rt
+            .block_on(self.graph.run(parameterised))
             .map_err(|e| Neo4jError::Custom(e.to_string()))?;
 
         Ok(())

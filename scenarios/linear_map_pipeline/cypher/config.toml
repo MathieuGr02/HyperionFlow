@@ -22,9 +22,10 @@ type = "neo4j"
 
 [pipelines.source.writer.config]
 host = "neo4j"
-port = 27017
+port = 7687
 username = "neo4j"
-password = "neo4j"
+password = "12345678"
+query = "CREATE (p:Person $person)"
 schema = { nodes = [ { name = "Person" } ] }
 
 [pipelines.source.deserializer]
@@ -41,13 +42,11 @@ name = "test_task"
 type = "neo4j"
 
 [pipelines.task.processor.config]
-query = "{ \"$addFields\": { \"value\": { \"$exp\": \"$value\" } } }"
 host = "neo4j"
 port = 7687
 username = "neo4j"
-password = "neo4j"
-database = "test"
-collection = "test_in"
+password = "12345678"
+query = "_"
 
 [pipelines.task.trigger]
 type = "count_trigger"
@@ -70,9 +69,8 @@ type = "neo4j"
 host = "neo4j"
 port = 7687
 username = "neo4j"
-password = "neo4j"
-database = "test"
-collection = "test_out"
+password = "12345678"
+query = "_"
 
 [pipelines.sink.producer]
 type = "kafka"

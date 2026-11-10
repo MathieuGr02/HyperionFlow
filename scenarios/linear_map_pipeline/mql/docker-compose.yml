@@ -49,7 +49,10 @@ services:
       - kafka-net
 
   hyperion:
-    build: ../../..
+    build:
+      context: ../../..
+      args:
+        FEATURES: mql,kafka
     depends_on:
       kafka:
         condition: service_healthy

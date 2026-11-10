@@ -53,7 +53,10 @@ services:
       - kafka-net
 
   hyperion:
-    build: ../../..
+    build:
+      context: ../../..
+      args:
+        FEATURES: sql,kafka
     depends_on:
       kafka:
         condition: service_healthy

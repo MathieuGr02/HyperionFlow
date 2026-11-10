@@ -33,3 +33,7 @@ toml = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+
+[profile.release]
+opt-level = 3
+lto = true

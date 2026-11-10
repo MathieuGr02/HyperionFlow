@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::message::{
     event_record::EventRecord,
-    process::{MessageType, ProcessMessage},
+    process_message::{MessageType, ProcessMessage},
 };
 
 #[derive(Debug)]

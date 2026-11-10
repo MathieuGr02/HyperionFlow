@@ -1,6 +1,6 @@
 use crate::{
     components::store::error::StoreError,
-    message::process::{MessageType, ProcessMessage},
+    message::process_message::{MessageType, ProcessMessage},
 };
 
 pub trait StoreProcessor<T: MessageType> {

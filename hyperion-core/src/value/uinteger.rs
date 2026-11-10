@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::value::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct UInteger {
     inner: u64,
 }

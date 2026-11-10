@@ -2,7 +2,7 @@ use hyperion_core::{
     components::trigger::{Trigger, TriggerAction, TriggerError},
     message::{
         event_record::EventRecord,
-        process::{ProcessMessage, Range},
+        process_message::{ProcessMessage, Range},
     },
     validatable::{Validatable, ValidationError},
     value::Timestamp,

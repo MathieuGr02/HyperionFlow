@@ -1,13 +1,10 @@
+use serde::{Deserialize, Serialize};
+
 use crate::value::value::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Integer {
     inner: i64,
-}
-
-enum IntType {
-    Signed(i64),
-    Unsigned(u64),
 }
 
 impl From<i8> for Integer {

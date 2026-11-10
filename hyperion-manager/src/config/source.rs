@@ -3,18 +3,22 @@ use std::path::PathBuf;
 use hyperion_core::{
     components::log::checkpoint::Checkpoint, message::data::DataMapper, validatable::Validatable,
 };
+use serde::Deserialize;
+
+#[cfg(feature = "kafka")]
 use hyperion_kafka::consumer::KafkaConsumer;
 #[cfg(feature = "mql")]
 use hyperion_mql::writer::MongoDBWriter;
+#[cfg(feature = "sql")]
 use hyperion_sql::stores::postgres::writer::PostgreSQLWriter;
-use serde::Deserialize;
 
 use crate::{
     config::{
         comm::EventChannelSender,
         consumer::{Consumer, ConsumerConfig},
         deserializer::DeserializerType,
-        writer::{Writer, WriterConfig, WriterConfigType},
+        mapper::Mapper,
+        writer::{Writer, WriterConfig},
     },
     runtime::{engine::EngineError, source::RuntimeSource},
 };
@@ -22,6 +26,7 @@ use crate::{
 #[derive(Debug, Deserialize)]
 pub struct SourceConfig {
     pub name: String,
+    pub mapper: Mapper,
     pub consumer: ConsumerConfig,
     pub writer: WriterConfig,
     pub deserializer: DeserializerType,
@@ -48,15 +53,15 @@ impl SourceConfig {
         Ok(external)
     }
 
-    fn build_writer(config: WriterConfigType) -> Result<Writer, EngineError> {
+    fn build_writer(config: WriterConfig) -> Result<Writer, EngineError> {
         let writer = match config {
             #[cfg(feature = "sql")]
-            WriterConfigType::Postgres(config) => Writer::Postgres(
+            WriterConfig::Postgres(config) => Writer::Postgres(
                 PostgreSQLWriter::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
             #[cfg(feature = "mql")]
-            WriterConfigType::Mongodb(config) => Writer::Mongodb(
+            WriterConfig::Mongodb(config) => Writer::Mongodb(
                 MongoDBWriter::connect(config)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
@@ -71,10 +76,10 @@ impl SourceConfig {
         sender: EventChannelSender,
     ) -> Result<(String, RuntimeSource), EngineError> {
         let external = Self::build_external(self.consumer)?;
-        let internal = Self::build_writer(self.writer.config_type)?;
+        let internal = Self::build_writer(self.writer)?;
         let mapper = DataMapper {
-            key_name: self.writer.key_name,
-            time_name: self.writer.time_name,
+            key_name: self.mapper.key_name,
+            time_name: self.mapper.time_name,
         };
         let checkpoint = Checkpoint::new(checkpoint_path, self.name.clone());
         let source = RuntimeSource::new(

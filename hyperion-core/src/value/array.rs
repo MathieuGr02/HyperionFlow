@@ -3,8 +3,9 @@ use std::slice::Iter;
 use crate::value::value::Value;
 
 use delegate::delegate;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Array {
     inner: Vec<Value>,
 }

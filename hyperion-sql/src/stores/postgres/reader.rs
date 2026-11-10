@@ -4,7 +4,7 @@ use hyperion_core::value::Map;
 use hyperion_core::value::Timestamp;
 use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
-    message::{data::DataMessage, read::ReadMessage},
+    message::{data::DataMessage, read_message::ReadMessage},
     validatable::{Validatable, ValidationError},
     value::Value::{self},
 };

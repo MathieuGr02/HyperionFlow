@@ -15,10 +15,7 @@ use crate::{
         store::{error::StoreError, writer::StoreWriter},
     },
     deserializer::{DeserializationError, Deserializer},
-    message::{
-        data::{DataMapper, DataMessage},
-        event::EventMessage,
-    },
+    message::mapper::DataMapper,
 };
 
 #[derive(Debug, Error)]
@@ -125,15 +122,13 @@ where
                 error!("{:?}", errors);
             }
 
-            let (data, events): (Vec<DataMessage>, Vec<EventMessage>) =
-                batch.into_iter().map(|m| m.unwrap().split()).collect();
-
-            let (data, errors): (Vec<_>, Vec<_>) = data
+            let (data, errors): (Vec<_>, Vec<_>) = batch
                 .into_iter()
-                .map(|d| self.mapper.map(d))
+                .map(|m| self.mapper.map(m.unwrap()))
                 .partition(Result::is_ok);
 
-            let data = data.into_iter().map(Result::unwrap).collect();
+            let (records, events): (Vec<_>, Vec<_>) =
+                data.into_iter().map(Result::unwrap).collect();
 
             // Write checkpoint for latest record from external event source
             let latest_position = &events.last().unwrap().position;
@@ -142,7 +137,7 @@ where
             }
 
             // Write records to internal data store
-            if let Err(e) = self.writer.write_batch(data) {
+            if let Err(e) = self.writer.write_batch(records) {
                 error!(error = %e, "Store write error");
             }
 

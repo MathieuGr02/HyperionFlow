@@ -8,10 +8,11 @@ use std::{
 };
 
 use delegate::delegate;
+use serde::{Deserialize, Serialize};
 
 use crate::value::value::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Map {
     inner: HashMap<String, Value>,
 }

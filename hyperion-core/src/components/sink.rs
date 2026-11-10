@@ -15,7 +15,7 @@ use crate::{
     components::{
         event::producer::EventProducer, receiver::EventReceiver, store::reader::StoreReader,
     },
-    message::read::ReadMessage,
+    message::read_message::ReadMessage,
 };
 
 #[derive(Debug, Error)]

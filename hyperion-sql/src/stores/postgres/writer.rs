@@ -1,8 +1,7 @@
 use hyperion_core::{
     components::store::{error::StoreError, writer::StoreWriter},
-    message::data::{DataMessage, Record},
+    message::data::Record,
     validatable::Validatable,
-    value::Bytes,
 };
 use postgres::{Statement, types::ToSql};
 use serde::Deserialize;

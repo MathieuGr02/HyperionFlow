@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::store::{error::StoreError, processor::StoreProcessor},
-    message::process::{ProcessMessage, Range},
+    message::process_message::{ProcessMessage, Range},
     validatable::{Validatable, ValidationError},
 };
 #[cfg(feature = "sql")]

@@ -29,8 +29,8 @@ impl ToSql for SQLValue {
             Value::String(v) => v.to_sql(ty, out),
             Value::Bytes(v) => v.as_array().to_sql(ty, out),
             Value::Timestamp(v) => v.as_i64().to_sql(ty, out),
-            Value::Array(array) => todo!(),
-            Value::Map(map) => todo!(),
+            Value::Array(_) => todo!(),
+            Value::Map(_) => todo!(),
         }
     }
 

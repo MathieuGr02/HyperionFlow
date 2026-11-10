@@ -1,6 +1,6 @@
 use hyperion_core::{
     components::store::{error::StoreError, reader::StoreReader},
-    message::{data::DataMessage, read::ReadMessage},
+    message::{data::DataMessage, read_message::ReadMessage},
     validatable::{Validatable, ValidationError},
 };
 #[cfg(feature = "mql")]

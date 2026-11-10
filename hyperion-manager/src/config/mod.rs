@@ -4,6 +4,7 @@ pub mod components;
 pub mod consumer;
 pub mod deserializer;
 pub mod engine;
+pub mod mapper;
 pub mod pipeline;
 pub mod processor;
 pub mod producer;

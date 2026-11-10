@@ -2,7 +2,7 @@
 mod tests {
     use hyperion_core::{
         components::store::{reader::StoreReader, writer::StoreWriter},
-        message::{data::DataMessage, read::ReadMessage},
+        message::{data::DataMessage, read_message::ReadMessage},
     };
     use hyperion_mql::{
         config::MongoDBConfiguration,

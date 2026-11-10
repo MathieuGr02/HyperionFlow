@@ -1,7 +1,4 @@
-use crate::{
-    components::store::error::StoreError,
-    message::data::{DataMessage, Record},
-};
+use crate::{components::store::error::StoreError, message::record::Record};
 
 pub trait StoreWriter {
     fn write(&mut self, item: Record) -> Result<(), StoreError>;

@@ -1,13 +1,8 @@
 use crate::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Integer {
     inner: i64,
-}
-
-enum IntType {
-    Signed(i64),
-    Unsigned(u64),
 }
 
 impl From<i8> for Integer {

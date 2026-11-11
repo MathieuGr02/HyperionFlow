@@ -1,6 +1,3 @@
-pub mod array;
-pub use array::Array;
-
 pub mod bytes;
 pub use bytes::Bytes;
 
@@ -21,3 +18,13 @@ pub use value::Value;
 
 pub mod uinteger;
 pub use uinteger::UInteger;
+
+#[cfg(feature = "graph")]
+pub mod node;
+#[cfg(feature = "graph")]
+pub use node::Node;
+
+#[cfg(feature = "graph")]
+pub mod edge;
+#[cfg(feature = "graph")]
+pub use edge::Edge;

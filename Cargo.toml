@@ -1,9 +1,5 @@
 [workspace]
-<<<<<<< HEAD
-members = ["hyperion-core", "hyperion-manager", "hyperion-sql", "hyperion-kafka", "hyperion-cypher"]
-=======
-members = ["hyperion-core", "hyperion-manager", "hyperion-sql", "hyperion-kafka", "hyperion-value"]
->>>>>>> main
+members = ["hyperion-core", "hyperion-manager", "hyperion-sql", "hyperion-cypher", "hyperion-kafka", "hyperion-value"]
 resolver = "3"
 
 [workspace.dependencies]

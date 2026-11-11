@@ -29,8 +29,10 @@ impl ToSql for SQLValue {
             Value::String(v) => v.to_sql(ty, out),
             Value::Bytes(v) => v.as_array().to_sql(ty, out),
             Value::Timestamp(v) => v.as_i64().to_sql(ty, out),
-            Value::Array(array) => todo!(),
-            Value::Map(map) => todo!(),
+            Value::Array(_) => return Err(SQLError::UnsupportedType("Array".to_string()).into()),
+            Value::Map(_) => return Err(SQLError::UnsupportedType("Map".to_string()).into()),
+            Value::Node(_) => return Err(SQLError::UnsupportedType("Node".to_string()).into()),
+            Value::Edge(_) => return Err(SQLError::UnsupportedType("Edge".to_string()).into()),
         }
     }
 
@@ -49,6 +51,8 @@ impl ToSql for SQLValue {
 
 #[derive(Debug, Error)]
 pub enum SQLError {
+    #[error("Unsupported SQL type {0}")]
+    UnsupportedType(String),
     #[error("Invalid column: {0}")]
     InvalidColumn(String),
     #[error("Invalid table: {0}")]

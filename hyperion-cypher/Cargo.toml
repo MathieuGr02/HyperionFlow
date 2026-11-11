@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 hyperion-core = { version = "0.1.0", path = "../hyperion-core" }
+hyperion-value = { version = "0.1.0", path = "../hyperion-value", features = ["graph"] }
 
 neo4rs = "0.8.0"
 tokio = "1.54.1"

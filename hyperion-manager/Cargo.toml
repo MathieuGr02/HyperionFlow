@@ -7,7 +7,7 @@ edition = "2024"
 # Store features
 sql = ["dep:hyperion-sql"]
 mql = ["dep:hyperion-mql"]
-cypher = ["dep:hyperion-cypher"]
+cypher = ["dep:hyperion-cypher", "hyperion-value/graph"]
 
 # Event features
 kafka = ["dep:hyperion-kafka"]

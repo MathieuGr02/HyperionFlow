@@ -8,12 +8,21 @@ use std::{
 };
 
 use delegate::delegate;
+use serde::{Serialize, ser::SerializeMap};
 
 use crate::Value;
 
 #[derive(Debug)]
 pub struct Map {
     inner: HashMap<String, Value>,
+}
+
+impl Default for Map {
+    fn default() -> Self {
+        Self {
+            inner: Default::default(),
+        }
+    }
 }
 
 impl From<HashMap<String, Value>> for Map {
@@ -41,7 +50,7 @@ impl Map {
 
     delegate! {
         to self.inner {
-            pub fn contains_key(&self, k: &String) -> bool;
+            pub fn contains_key<Q>(&self, k: &Q) -> bool where Q: Hash + Eq + ?Sized, String: Borrow<Q>;
             pub fn get<Q>(&self, k: &Q) -> Option<&Value> where Q: Hash + Eq + ?Sized, String: Borrow<Q>;
             pub fn get_mut(&mut self, k: &String) -> Option<&mut Value>;
             pub fn insert(&mut self, k: String, v: Value) -> Option<Value>;
@@ -58,5 +67,20 @@ impl IntoIterator for Map {
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.into_iter()
+    }
+}
+
+impl Serialize for Map {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(self.len()))?;
+
+        for (key, value) in self.inner.iter() {
+            map.serialize_entry(key, value)?;
+        }
+
+        map.end()
     }
 }

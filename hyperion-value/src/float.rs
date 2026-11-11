@@ -1,6 +1,6 @@
 use crate::Value;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct Float {
     inner: f64,
 }

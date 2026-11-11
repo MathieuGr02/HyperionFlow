@@ -3,9 +3,45 @@ use serde::{Serialize, ser::SerializeMap};
 use crate::{Map, Value};
 
 #[derive(Debug)]
+pub struct NodeReference {
+    pub id: String,
+    pub label: String,
+}
+
+impl Serialize for NodeReference {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut reference = serializer.serialize_map(Some(4))?;
+
+        reference.serialize_entry("id", &self.id)?;
+        reference.serialize_entry("labels", &self.label)?;
+
+        reference.end()
+    }
+}
+
+impl TryFrom<Map> for NodeReference {
+    type Error = ();
+
+    fn try_from(mut value: Map) -> Result<Self, Self::Error> {
+        let Some(Value::String(id)) = value.remove("id") else {
+            return Err(());
+        };
+
+        let Some(Value::String(label)) = value.remove("label") else {
+            return Err(());
+        };
+
+        Ok(NodeReference { id, label })
+    }
+}
+
+#[derive(Debug)]
 pub struct Edge {
-    pub from: String,
-    pub to: String,
+    pub from: NodeReference,
+    pub to: NodeReference,
     pub labels: Vec<String>,
     pub value: Map,
 }
@@ -18,13 +54,17 @@ impl TryFrom<Map> for Edge {
     type Error = ();
 
     fn try_from(mut value: Map) -> Result<Self, Self::Error> {
-        let Some(Value::String(from)) = value.remove("from") else {
+        let Some(Value::Map(from)) = value.remove("from") else {
             return Err(());
         };
 
-        let Some(Value::String(to)) = value.remove("to") else {
+        let from: NodeReference = from.try_into()?;
+
+        let Some(Value::Map(to)) = value.remove("to") else {
             return Err(());
         };
+
+        let to: NodeReference = to.try_into()?;
 
         let Some(Value::Array(labels)) = value.remove("labels") else {
             return Err(());

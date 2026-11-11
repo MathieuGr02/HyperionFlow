@@ -135,8 +135,14 @@ mod hyperion_deserialization {
         let s = r#"
             {
                 "_type": "edge",
-                "from": "p1",
-                "to": "p2",
+                "from": {
+                    "id": "1",
+                    "label": "Person"
+                },
+                "to": {
+                    "id": "2",
+                    "label": "Person"
+                },
                 "labels": ["KNOWS"],
                 "value": { "id": 1, "name": "mg" }
             }
@@ -148,8 +154,13 @@ mod hyperion_deserialization {
         assert!(matches!(res, Value::Edge(_)));
 
         let mut edge = res.to_edge().unwrap();
-        assert_eq!(edge.from, "p1");
-        assert_eq!(edge.to, "p2");
+
+        assert_eq!(edge.from.id, "1");
+        assert_eq!(edge.from.label, "Person");
+
+        assert_eq!(edge.to.id, "2");
+        assert_eq!(edge.to.label, "Person");
+
         assert_eq!(edge.labels.len(), 1);
         assert_eq!(edge.labels[0], "KNOWS");
 

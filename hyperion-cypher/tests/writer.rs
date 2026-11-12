@@ -28,7 +28,7 @@ mod tests {
                 nodes: Vec::new(),
                 relationships: Vec::new(),
             },
-            query: "CREATE (p:Person $person)".to_string(),
+            node_query: "CREATE (p:Person $person)".to_string(),
         };
 
         let mut writer = Neo4jWriter::connect(config).unwrap();

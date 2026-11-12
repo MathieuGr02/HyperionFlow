@@ -1,11 +1,8 @@
 use ::bytes::Bytes;
-use hyperion_core::message::data::DataMessage;
-use hyperion_core::value::Value;
-use hyperion_core::value::bytes;
+use hyperion_value::Value;
 use neo4rs::{
     BoltBoolean, BoltBytes, BoltFloat, BoltInteger, BoltMap, BoltNull, BoltString, BoltType,
 };
-use serde::Deserialize;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -23,7 +20,7 @@ pub enum CypherEntity {
 }
 
 #[derive(Debug)]
-pub struct CypherValue(Value);
+pub struct CypherValue(pub Value);
 
 impl From<Value> for CypherValue {
     fn from(value: Value) -> Self {
@@ -42,11 +39,6 @@ impl TryInto<BoltType> for CypherValue {
                 let b = Bytes::from_owner(bytes.as_vec());
                 BoltType::Bytes(BoltBytes::new(b))
             }
-            Value::UInteger(uinteger) => {
-                let uint = u32::try_from(uinteger.as_u64())
-                    .map_err(|e| CypherError::Custom(e.to_string()))?;
-                BoltType::Integer(BoltInteger::new(uint as i64))
-            }
             Value::Integer(integer) => BoltType::Integer(BoltInteger::new(integer.as_i64())),
             Value::Float(float) => BoltType::Float(BoltFloat::new(float.as_f64())),
             Value::String(string) => BoltType::String(BoltString::from(string)),
@@ -63,35 +55,9 @@ impl TryInto<BoltType> for CypherValue {
                     .collect();
                 BoltType::Map(boltmap)
             }
+            _ => return Err(CypherError::Unsupported("".to_string())),
         };
 
         Ok(bolt)
     }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "type")]
-pub enum GraphEntity {
-    Node(Node),
-    Relationship(Relationship),
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Node {
-    pub label: String,
-    pub value: Value,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct NodeReference {
-    pub id: String,
-    pub label: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Relationship {
-    pub from: NodeReference,
-    pub to: NodeReference,
-    pub label: String,
-    pub value: Value,
 }

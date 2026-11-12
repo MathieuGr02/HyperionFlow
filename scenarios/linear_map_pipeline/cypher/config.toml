@@ -25,8 +25,6 @@ host = "neo4j"
 port = 7687
 username = "neo4j"
 password = "12345678"
-query = "CREATE (p:Person $person)"
-schema = { nodes = [ { name = "Person" } ] }
 
 [pipelines.source.deserializer]
 type = "json"

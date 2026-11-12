@@ -1,10 +1,10 @@
 use serde::{Serialize, ser::SerializeMap};
 
-use crate::{Map, Value};
+use crate::{Integer, Map, Value};
 
 #[derive(Debug)]
 pub struct Node {
-    pub id: String,
+    pub id: Integer,
     pub labels: Vec<String>,
     pub value: Map,
 }
@@ -17,7 +17,7 @@ impl TryFrom<Map> for Node {
     type Error = ();
 
     fn try_from(mut value: Map) -> Result<Self, Self::Error> {
-        let Some(Value::String(id)) = value.remove("id") else {
+        let Some(Value::Integer(id)) = value.remove("id") else {
             return Err(());
         };
 
@@ -32,7 +32,7 @@ impl TryFrom<Map> for Node {
         };
 
         Ok(Node {
-            id: id.to_string(),
+            id: id,
             labels,
             value: values,
         })

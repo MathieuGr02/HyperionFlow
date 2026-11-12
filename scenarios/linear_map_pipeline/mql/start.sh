@@ -7,7 +7,7 @@ docker compose down --volumes
 docker compose build
 status=$?
 
-if [ status -neq 0 ]; then
+if [ $status -ne 0 ]; then
     echo "Error building hyperion dockerfile"
     exit 1
 fi

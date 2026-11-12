@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::Serialize;
 
 use crate::Value;
@@ -79,5 +81,11 @@ impl Serialize for Integer {
         S: serde::Serializer,
     {
         serializer.serialize_i64(self.inner)
+    }
+}
+
+impl Display for Integer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.inner)
     }
 }

@@ -43,7 +43,7 @@ impl Neo4jReader {
 }
 
 impl StoreReader for Neo4jReader {
-    fn read(&mut self, m: ReadMessage) -> Result<Vec<DataMessage>, StoreError> {
+    fn read(&mut self, _: ReadMessage) -> Result<Vec<DataMessage>, StoreError> {
         todo!()
     }
 }

@@ -44,7 +44,7 @@ impl Neo4jProcessor {
 }
 
 impl StoreProcessor<Range> for Neo4jProcessor {
-    fn process(&mut self, m: ProcessMessage<Range>) -> Result<(), StoreError> {
+    fn process(&mut self, _: ProcessMessage<Range>) -> Result<(), StoreError> {
         todo!()
     }
 }

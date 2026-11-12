@@ -4,6 +4,7 @@ FROM rust:1.99 AS builder
 WORKDIR /hyperion
 
 COPY hyperion-core ./hyperion-core
+COPY hyperion-value ./hyperion-value
 COPY hyperion-kafka ./hyperion-kafka
 COPY hyperion-manager ./hyperion-manager
 COPY hyperion-sql ./hyperion-sql

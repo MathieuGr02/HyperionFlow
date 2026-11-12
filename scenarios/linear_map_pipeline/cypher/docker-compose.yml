@@ -65,7 +65,7 @@ services:
       - kafka-net
 
   verifier:
-    build: ../verifier
+    build: ./verifier
     depends_on:
       kafka:
         condition: service_healthy

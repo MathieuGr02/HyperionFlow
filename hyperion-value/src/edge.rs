@@ -42,7 +42,7 @@ impl TryFrom<Map> for NodeReference {
 pub struct Edge {
     pub from: NodeReference,
     pub to: NodeReference,
-    pub labels: Vec<String>,
+    pub label: String,
     pub value: Map,
 }
 
@@ -66,11 +66,9 @@ impl TryFrom<Map> for Edge {
 
         let to: NodeReference = to.try_into()?;
 
-        let Some(Value::Array(labels)) = value.remove("labels") else {
+        let Some(Value::String(label)) = value.remove("label") else {
             return Err(());
         };
-
-        let labels = labels.into_iter().filter_map(|v| v.to_string()).collect();
 
         let Some(Value::Map(values)) = value.remove("value") else {
             return Err(());
@@ -79,7 +77,7 @@ impl TryFrom<Map> for Edge {
         Ok(Edge {
             from,
             to,
-            labels,
+            label,
             value: values,
         })
     }
@@ -94,7 +92,7 @@ impl Serialize for Edge {
 
         edge.serialize_entry("from", &self.from)?;
         edge.serialize_entry("to", &self.to)?;
-        edge.serialize_entry("labels", &self.labels)?;
+        edge.serialize_entry("label", &self.label)?;
         edge.serialize_entry("value", &self.value)?;
 
         edge.end()

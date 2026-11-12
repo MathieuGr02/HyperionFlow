@@ -1,6 +1,6 @@
 mod hyperion_deserialization {
     use hyperion_value::{
-        Float, Integer, UInteger,
+        Float, Integer,
         Value::{self},
     };
 
@@ -21,19 +21,21 @@ mod hyperion_deserialization {
     }
 
     #[test]
-    fn deserialize_uinteger() {
-        let s = r#"10"#;
-        let res: Value = serde_json::from_str(s).expect("error deserializing");
-
-        assert_eq!(res.as_uinteger(), Some(&UInteger::from(10_u16)));
-    }
-
-    #[test]
     fn deserialize_integer() {
         let s = r#"-10"#;
         let res: Value = serde_json::from_str(s).expect("error deserializing");
 
         assert_eq!(res.as_integer(), Some(&Integer::from(-10)));
+
+        let s = r#"10"#;
+        let res: Value = serde_json::from_str(s).expect("error deserializing");
+
+        assert_eq!(res.as_integer(), Some(&Integer::from(10)));
+
+        let s = r#"0"#;
+        let res: Value = serde_json::from_str(s).expect("error deserializing");
+
+        assert_eq!(res.as_integer(), Some(&Integer::from(0)));
     }
 
     #[test]
@@ -63,11 +65,11 @@ mod hyperion_deserialization {
 
         assert_eq!(vec.len(), 5);
 
-        let v1 = Value::UInteger(UInteger::from(1_u16));
-        let v2 = Value::UInteger(UInteger::from(2_u16));
-        let v3 = Value::UInteger(UInteger::from(3_u16));
-        let v4 = Value::UInteger(UInteger::from(4_u16));
-        let v5 = Value::UInteger(UInteger::from(5_u16));
+        let v1 = Value::Integer(Integer::from(1));
+        let v2 = Value::Integer(Integer::from(2));
+        let v3 = Value::Integer(Integer::from(3));
+        let v4 = Value::Integer(Integer::from(4));
+        let v5 = Value::Integer(Integer::from(5));
         let vec_true = vec![v1, v2, v3, v4, v5];
 
         dbg!(&vec);
@@ -88,9 +90,9 @@ mod hyperion_deserialization {
         let mut map = res.as_map().unwrap();
 
         let id = map.remove("id");
-        assert!(matches!(id, Some(Value::UInteger(_))));
+        assert!(matches!(id, Some(Value::Integer(_))));
 
-        assert_eq!(id.unwrap().as_uinteger(), Some(&UInteger::from(1_u16)));
+        assert_eq!(id.unwrap().as_integer(), Some(&Integer::from(1)));
 
         let name = map.remove("name");
         assert!(matches!(name, Some(Value::String(_))));
@@ -120,9 +122,9 @@ mod hyperion_deserialization {
         assert_eq!(node.labels[0], "Person");
 
         let id = node.value.remove("id");
-        assert!(matches!(id, Some(Value::UInteger(_))));
+        assert!(matches!(id, Some(Value::Integer(_))));
 
-        assert_eq!(id.unwrap().as_uinteger(), Some(&UInteger::from(1_u16)));
+        assert_eq!(id.unwrap().as_integer(), Some(&Integer::from(1)));
 
         let name = node.value.remove("name");
         assert!(matches!(name, Some(Value::String(_))));
@@ -136,11 +138,11 @@ mod hyperion_deserialization {
             {
                 "_type": "edge",
                 "from": {
-                    "id": "1",
+                    "id": 1,
                     "label": "Person"
                 },
                 "to": {
-                    "id": "2",
+                    "id": 2,
                     "label": "Person"
                 },
                 "labels": ["KNOWS"],
@@ -155,19 +157,19 @@ mod hyperion_deserialization {
 
         let mut edge = res.to_edge().unwrap();
 
-        assert_eq!(edge.from.id, "1");
+        assert_eq!(edge.from.id, Integer::from(1));
         assert_eq!(edge.from.label, "Person");
 
-        assert_eq!(edge.to.id, "2");
+        assert_eq!(edge.to.id, Integer::from(2));
         assert_eq!(edge.to.label, "Person");
 
         assert_eq!(edge.labels.len(), 1);
         assert_eq!(edge.labels[0], "KNOWS");
 
         let id = edge.value.remove("id");
-        assert!(matches!(id, Some(Value::UInteger(_))));
+        assert!(matches!(id, Some(Value::Integer(_))));
 
-        assert_eq!(id.unwrap().as_uinteger(), Some(&UInteger::from(1_u16)));
+        assert_eq!(id.unwrap().as_integer(), Some(&Integer::from(1_u16)));
 
         let name = edge.value.remove("name");
         assert!(matches!(name, Some(Value::String(_))));

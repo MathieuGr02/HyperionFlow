@@ -5,7 +5,7 @@ use serde::{
     de::{self, Visitor},
 };
 
-use crate::{Bytes, Float, Integer, Map, Timestamp, UInteger};
+use crate::{Bytes, Float, Integer, Map, Timestamp};
 
 #[cfg(feature = "graph")]
 use crate::{Edge, Node};
@@ -15,7 +15,6 @@ pub enum Value {
     Null,
     Boolean(bool),
     Bytes(Bytes),
-    UInteger(UInteger),
     Integer(Integer),
     Float(Float),
     String(String),
@@ -77,13 +76,6 @@ impl Value {
     pub fn as_integer(&self) -> Option<&Integer> {
         match self {
             Value::Integer(integer) => Some(integer),
-            _ => None,
-        }
-    }
-
-    pub fn as_uinteger(&self) -> Option<&UInteger> {
-        match self {
-            Value::UInteger(uinteger) => Some(uinteger),
             _ => None,
         }
     }
@@ -217,9 +209,12 @@ impl<'de> Deserialize<'de> for Value {
 
             fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
             where
-                E: serde::de::Error,
+                E: de::Error,
             {
-                Ok(Value::UInteger(UInteger::from(v)))
+                let v: i64 = v
+                    .try_into()
+                    .map_err(|_| de::Error::custom("Error parsing u64 to i64"))?;
+                Ok(Value::Integer(Integer::from(v)))
             }
 
             fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
@@ -283,9 +278,15 @@ impl<'de> Deserialize<'de> for Value {
                     let t = hashmap.get(Value::FIELD_TYPE).unwrap().as_str().unwrap();
                     let val = match t {
                         #[cfg(feature = "graph")]
-                        Node::FIELD_IDENTIFIER => Value::Node(Node::try_from(hashmap).unwrap()),
+                        Node::FIELD_IDENTIFIER => Value::Node(
+                            Node::try_from(hashmap)
+                                .map_err(|_| de::Error::custom("Unable to parse to node"))?,
+                        ),
                         #[cfg(feature = "graph")]
-                        Edge::FIELD_IDENTIFIER => Value::Edge(Edge::try_from(hashmap).unwrap()),
+                        Edge::FIELD_IDENTIFIER => Value::Edge(
+                            Edge::try_from(hashmap)
+                                .map_err(|_| de::Error::custom("Unable to parse to edge"))?,
+                        ),
                         _ => return Err(de::Error::custom("invalid _type value")),
                     };
 
@@ -309,7 +310,6 @@ impl Serialize for Value {
             Value::Null => serializer.serialize_none(),
             Value::Boolean(v) => serializer.serialize_bool(*v),
             Value::Bytes(bytes) => serializer.serialize_bytes(bytes.as_array()),
-            Value::UInteger(uinteger) => serializer.serialize_u64(uinteger.as_u64()),
             Value::Integer(integer) => serializer.serialize_i64(integer.as_i64()),
             Value::Float(float) => serializer.serialize_f64(float.as_f64()),
             Value::String(string) => serializer.serialize_str(string.as_str()),

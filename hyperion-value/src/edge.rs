@@ -1,10 +1,10 @@
 use serde::{Serialize, ser::SerializeMap};
 
-use crate::{Map, Value};
+use crate::{Integer, Map, Value};
 
 #[derive(Debug)]
 pub struct NodeReference {
-    pub id: String,
+    pub id: Integer,
     pub label: String,
 }
 
@@ -13,7 +13,7 @@ impl Serialize for NodeReference {
     where
         S: serde::Serializer,
     {
-        let mut reference = serializer.serialize_map(Some(4))?;
+        let mut reference = serializer.serialize_map(Some(2))?;
 
         reference.serialize_entry("id", &self.id)?;
         reference.serialize_entry("labels", &self.label)?;
@@ -26,7 +26,7 @@ impl TryFrom<Map> for NodeReference {
     type Error = ();
 
     fn try_from(mut value: Map) -> Result<Self, Self::Error> {
-        let Some(Value::String(id)) = value.remove("id") else {
+        let Some(Value::Integer(id)) = value.remove("id") else {
             return Err(());
         };
 

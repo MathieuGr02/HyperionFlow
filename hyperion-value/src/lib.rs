@@ -16,9 +16,6 @@ pub use timestamp::Timestamp;
 pub mod value;
 pub use value::Value;
 
-pub mod uinteger;
-pub use uinteger::UInteger;
-
 #[cfg(feature = "graph")]
 pub mod node;
 #[cfg(feature = "graph")]

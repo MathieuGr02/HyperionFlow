@@ -1,6 +1,4 @@
-use hyperion_core::components::store::error::StoreError;
 use neo4rs::{BoltType, Graph, Query};
-use serde::Deserialize;
 use tokio::runtime::Runtime;
 
 use crate::{config::Neo4jConfiguration, error::Neo4jError};
@@ -9,11 +7,6 @@ pub struct Neo4jClient {
     pub config: Neo4jConfiguration,
     pub graph: Graph,
     pub rt: Runtime,
-}
-
-#[derive(Debug, Deserialize)]
-struct X {
-    data: BoltType,
 }
 
 impl Neo4jClient {

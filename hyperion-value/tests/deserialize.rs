@@ -117,7 +117,7 @@ mod hyperion_deserialization {
         assert!(matches!(res, Value::Node(_)));
 
         let mut node = res.to_node().unwrap();
-        assert_eq!(node.id, "p1");
+        assert_eq!(node.id, Integer::from(1));
         assert_eq!(node.labels.len(), 1);
         assert_eq!(node.labels[0], "Person");
 
@@ -163,8 +163,7 @@ mod hyperion_deserialization {
         assert_eq!(edge.to.id, Integer::from(2));
         assert_eq!(edge.to.label, "Person");
 
-        assert_eq!(edge.labels.len(), 1);
-        assert_eq!(edge.labels[0], "KNOWS");
+        assert_eq!(edge.label, "KNOWS");
 
         let id = edge.value.remove("id");
         assert!(matches!(id, Some(Value::Integer(_))));

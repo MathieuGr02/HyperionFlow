@@ -3,21 +3,26 @@ use hyperion_core::{
     message::data::DataMessage,
     validatable::{Validatable, ValidationError},
 };
-#[cfg(feature = "mql")]
-use hyperion_mql::writer::MongoDBWriter;
-use hyperion_mql::writer::MongoDBWriterConfiguration;
+
 use serde::Deserialize;
 
+#[cfg(feature = "cypher")]
+use hyperion_cypher::writer::{Neo4jWriter, Neo4jWriterConfiguration};
+#[cfg(feature = "mql")]
+use hyperion_mql::writer::{MongoDBWriter, MongoDBWriterConfiguration};
 #[cfg(feature = "sql")]
 use hyperion_sql::stores::postgres::writer::{PostgreSQLWriter, PostgreSQLWriterConfiguration};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "type", content = "config")]
+#[serde(deny_unknown_fields)]
 pub enum WriterConfig {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLWriterConfiguration),
     #[cfg(feature = "mql")]
     Mongodb(MongoDBWriterConfiguration),
+    #[cfg(feature = "cypher")]
+    Neo4j(Neo4jWriterConfiguration),
 }
 
 impl Validatable for WriterConfig {
@@ -27,6 +32,8 @@ impl Validatable for WriterConfig {
             WriterConfig::Postgres(postgres) => postgres.validate(),
             #[cfg(feature = "mql")]
             WriterConfig::Mongodb(mongodb) => mongodb.validate(),
+            #[cfg(feature = "cypher")]
+            WriterConfig::Neo4j(neo4j) => neo4j.validate(),
         }
     }
 }
@@ -36,6 +43,8 @@ pub enum Writer {
     Postgres(PostgreSQLWriter),
     #[cfg(feature = "mql")]
     Mongodb(MongoDBWriter),
+    #[cfg(feature = "cypher")]
+    Neo4j(Neo4jWriter),
 }
 
 impl StoreWriter for Writer {
@@ -45,6 +54,8 @@ impl StoreWriter for Writer {
             Writer::Postgres(postgres) => postgres.write(item),
             #[cfg(feature = "mql")]
             Writer::Mongodb(mongodb) => mongodb.write(item),
+            #[cfg(feature = "cypher")]
+            Writer::Neo4j(neo4j) => neo4j.write(item),
         }
     }
 
@@ -54,6 +65,8 @@ impl StoreWriter for Writer {
             Writer::Postgres(postgres) => postgres.write_batch(items),
             #[cfg(feature = "mql")]
             Writer::Mongodb(mongodb) => mongodb.write_batch(items),
+            #[cfg(feature = "cypher")]
+            Writer::Neo4j(neo4j) => neo4j.write_batch(items),
         }
     }
 }

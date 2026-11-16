@@ -1,13 +1,12 @@
+use std::fmt::Display;
+
+use serde::Serialize;
+
 use crate::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Integer {
     inner: i64,
-}
-
-enum IntType {
-    Signed(i64),
-    Unsigned(u64),
 }
 
 impl From<i8> for Integer {
@@ -40,6 +39,30 @@ impl From<i64> for Integer {
     }
 }
 
+impl From<u8> for Integer {
+    fn from(value: u8) -> Self {
+        Integer {
+            inner: value as i64,
+        }
+    }
+}
+
+impl From<u16> for Integer {
+    fn from(value: u16) -> Self {
+        Integer {
+            inner: value as i64,
+        }
+    }
+}
+
+impl From<u32> for Integer {
+    fn from(value: u32) -> Self {
+        Integer {
+            inner: value as i64,
+        }
+    }
+}
+
 impl Into<Value> for Integer {
     fn into(self) -> Value {
         Value::Integer(self)
@@ -49,5 +72,20 @@ impl Into<Value> for Integer {
 impl Integer {
     pub fn as_i64(&self) -> i64 {
         self.inner
+    }
+}
+
+impl Serialize for Integer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_i64(self.inner)
+    }
+}
+
+impl Display for Integer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.inner)
     }
 }

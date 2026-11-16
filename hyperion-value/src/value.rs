@@ -2,24 +2,33 @@ use std::mem;
 
 use serde::{
     Deserialize, Serialize,
-    de::Visitor,
-    ser::{SerializeMap, SerializeSeq},
+    de::{self, Visitor},
 };
 
-use crate::{Array, Bytes, Float, Integer, Map, Timestamp, UInteger};
+use crate::{Bytes, Float, Integer, Map, Timestamp};
+
+#[cfg(feature = "graph")]
+use crate::{Edge, Node};
 
 #[derive(Debug)]
 pub enum Value {
     Null,
     Boolean(bool),
     Bytes(Bytes),
-    UInteger(UInteger),
     Integer(Integer),
     Float(Float),
     String(String),
     Timestamp(Timestamp),
-    Array(Array),
+    Array(Vec<Value>),
     Map(Map),
+    #[cfg(feature = "graph")]
+    Node(Node),
+    #[cfg(feature = "graph")]
+    Edge(Edge),
+}
+
+impl Value {
+    pub const FIELD_TYPE: &'static str = "_type";
 }
 
 impl From<bool> for Value {
@@ -78,9 +87,44 @@ impl Value {
         }
     }
 
-    pub fn as_boolean(&self) -> Option<&bool> {
+    pub fn as_bool(&self) -> Option<&bool> {
         match self {
             Value::Boolean(bool) => Some(bool),
+            _ => None,
+        }
+    }
+
+    pub fn to_bool(self) -> Option<bool> {
+        match self {
+            Value::Boolean(bool) => Some(bool),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Value::String(string) => Some(string.as_str()),
+            _ => None,
+        }
+    }
+
+    pub fn to_string(self) -> Option<String> {
+        match self {
+            Value::String(string) => Some(string),
+            _ => None,
+        }
+    }
+
+    pub fn as_array(&self) -> Option<&Vec<Value>> {
+        match self {
+            Value::Array(array) => Some(array),
+            _ => None,
+        }
+    }
+
+    pub fn to_array(self) -> Option<Vec<Value>> {
+        match self {
+            Value::Array(array) => Some(array),
             _ => None,
         }
     }
@@ -105,6 +149,34 @@ impl Value {
             _ => None,
         }
     }
+
+    pub fn as_node(&self) -> Option<&Node> {
+        match self {
+            Value::Node(node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn to_node(self) -> Option<Node> {
+        match self {
+            Value::Node(node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn as_edge(&self) -> Option<&Edge> {
+        match self {
+            Value::Edge(edge) => Some(edge),
+            _ => None,
+        }
+    }
+
+    pub fn to_edge(self) -> Option<Edge> {
+        match self {
+            Value::Edge(edge) => Some(edge),
+            _ => None,
+        }
+    }
 }
 
 impl<'de> Deserialize<'de> for Value {
@@ -118,7 +190,7 @@ impl<'de> Deserialize<'de> for Value {
             type Value = Value;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("Error deserializing to hyperion-core Value")
+                formatter.write_str("Error deserializing to hyperion value")
             }
 
             fn visit_none<E>(self) -> Result<Self::Value, E>
@@ -137,9 +209,12 @@ impl<'de> Deserialize<'de> for Value {
 
             fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
             where
-                E: serde::de::Error,
+                E: de::Error,
             {
-                Ok(Value::UInteger(UInteger::from(v)))
+                let v: i64 = v
+                    .try_into()
+                    .map_err(|_| de::Error::custom("Error parsing u64 to i64"))?;
+                Ok(Value::Integer(Integer::from(v)))
             }
 
             fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
@@ -181,7 +256,7 @@ impl<'de> Deserialize<'de> for Value {
             where
                 A: serde::de::SeqAccess<'de>,
             {
-                let mut array = Array::new();
+                let mut array = Vec::new();
                 while let Some(element) = seq.next_element()? {
                     array.push(element);
                 }
@@ -197,6 +272,25 @@ impl<'de> Deserialize<'de> for Value {
 
                 while let Some((key, value)) = map.next_entry()? {
                     hashmap.insert(key, value);
+                }
+
+                if hashmap.contains_key(Value::FIELD_TYPE) {
+                    let t = hashmap.get(Value::FIELD_TYPE).unwrap().as_str().unwrap();
+                    let val = match t {
+                        #[cfg(feature = "graph")]
+                        Node::FIELD_IDENTIFIER => Value::Node(
+                            Node::try_from(hashmap)
+                                .map_err(|_| de::Error::custom("Unable to parse to node"))?,
+                        ),
+                        #[cfg(feature = "graph")]
+                        Edge::FIELD_IDENTIFIER => Value::Edge(
+                            Edge::try_from(hashmap)
+                                .map_err(|_| de::Error::custom("Unable to parse to edge"))?,
+                        ),
+                        _ => return Err(de::Error::custom("invalid _type value")),
+                    };
+
+                    return Ok(val);
                 }
 
                 Ok(Value::Map(hashmap))
@@ -216,29 +310,16 @@ impl Serialize for Value {
             Value::Null => serializer.serialize_none(),
             Value::Boolean(v) => serializer.serialize_bool(*v),
             Value::Bytes(bytes) => serializer.serialize_bytes(bytes.as_array()),
-            Value::UInteger(uinteger) => serializer.serialize_u64(uinteger.as_u64()),
             Value::Integer(integer) => serializer.serialize_i64(integer.as_i64()),
             Value::Float(float) => serializer.serialize_f64(float.as_f64()),
             Value::String(string) => serializer.serialize_str(string.as_str()),
             Value::Timestamp(timestamp) => serializer.serialize_i64(timestamp.as_i64()),
-            Value::Array(array) => {
-                let mut seq = serializer.serialize_seq(Some(array.len()))?;
-
-                for element in array.iter() {
-                    seq.serialize_element(element)?;
-                }
-
-                seq.end()
-            }
-            Value::Map(map) => {
-                let mut m = serializer.serialize_map(Some(map.len()))?;
-
-                for (k, v) in map.iter() {
-                    m.serialize_entry(k, v)?;
-                }
-
-                m.end()
-            }
+            Value::Array(array) => array.serialize(serializer),
+            Value::Map(map) => map.serialize(serializer),
+            #[cfg(feature = "graph")]
+            Value::Node(node) => node.serialize(serializer),
+            #[cfg(feature = "graph")]
+            Value::Edge(edge) => edge.serialize(serializer),
         }
     }
 }

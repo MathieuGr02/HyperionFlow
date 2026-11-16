@@ -117,6 +117,7 @@ where
                 errors.into_iter().map(Result::unwrap_err).collect();
             if !errors.is_empty() {
                 error!("{:?}", errors);
+                continue;
             }
 
             let (data, events): (Vec<DataMessage>, Vec<EventMessage>) = batch
@@ -125,25 +126,28 @@ where
                 .map(|m| m.split())
                 .collect();
 
-            // Write checkpoint for latest record from external event source
-            let latest_position = &events.last().unwrap().position;
-            if let Err(e) = self.checkpoint.write_checkpoint(latest_position) {
-                error!(error = %e, "Error writing checkpoint file");
-            }
+            if !data.is_empty() {
+                // Write checkpoint for latest record from external event source
+                if let Some(last) = events.last() {
+                    if let Err(e) = self.checkpoint.write_checkpoint(&last.position) {
+                        error!(error = %e, "Error writing checkpoint file");
+                    }
+                }
 
-            // Write records to internal data store
-            if let Err(e) = self.writer.write_batch(data) {
-                error!(error = %e, "Store write error");
-            }
+                // Write records to internal data store
+                if let Err(e) = self.writer.write_batch(data) {
+                    error!(error = %e, "Store write error");
+                }
 
-            // Commit records for external event source
-            if let Err(e) = self.consumer.commit() {
-                error!(error = %e, "Event commit error");
-            }
+                // Commit records for external event source
+                if let Err(e) = self.consumer.commit() {
+                    error!(error = %e, "Event commit error");
+                }
 
-            // Send event messages to next component
-            if let Err(e) = self.sender.send(events) {
-                error!(error = %e, "Error while sending event message");
+                // Send event messages to next component
+                if let Err(e) = self.sender.send(events) {
+                    error!(error = %e, "Error while sending event message");
+                }
             }
         }
 

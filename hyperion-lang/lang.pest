@@ -1,0 +1,46 @@
+//command = { SOI ~ query ~ EOI }
+
+//query = {  }
+
+// Value Primitives
+integer = { '0'..'9'+ }
+float = { integer ~ "." ~ integer }
+bool = { "TRUE" | "FALSE" }
+text = { ASCII_ALPHA*  }
+
+number = { integer | float }
+value = { integer | float | bool | text }
+
+// Math
+math_primitive = { add | sub | div | mul }
+add = { "+" }
+sub = { "-" }
+div = { "/" }
+mul = { "*" }
+op = { (number ~ math_primitive)+ ~ number }
+
+trigonometry = { "SIN" | "COS" }
+math_op = { "EXP" | trigonometry }
+
+
+handle = { sql | mql | cypher }
+expr = { " " }
+
+
+project = { "PROJECT " ~ handle }
+filter = { "FILTER " ~ handle }
+
+// Escapers
+// Allow for the definition of language based operations bypassing the normal hyperion-lang definitions
+
+// SQL escaper
+sql = { "SQL(" ~ sql_content ~ ")" }
+sql_content = _{ ( !("(" | ")") ~ ANY | "(" ~ sql_content ~ ")" )* }
+
+// MQL escaper
+mql = { "MQL(" ~ mql_content ~ ")" }
+mql_content = _{ ( !("{" | "}") ~ ANY | "{" ~ mql_content ~ "}" )* }
+
+// Cypher escaper
+cypher = { "CYPHER(" ~ cypher_content ~ ")" }
+cypher_content = _{ ( !("(" | ")") ~ ANY | "(" ~ sql_content ~ ")" )* }

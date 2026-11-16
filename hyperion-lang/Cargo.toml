@@ -1,0 +1,12 @@
+[package]
+name = "hyperion-lang"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+pest = "2.9.6"
+pest_derive = "2.9.6"
+pest-ast = "0.3.6"
+
+[dev-dependencies]
+rstest = "0.28.0"

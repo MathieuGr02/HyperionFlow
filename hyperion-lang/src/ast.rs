@@ -261,8 +261,51 @@ pub trait AlgebraFold {
     ) -> Result<Self::Output, Self::Error>;
 }
 
+pub trait ExpressionFold {
+    type Output;
+    type Error: From<ASTError>;
+
+    fn fold_escape(&mut self, escape: &String) -> Result<Self::Output, Self::Error>;
+
+    fn fold_literal(&mut self, literal: &Value) -> Result<Self::Output, Self::Error>;
+
+    fn fold_unary_expression(
+        &mut self,
+        binary: &Expression,
+        input: Self::Output,
+    ) -> Result<Self::Output, Self::Error>;
+
+    fn fold_binary_expression(
+        &mut self,
+        binary: &Expression,
+        input: Self::Output,
+    ) -> Result<Self::Output, Self::Error>;
+}
+
 impl AST {
-    pub fn accept<F: AlgebraFold>(&self, folder: &mut F) -> Result<F::Output, F::Error> {
+    pub fn accept_expression<E: ExpressionFold>(
+        &self,
+        index: ExprRef,
+        folder: &mut E,
+    ) -> Result<E::Output, E::Error> {
+        if let Some(expr) = self.expressions.get(index) {
+            match expr {
+                Expression::Literal(literal) => folder.fold_literal(literal),
+                Expression::Escape(escape) => folder.fold_escape(escape),
+                Expression::UnaryExpression { op, value } => {
+                    let inner = self.f
+                    folder.fold_unary_expression(binary, input)
+                }
+                Expression::BinaryExpression { op, left, right } => {
+                    folder.fold_binary_expression(binary, input)
+                }
+            }
+        } else {
+            Err(ASTError::ParsingError("Index doesn't exist".to_string()).into())
+        }
+    }
+
+    pub fn accept_algebra<F: AlgebraFold>(&self, folder: &mut F) -> Result<F::Output, F::Error> {
         self.fold_algebra(self.root, folder)
     }
 

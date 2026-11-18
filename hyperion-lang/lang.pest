@@ -31,7 +31,7 @@ into = { "INTO" ~ identifiers ~ "(" ~ target ~ ")" }
 /// ```
 /// FROM SQL(users)
 /// ```
-from = { "FROM" ~ identifiers ~ "(" ~ target ~ ")" }
+from = { "FROM" ~ identifiers ~ "(" ~ #target = target ~ ")" }
 
 /// The project operation. Allows for the projection of data.
 /// Can be escaped by the store identifiers (SQL, MQL, CYPHER)

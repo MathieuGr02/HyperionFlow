@@ -2,17 +2,15 @@ use pest::{Parser, iterators::Pair};
 use thiserror::Error;
 
 use crate::algebra::{
-    BinaryAlgebra, CypherPrint, CypherScan, MQLPrint, MQLScan, SQLPrint, SQLScan, StorePrint,
-    StoreScan,
+    CypherPrint, CypherScan, MQLPrint, MQLScan, SQLPrint, SQLScan, StorePrint, StoreScan,
 };
-use crate::ast::ASTError::MissingRule;
-use crate::parser::Rule::identifiers;
 use crate::{
     algebra::{AlgRef, Algebra, Filter, Project, UnaryAlgebra},
     expression::{ExprRef, Expression},
     parser::{LangParser, Rule},
-    value::{Float, Integer, Value},
 };
+
+use hyperion_value::{Float, Integer, Value};
 
 pub trait FromPair<'i>: Sized {
     fn from_pair(pair: Pair<'i, Rule>) -> Result<Self, ASTError>;
@@ -184,6 +182,18 @@ impl AST {
                 let cypher_str = expr.as_str();
                 Expression::Escape(cypher_str.to_string())
             }
+            Rule::float => Expression::Literal(Value::Float(Float::from(
+                expr.as_str().parse::<f64>().unwrap(),
+            ))),
+            Rule::integer => Expression::Literal(Value::Integer(Integer::from(
+                expr.as_str().parse::<i64>().unwrap(),
+            ))),
+            Rule::bool => match expr.as_str() {
+                "TRUE" => Expression::Literal(Value::Boolean(true)),
+                "FALSE" => Expression::Literal(Value::Boolean(false)),
+                _ => return Err(ASTError::UnexpectedRule(expr.as_rule())),
+            },
+            Rule::text => Expression::Literal(Value::String(expr.as_str().to_string())),
             Rule::value => {
                 let value = Value::from_pair(expr)?;
                 Expression::Literal(value)

@@ -1,6 +1,6 @@
 use serde::{Serialize, ser::SerializeMap};
 
-use crate::value::{Integer, Map, Value};
+use crate::{Integer, Map, Value};
 
 #[derive(Debug)]
 pub struct Node {

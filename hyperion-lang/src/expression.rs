@@ -1,4 +1,4 @@
-use crate::value::Value;
+use hyperion_value::Value;
 
 pub(crate) type ExprRef = usize;
 

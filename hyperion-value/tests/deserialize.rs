@@ -1,5 +1,5 @@
 mod hyperion_deserialization {
-    use hyperion_lang::value::{
+    use hyperion_value::{
         Float, Integer,
         Value::{self},
     };

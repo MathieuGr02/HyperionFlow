@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use hyperion_lang::ast::ASTError;
 use hyperion_value::Value;
 use postgres::types::{FromSql, IsNull, ToSql, Type, private::BytesMut, to_sql_checked};
 use thiserror::Error;
@@ -20,10 +21,6 @@ impl ToSql for SQLValue {
                 Type::INT4 => i32::try_from(v.as_i64())?.to_sql(ty, out),
                 Type::INT8 => v.as_i64().to_sql(ty, out),
                 _ => v.as_i64().to_sql(ty, out),
-            },
-            Value::UInteger(v) => match *ty {
-                Type::INT4 => u32::try_from(v.as_u64())?.to_sql(ty, out),
-                _ => todo!(),
             },
             Value::Float(v) => v.as_f64().to_sql(ty, out),
             Value::String(v) => v.to_sql(ty, out),
@@ -51,6 +48,8 @@ impl ToSql for SQLValue {
 
 #[derive(Debug, Error)]
 pub enum SQLError {
+    #[error("{0}")]
+    ASTError(#[from] ASTError),
     #[error("Unsupported SQL type {0}")]
     UnsupportedType(String),
     #[error("Invalid column: {0}")]

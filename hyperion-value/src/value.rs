@@ -5,9 +5,9 @@ use serde::{
     de::{self, Visitor},
 };
 
-use crate::value::{Bytes, Float, Integer, Map, Timestamp};
+use crate::{Bytes, Float, Integer, Map, Timestamp};
 
-use crate::value::{Edge, Node};
+use crate::{Edge, Node};
 
 #[derive(Debug)]
 pub enum Value {

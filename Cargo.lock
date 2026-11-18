@@ -965,6 +965,7 @@ name = "hyperion-core"
 version = "0.1.0"
 dependencies = [
  "hyperion-lang",
+ "hyperion-value",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -980,6 +981,7 @@ dependencies = [
  "bytes",
  "hyperion-core",
  "hyperion-lang",
+ "hyperion-value",
  "neo4rs",
  "serde",
  "serde_json",
@@ -1007,15 +1009,13 @@ dependencies = [
 name = "hyperion-lang"
 version = "0.1.0"
 dependencies = [
- "delegate 0.13.5",
  "from-pest",
+ "hyperion-value",
  "pest",
  "pest_derive",
  "rstest",
- "serde",
  "serde_json",
  "thiserror 2.0.21",
- "time",
  "tracing",
  "tracing-subscriber",
 ]
@@ -1031,6 +1031,7 @@ dependencies = [
  "hyperion-lang",
  "hyperion-mql",
  "hyperion-sql",
+ "hyperion-value",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -1045,6 +1046,7 @@ version = "0.1.0"
 dependencies = [
  "hyperion-core",
  "hyperion-lang",
+ "hyperion-value",
  "mongodb",
  "serde",
  "serde_json",
@@ -1059,6 +1061,7 @@ version = "0.1.0"
 dependencies = [
  "hyperion-core",
  "hyperion-lang",
+ "hyperion-value",
  "postgres",
  "rstest",
  "serde",
@@ -1067,6 +1070,16 @@ dependencies = [
  "time",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "hyperion-value"
+version = "0.1.0"
+dependencies = [
+ "delegate 0.13.5",
+ "serde",
+ "serde_json",
+ "time",
 ]
 
 [[package]]

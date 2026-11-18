@@ -4,13 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+hyperion-value = { path = "../hyperion-value" }
+
 pest = "2.9.6"
 pest_derive = "2.9.6"
 from-pest = "0.3.4"
-delegate = "0.13.5"
 
-serde = { workspace = true }
-time = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

@@ -1,6 +1,6 @@
 use serde::{Serialize, ser::SerializeMap};
 
-use crate::{Integer, Map, Value};
+use crate::value::{Integer, Map, Value};
 
 #[derive(Debug)]
 pub struct NodeReference {

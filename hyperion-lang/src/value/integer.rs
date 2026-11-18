@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use serde::Serialize;
 
-use crate::Value;
+use crate::value::Value;
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Integer {

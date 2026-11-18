@@ -6,6 +6,8 @@ HyperionFlow is a database integrated heterogeneous stream processing engine cap
 
 ## Features
 
+### Query language
+
 ### Storage engines
 
 #### sql

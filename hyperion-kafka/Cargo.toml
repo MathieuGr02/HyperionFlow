@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 hyperion-core = { path = "../hyperion-core" }
+hyperion-lang = { path = "../hyperion-lang" }
 
 kafka = "0.10.0"
 
@@ -13,5 +14,3 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-
-hyperion-value = { path = "../hyperion-value" }

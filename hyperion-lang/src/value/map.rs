@@ -7,10 +7,11 @@ use std::{
     hash::Hash,
 };
 
-use delegate::delegate;
 use serde::{Serialize, ser::SerializeMap};
 
-use crate::Value;
+use delegate::delegate;
+
+use crate::value::Value;
 
 #[derive(Debug)]
 pub struct Map {

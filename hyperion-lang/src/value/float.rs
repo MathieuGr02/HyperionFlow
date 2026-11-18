@@ -1,4 +1,4 @@
-use crate::Value;
+use crate::value::Value;
 
 #[derive(Debug, PartialEq, PartialOrd)]
 pub struct Float {

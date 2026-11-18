@@ -5,10 +5,9 @@ use serde::{
     de::{self, Visitor},
 };
 
-use crate::{Bytes, Float, Integer, Map, Timestamp};
+use crate::value::{Bytes, Float, Integer, Map, Timestamp};
 
-#[cfg(feature = "graph")]
-use crate::{Edge, Node};
+use crate::value::{Edge, Node};
 
 #[derive(Debug)]
 pub enum Value {
@@ -21,9 +20,7 @@ pub enum Value {
     Timestamp(Timestamp),
     Array(Vec<Value>),
     Map(Map),
-    #[cfg(feature = "graph")]
     Node(Node),
-    #[cfg(feature = "graph")]
     Edge(Edge),
 }
 
@@ -277,12 +274,10 @@ impl<'de> Deserialize<'de> for Value {
                 if hashmap.contains_key(Value::FIELD_TYPE) {
                     let t = hashmap.get(Value::FIELD_TYPE).unwrap().as_str().unwrap();
                     let val = match t {
-                        #[cfg(feature = "graph")]
                         Node::FIELD_IDENTIFIER => Value::Node(
                             Node::try_from(hashmap)
                                 .map_err(|_| de::Error::custom("Unable to parse to node"))?,
                         ),
-                        #[cfg(feature = "graph")]
                         Edge::FIELD_IDENTIFIER => Value::Edge(
                             Edge::try_from(hashmap)
                                 .map_err(|_| de::Error::custom("Unable to parse to edge"))?,
@@ -316,9 +311,7 @@ impl Serialize for Value {
             Value::Timestamp(timestamp) => serializer.serialize_i64(timestamp.as_i64()),
             Value::Array(array) => array.serialize(serializer),
             Value::Map(map) => map.serialize(serializer),
-            #[cfg(feature = "graph")]
             Value::Node(node) => node.serialize(serializer),
-            #[cfg(feature = "graph")]
             Value::Edge(edge) => edge.serialize(serializer),
         }
     }

@@ -7,7 +7,7 @@ edition = "2024"
 # Store features
 sql = ["dep:hyperion-sql"]
 mql = ["dep:hyperion-mql"]
-cypher = ["dep:hyperion-cypher", "hyperion-value/graph"]
+cypher = ["dep:hyperion-cypher"]
 
 # Event features
 kafka = ["dep:hyperion-kafka"]
@@ -25,7 +25,7 @@ hyperion-cypher = { path = "../hyperion-cypher", optional = true }
 # Event adapters
 hyperion-kafka = { path = "../hyperion-kafka", optional = true }
 
-hyperion-value = { path = "../hyperion-value" }
+hyperion-lang = { path = "../hyperion-lang" }
 
 clap = { version = "4.6.7", features = ["derive"] }
 

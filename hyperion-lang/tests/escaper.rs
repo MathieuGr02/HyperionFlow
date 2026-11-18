@@ -2,6 +2,8 @@ mod common;
 
 #[cfg(test)]
 mod escaper_parse {
+    use hyperion_lang::parser::LangParser;
+    use pest::Parser;
     use rstest::rstest;
 
     use crate::common::{assert_parse_equal, assert_parse_err};
@@ -21,5 +23,16 @@ mod escaper_parse {
     #[case("")]
     fn parse_invalid_sql_escape(#[case] value: &str) {
         assert_parse_err(hyperion_lang::parser::Rule::sql, value);
+    }
+
+    #[test]
+    fn test() {
+        let sql = LangParser::parse(
+            hyperion_lang::parser::Rule::query,
+            "PROJECT SQL(BETWEEN 0 AND 1) FILTER SQL(BETWEEN 0 AND 1)",
+        )
+        .unwrap();
+
+        panic!("{:?}", sql)
     }
 }

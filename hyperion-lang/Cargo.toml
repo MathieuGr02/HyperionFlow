@@ -6,7 +6,15 @@ edition = "2024"
 [dependencies]
 pest = "2.9.6"
 pest_derive = "2.9.6"
-pest-ast = "0.3.6"
+from-pest = "0.3.4"
+delegate = "0.13.5"
+
+serde = { workspace = true }
+time = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [dev-dependencies]
 rstest = "0.28.0"
+serde_json = { workspace = true }

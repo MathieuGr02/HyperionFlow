@@ -693,6 +693,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "from-pest"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f6608105256838dc3a7586083a8e4485ca6533bf1a39c3ed327e9de16a39e7f"
+dependencies = [
+ "log",
+ "pest",
+ "void",
+]
+
+[[package]]
 name = "funty"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -953,7 +964,7 @@ dependencies = [
 name = "hyperion-core"
 version = "0.1.0"
 dependencies = [
- "hyperion-value",
+ "hyperion-lang",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -968,7 +979,7 @@ version = "0.1.0"
 dependencies = [
  "bytes",
  "hyperion-core",
- "hyperion-value",
+ "hyperion-lang",
  "neo4rs",
  "serde",
  "serde_json",
@@ -983,7 +994,7 @@ name = "hyperion-kafka"
 version = "0.1.0"
 dependencies = [
  "hyperion-core",
- "hyperion-value",
+ "hyperion-lang",
  "kafka",
  "serde",
  "serde_json",
@@ -996,10 +1007,17 @@ dependencies = [
 name = "hyperion-lang"
 version = "0.1.0"
 dependencies = [
+ "delegate 0.13.5",
+ "from-pest",
  "pest",
- "pest-ast",
  "pest_derive",
  "rstest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "time",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -1010,9 +1028,9 @@ dependencies = [
  "hyperion-core",
  "hyperion-cypher",
  "hyperion-kafka",
+ "hyperion-lang",
  "hyperion-mql",
  "hyperion-sql",
- "hyperion-value",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -1026,7 +1044,7 @@ name = "hyperion-mql"
 version = "0.1.0"
 dependencies = [
  "hyperion-core",
- "hyperion-value",
+ "hyperion-lang",
  "mongodb",
  "serde",
  "serde_json",
@@ -1040,22 +1058,9 @@ name = "hyperion-sql"
 version = "0.1.0"
 dependencies = [
  "hyperion-core",
- "hyperion-value",
+ "hyperion-lang",
  "postgres",
  "rstest",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "time",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "hyperion-value"
-version = "0.1.0"
-dependencies = [
- "delegate 0.13.5",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -1220,15 +1225,6 @@ name = "is_terminal_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
-
-[[package]]
-name = "itertools"
-version = "0.10.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
-dependencies = [
- "either",
-]
 
 [[package]]
 name = "itoa"
@@ -1770,18 +1766,6 @@ dependencies = [
  "memchr",
  "pest_stack_guard",
  "ucd-trie",
-]
-
-[[package]]
-name = "pest-ast"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee0348ed5e4fdd30965042a0fcafe9702f7ef5e71f3f1e12404e8ed3b0ebfb3b"
-dependencies = [
- "itertools",
- "proc-macro2",
- "quote",
- "syn 2.0.119",
 ]
 
 [[package]]
@@ -3129,6 +3113,12 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "void"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 
 [[package]]
 name = "walkdir"

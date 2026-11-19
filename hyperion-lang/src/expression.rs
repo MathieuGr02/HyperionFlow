@@ -1,6 +1,6 @@
 use hyperion_value::Value;
 
-pub(crate) type ExprRef = usize;
+use crate::ast::Ref;
 
 #[derive(Debug)]
 pub enum Expression {
@@ -13,20 +13,13 @@ pub enum Expression {
     // A
     // |
     // B
-    UnaryExpression {
-        op: UnExpOp,
-        value: ExprRef,
-    },
+    UnaryExpression { op: UnExpOp, value: Ref },
     // Node binary expression
     // Represents the expression:
     //  A
     // / \
     // B  C
-    BinaryExpression {
-        op: BinExpOp,
-        left: ExprRef,
-        right: ExprRef,
-    },
+    BinaryExpression { op: BinExpOp, left: Ref, right: Ref },
 }
 
 #[derive(Debug)]

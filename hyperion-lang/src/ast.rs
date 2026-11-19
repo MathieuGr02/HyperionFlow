@@ -6,8 +6,8 @@ use crate::algebra::{
 };
 use crate::expression::{BinExpOp, UnExpOp};
 use crate::{
-    algebra::{AlgRef, Algebra, Filter, Project, UnaryAlgebra},
-    expression::{ExprRef, Expression},
+    algebra::{Algebra, Filter, Project, UnaryAlgebra},
+    expression::Expression,
     parser::{LangParser, Rule},
 };
 
@@ -27,14 +27,75 @@ pub enum ASTError {
     UnexpectedRule(Rule),
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct Ref(usize);
+
 #[derive(Debug)]
-pub struct AST {
-    root: AlgRef,
-    algebra: Vec<Algebra>,
+pub struct ExpressionAST {
+    root: Ref,
     expressions: Vec<Expression>,
 }
 
-impl AST {
+impl ExpressionAST {
+    pub fn parse_pair(pair: Pair<'_, Rule>) -> Result<Self, ASTError> {
+        let mut expressions = Vec::new();
+        let root = Self::build_expression(pair, &mut expressions)?;
+
+        Ok(Self { root, expressions })
+    }
+
+    fn build_expression(
+        expr: Pair<'_, Rule>,
+        expressions: &mut Vec<Expression>,
+    ) -> Result<Ref, ASTError> {
+        let expr = match expr.as_rule() {
+            // Escaper sequences
+            Rule::sql => {
+                let sql_str = expr.as_str();
+                Expression::Escape(sql_str.to_string())
+            }
+            Rule::mql => {
+                let mql_str = expr.as_str();
+                Expression::Escape(mql_str.to_string())
+            }
+            Rule::cypher => {
+                let cypher_str = expr.as_str();
+                Expression::Escape(cypher_str.to_string())
+            }
+            // Primitive types
+            Rule::FLOAT => Expression::Literal(Value::Float(Float::from(
+                expr.as_str().parse::<f64>().unwrap(),
+            ))),
+            Rule::INTEGER => Expression::Literal(Value::Integer(Integer::from(
+                expr.as_str().parse::<i64>().unwrap(),
+            ))),
+            Rule::BOOL => match expr.as_str() {
+                "TRUE" => Expression::Literal(Value::Boolean(true)),
+                "FALSE" => Expression::Literal(Value::Boolean(false)),
+                _ => return Err(ASTError::UnexpectedRule(expr.as_rule())),
+            },
+            Rule::TEXT => Expression::Literal(Value::String(expr.as_str().to_string())),
+            Rule::VALUE => {
+                let value = Value::from_pair(expr)?;
+                Expression::Literal(value)
+            }
+            _ => return Err(ASTError::UnexpectedRule(expr.as_rule())),
+        };
+
+        let index = expressions.len();
+        expressions.push(expr);
+
+        Ok(Ref(index))
+    }
+}
+
+#[derive(Debug)]
+pub struct AlgebraAST {
+    root: Ref,
+    algebra: Vec<Algebra>,
+}
+
+impl AlgebraAST {
     pub fn parse(query: &str) -> Result<Self, ASTError> {
         let pairs = LangParser::parse(Rule::query, query)
             .map_err(|e| ASTError::ParsingError(e.to_string()))?;
@@ -49,35 +110,28 @@ impl AST {
         dbg!(&algebra_query);
 
         let mut algebra = Vec::new();
-        let mut expressions = Vec::new();
 
-        Self::build_ast(algebra_query, &mut algebra, &mut expressions)?;
+        Self::build_ast(algebra_query, &mut algebra)?;
 
-        Ok(AST {
-            root: 0,
+        Ok(AlgebraAST {
+            root: Ref(0),
             algebra,
-            expressions,
         })
     }
 
-    fn build_ast(
-        query: Pair<'_, Rule>,
-        algebra: &mut Vec<Algebra>,
-        expressions: &mut Vec<Expression>,
-    ) -> Result<(), ASTError> {
-        let mut current = 0;
+    fn build_ast(query: Pair<'_, Rule>, algebra: &mut Vec<Algebra>) -> Result<(), ASTError> {
+        let mut current = Ref(0);
         for operation in query.into_inner().rev() {
-            current = Self::build_algebra(operation, current, algebra, expressions)?;
+            current = Self::build_algebra(operation, current, algebra)?;
         }
         Ok(())
     }
 
     fn build_algebra(
         pair: Pair<'_, Rule>,
-        input: AlgRef,
+        input: Ref,
         algebra: &mut Vec<Algebra>,
-        expressions: &mut Vec<Expression>,
-    ) -> Result<AlgRef, ASTError> {
+    ) -> Result<Ref, ASTError> {
         let alg = match pair.as_rule() {
             Rule::into => {
                 let mut inner = pair.into_inner();
@@ -116,22 +170,22 @@ impl AST {
             }
             Rule::filter => {
                 let mut inner = pair.into_inner();
-                let expr_ref = Self::build_expression(inner.next().unwrap(), expressions)?;
+                let expr_ast = ExpressionAST::parse_pair(inner.next().unwrap())?;
 
                 Algebra::Unary {
                     alg: UnaryAlgebra::Filter(Filter {
-                        expression: expr_ref,
+                        expression: expr_ast,
                     }),
                     input,
                 }
             }
             Rule::project => {
                 let mut inner = pair.into_inner();
-                let expr_ref = Self::build_expression(inner.next().unwrap(), expressions)?;
+                let expr_ast = ExpressionAST::parse_pair(inner.next().unwrap())?;
 
                 Algebra::Unary {
                     alg: UnaryAlgebra::Project(Project {
-                        expression: expr_ref,
+                        expression: expr_ast,
                     }),
                     input: input,
                 }
@@ -142,49 +196,7 @@ impl AST {
         let index = algebra.len();
         algebra.push(alg);
 
-        Ok(index)
-    }
-
-    fn build_expression(
-        expr: Pair<'_, Rule>,
-        expressions: &mut Vec<Expression>,
-    ) -> Result<ExprRef, ASTError> {
-        let expr = match expr.as_rule() {
-            // Escaper sequences
-            Rule::sql => {
-                let sql_str = expr.as_str();
-                Expression::Escape(sql_str.to_string())
-            }
-            Rule::mql => {
-                let mql_str = expr.as_str();
-                Expression::Escape(mql_str.to_string())
-            }
-            Rule::cypher => {
-                let cypher_str = expr.as_str();
-                Expression::Escape(cypher_str.to_string())
-            }
-            // Primitive types
-            Rule::FLOAT => Expression::Literal(Value::Float(Float::from(
-                expr.as_str().parse::<f64>().unwrap(),
-            ))),
-            Rule::INTEGER => Expression::Literal(Value::Integer(Integer::from(
-                expr.as_str().parse::<i64>().unwrap(),
-            ))),
-            Rule::BOOL => match expr.as_str() {
-                "TRUE" => Expression::Literal(Value::Boolean(true)),
-                "FALSE" => Expression::Literal(Value::Boolean(false)),
-                _ => return Err(ASTError::UnexpectedRule(expr.as_rule())),
-            },
-            Rule::TEXT => Expression::Literal(Value::String(expr.as_str().to_string())),
-            Rule::VALUE => {
-                let value = Value::from_pair(expr)?;
-                Expression::Literal(value)
-            }
-            _ => return Err(ASTError::UnexpectedRule(expr.as_rule())),
-        };
-
-        expressions.push(expr);
-        Ok(expressions.len() - 1)
+        Ok(Ref(index))
     }
 }
 
@@ -265,13 +277,17 @@ pub trait ExpressionFold {
     ) -> Result<Self::Output, Self::Error>;
 }
 
-impl AST {
+impl ExpressionAST {
+    pub fn fold<E: ExpressionFold>(&self, folder: &mut E) -> Result<E::Output, E::Error> {
+        self.fold_expression(self.root, folder)
+    }
+
     pub fn fold_expression<E: ExpressionFold>(
         &self,
-        index: ExprRef,
+        index: Ref,
         folder: &mut E,
     ) -> Result<E::Output, E::Error> {
-        if let Some(expr) = self.expressions.get(index) {
+        if let Some(expr) = self.expressions.get(index.0) {
             match expr {
                 Expression::Literal(literal) => folder.fold_literal(literal),
                 Expression::Escape(escape) => folder.fold_escape(escape),
@@ -289,17 +305,19 @@ impl AST {
             Err(ASTError::ParsingError("Index doesn't exist".to_string()).into())
         }
     }
+}
 
+impl AlgebraAST {
     pub fn accept_algebra<F: AlgebraFold>(&self, folder: &mut F) -> Result<F::Output, F::Error> {
         self.fold_algebra(self.root, folder)
     }
 
     fn fold_algebra<F: AlgebraFold>(
         &self,
-        index: AlgRef,
+        index: Ref,
         folder: &mut F,
     ) -> Result<F::Output, F::Error> {
-        if let Some(alg) = self.algebra.get(index) {
+        if let Some(alg) = self.algebra.get(index.0) {
             match alg {
                 // Root node
                 Algebra::Print { print, input } => {

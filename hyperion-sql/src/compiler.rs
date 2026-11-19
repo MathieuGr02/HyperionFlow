@@ -1,6 +1,6 @@
 use hyperion_lang::{
     algebra::{Filter, Project, StorePrint, StoreScan},
-    ast::{AST, AlgebraFold},
+    ast::{AlgebraAST, AlgebraFold},
 };
 
 use crate::stores::postgres::util::SQLError;
@@ -23,7 +23,8 @@ impl AlgebraFold for SQLCompiler {
     fn fold_scan(&mut self, scan: &StoreScan) -> Result<Self::Output, Self::Error> {
         match scan {
             StoreScan::SQLScan(sql_scan) => Ok(SQLQuery {
-                from: sql_scan.table.clone(),
+                project: Vec::new(),
+                source: SQLSource { table: sql_scan.table.to_owned() }
             }),
             _ => Err(SQLError::UnsupportedType("Invalid scan".to_string())),
         }

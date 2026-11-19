@@ -18,9 +18,7 @@
 }
 */
 
-use crate::expression::ExprRef;
-
-pub(crate) type AlgRef = usize;
+use crate::ast::{ExpressionAST, Ref};
 
 ///
 #[derive(Debug)]
@@ -31,12 +29,12 @@ pub enum UnaryAlgebra {
 
 #[derive(Debug)]
 pub struct Filter {
-    pub(crate) expression: ExprRef,
+    pub(crate) expression: ExpressionAST,
 }
 
 #[derive(Debug)]
 pub struct Project {
-    pub(crate) expression: ExprRef,
+    pub(crate) expression: ExpressionAST,
 }
 
 #[derive(Debug)]
@@ -97,7 +95,7 @@ pub enum Algebra {
     /// Represents the "printing" of data to a specific store
     Print {
         print: StorePrint,
-        input: AlgRef,
+        input: Ref,
     },
     /// Leaf node algebra.
     /// Represents the "scanning" of a specific store, i.e. the location of the data
@@ -109,7 +107,7 @@ pub enum Algebra {
     // B
     Unary {
         alg: UnaryAlgebra,
-        input: AlgRef,
+        input: Ref,
     },
     // Inner node binary algebra
     // Represents the algebra:
@@ -118,7 +116,7 @@ pub enum Algebra {
     // B  C
     Binary {
         alg: BinaryAlgebra,
-        left: AlgRef,
-        right: AlgRef,
+        left: Ref,
+        right: Ref,
     },
 }

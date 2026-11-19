@@ -10,6 +10,41 @@ use crate::{Bytes, Float, Integer, Map, Timestamp};
 use crate::{Edge, Node};
 
 #[derive(Debug)]
+pub enum ValueType {
+    Null,
+    Boolean,
+    Bytes,
+    Integer,
+    Float,
+    String,
+    Timestamp,
+    Array,
+    Map,
+    Node,
+    Edge,
+}
+
+impl std::fmt::Display for ValueType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            ValueType::Null => "Null",
+            ValueType::Boolean => "Boolean",
+            ValueType::Bytes => "Bytes",
+            ValueType::Integer => "Integer",
+            ValueType::Float => "Float",
+            ValueType::String => "String",
+            ValueType::Timestamp => "Timestamp",
+            ValueType::Array => "Array",
+            ValueType::Map => "Map",
+            ValueType::Node => "Node",
+            ValueType::Edge => "Edge",
+        };
+
+        write!(f, "{}", s)
+    }
+}
+
+#[derive(Debug)]
 pub enum Value {
     Null,
     Boolean(bool),
@@ -59,6 +94,22 @@ impl From<Vec<u8>> for Value {
 }
 
 impl Value {
+    pub fn get_type(&self) -> ValueType {
+        match self {
+            Value::Null => ValueType::Null,
+            Value::Boolean(_) => ValueType::Boolean,
+            Value::Bytes(_) => ValueType::Bytes,
+            Value::Integer(_) => ValueType::Integer,
+            Value::Float(_) => ValueType::Float,
+            Value::String(_) => ValueType::String,
+            Value::Timestamp(_) => ValueType::Timestamp,
+            Value::Array(_) => ValueType::Array,
+            Value::Map(_) => ValueType::Map,
+            Value::Node(_) => ValueType::Node,
+            Value::Edge(_) => ValueType::Edge,
+        }
+    }
+
     pub fn take(&mut self) -> Value {
         mem::replace(self, Value::Null)
     }

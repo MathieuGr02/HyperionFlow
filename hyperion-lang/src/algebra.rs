@@ -29,12 +29,12 @@ pub enum UnaryAlgebra {
 
 #[derive(Debug)]
 pub struct Filter {
-    pub(crate) expression: ExpressionAST,
+    pub expression: ExpressionAST,
 }
 
 #[derive(Debug)]
 pub struct Project {
-    pub(crate) expression: ExpressionAST,
+    pub expression: ExpressionAST,
 }
 
 #[derive(Debug)]

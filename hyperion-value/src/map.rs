@@ -13,7 +13,7 @@ use delegate::delegate;
 
 use crate::value::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Map {
     inner: HashMap<String, Value>,
 }

@@ -44,7 +44,7 @@ impl std::fmt::Display for ValueType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Null,
     Boolean(bool),

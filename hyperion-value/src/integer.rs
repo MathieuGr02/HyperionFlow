@@ -4,7 +4,7 @@ use serde::Serialize;
 
 use crate::value::Value;
 
-#[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Eq, Clone, PartialEq, PartialOrd, Ord)]
 pub struct Integer {
     inner: i64,
 }

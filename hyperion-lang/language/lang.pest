@@ -62,13 +62,13 @@ project = { "PROJECT" ~ (escaper | "(" ~ TARGET ~ ("," ~ TARGET)* ~ ")" ) }
 /// The filter operation. Allows for the filtering of data
 ///
 /// Example: `FILTER SQL(age > 25)`
-filter = { "FILTER" ~ (escaper | expr) }
+filter = { "FILTER" ~ expr }
 
 /**************************
 EXPRESSION DEFINITIONS
 **************************/
 
-expr = { math_functions | boolean_functions | unary_math_functions }
+expr = { math_functions | boolean_functions | unary_math_functions | escaper }
 
 // Boolean operations
 boolean_functions = { (VALUE | TARGET) ~ (comparison ~ (VALUE | TARGET))+ }
@@ -102,18 +102,18 @@ ESCAPER DEFINITIONS
 
 // Escapers
 // Allow for the definition of language based operations bypassing the normal hyperion-lang definitions
-escaper = _{ sql | mql | cypher }
+escaper = { sql | mql | cypher }
 
 /// SQL escaper. Allows for the definition of raw SQL queries
 ///
 /// Example: `SQL(age > 25)`
-sql = @{ SQL_IDENTIFIER ~ "(" ~ sql_content ~ ")" }
-sql_content = _{ ( !("(" | ")") ~ ANY | "(" ~ sql_content ~ ")" )* }
+sql = _{ SQL_IDENTIFIER ~ "(" ~ sql_content ~ ")" }
+sql_content = { ( !("(" | ")") ~ ANY | "(" ~ sql_content ~ ")" )* }
 
 /// MQL escaper. Allows for the definition of raw MQL queries
-mql = @{ MQL_IDENTIFIER ~ "(" ~ mql_content ~ ")" }
-mql_content = _{ ( !("{" | "}") ~ ANY | "{" ~ mql_content ~ "}" )* }
+mql = _{ MQL_IDENTIFIER ~ "(" ~ mql_content ~ ")" }
+mql_content = { ( !("{" | "}") ~ ANY | "{" ~ mql_content ~ "}" )* }
 
 /// Cypher escaper. Allows for the definition of raw Cypher queries
-cypher = @{ CYPHER_IDENTIFIER ~ "(" ~ cypher_content ~ ")" }
-cypher_content = _{ ( !("(" | ")") ~ ANY | "(" ~ sql_content ~ ")" )* }
+cypher = _{ CYPHER_IDENTIFIER ~ "(" ~ cypher_content ~ ")" }
+cypher_content = { ( !("(" | ")") ~ ANY | "(" ~ sql_content ~ ")" )* }

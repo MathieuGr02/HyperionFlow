@@ -37,9 +37,22 @@ pub struct ExpressionAST {
 }
 
 impl ExpressionAST {
+    pub fn parse(expr: &str) -> Result<Self, ASTError> {
+        let pairs = LangParser::parse(Rule::expr, expr)
+            .map_err(|e| ASTError::ParsingError(e.to_string()))?;
+
+        let pair = pairs.into_iter().next().unwrap();
+
+        dbg!(&pair);
+
+        Self::parse_pair(pair)
+    }
+
     pub fn parse_pair(pair: Pair<'_, Rule>) -> Result<Self, ASTError> {
         let mut expressions = Vec::new();
-        let root = Self::build_expression(pair, &mut expressions)?;
+
+        let expr = pair.into_inner().next().unwrap();
+        let root = Self::build_expression(expr, &mut expressions)?;
 
         Ok(Self { root, expressions })
     }
@@ -49,19 +62,13 @@ impl ExpressionAST {
         expressions: &mut Vec<Expression>,
     ) -> Result<Ref, ASTError> {
         let expr = match expr.as_rule() {
-            // Escaper sequences
-            Rule::sql => {
-                let sql_str = expr.as_str();
-                Expression::Escape(sql_str.to_string())
+            Rule::escaper => {
+                let mut inner = expr.into_inner();
+                let _identifier = inner.next().unwrap();
+                let content = inner.next().unwrap().as_str();
+                Expression::Escape(content.to_owned())
             }
-            Rule::mql => {
-                let mql_str = expr.as_str();
-                Expression::Escape(mql_str.to_string())
-            }
-            Rule::cypher => {
-                let cypher_str = expr.as_str();
-                Expression::Escape(cypher_str.to_string())
-            }
+            Rule::TARGET => Expression::Target(expr.as_str().to_string()),
             // Primitive types
             Rule::FLOAT => Expression::Literal(Value::Float(Float::from(
                 expr.as_str().parse::<f64>().unwrap(),
@@ -263,6 +270,8 @@ pub trait ExpressionFold {
 
     fn fold_literal(&mut self, literal: &Value) -> Result<Self::Output, Self::Error>;
 
+    fn fold_target(&mut self, target: &String) -> Result<Self::Output, Self::Error>;
+
     fn fold_unary_expression(
         &mut self,
         op: &UnExpOp,
@@ -282,7 +291,7 @@ impl ExpressionAST {
         self.fold_expression(self.root, folder)
     }
 
-    pub fn fold_expression<E: ExpressionFold>(
+    fn fold_expression<E: ExpressionFold>(
         &self,
         index: Ref,
         folder: &mut E,
@@ -291,6 +300,7 @@ impl ExpressionAST {
             match expr {
                 Expression::Literal(literal) => folder.fold_literal(literal),
                 Expression::Escape(escape) => folder.fold_escape(escape),
+                Expression::Target(target) => folder.fold_target(target),
                 Expression::UnaryExpression { op, value } => {
                     let inner = self.fold_expression(*value, folder)?;
                     folder.fold_unary_expression(op, inner)

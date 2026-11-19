@@ -7,6 +7,7 @@ pub enum Expression {
     // Leaf node expressions
     Escape(String),
     Literal(Value),
+    Target(String),
 
     // Node unary expression
     // Represents the expression:

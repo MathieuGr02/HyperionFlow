@@ -34,7 +34,7 @@ pub struct Filter {
 
 #[derive(Debug)]
 pub struct Project {
-    pub expression: ExpressionAST,
+    pub expression: Vec<ExpressionAST>,
 }
 
 #[derive(Debug)]

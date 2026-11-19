@@ -39,7 +39,7 @@ pub struct ExpressionAST {
 impl ExpressionAST {
     pub fn parse(expr: &str) -> Result<Self, ASTError> {
         let pairs = LangParser::parse(Rule::expr, expr)
-            .map_err(|e| ASTError::ParsingError(e.to_string()))?;
+            .map_err(|e| ASTError::ParsingError(format!("Expression parsing error {e}")))?;
 
         let pair = pairs.into_iter().next().unwrap();
 
@@ -57,16 +57,29 @@ impl ExpressionAST {
         Ok(Self { root, expressions })
     }
 
+    fn add_expression(expr: Expression, expressions: &mut Vec<Expression>) -> Ref {}
+
     fn build_expression(
         expr: Pair<'_, Rule>,
         expressions: &mut Vec<Expression>,
     ) -> Result<Ref, ASTError> {
         let expr = match expr.as_rule() {
+            Rule::expr => Self::build_expression(expr, expressions)?,
             Rule::escaper => {
                 let mut inner = expr.into_inner();
                 let _identifier = inner.next().unwrap();
                 let content = inner.next().unwrap().as_str();
                 Expression::Escape(content.to_owned())
+            }
+            Rule::unary_math_functions => {
+                let mut inner = expr.into_inner();
+
+                let callable = inner.next().unwrap();
+                let op = UnExpOp::from_pair(callable)?;
+                let content = inner.next().unwrap();
+                let content = Self::build_expression(content, expressions)?;
+
+                Expression::UnaryExpression { op, value: content }
             }
             Rule::TARGET => Expression::Target(expr.as_str().to_string()),
             // Primitive types
@@ -105,7 +118,7 @@ pub struct AlgebraAST {
 impl AlgebraAST {
     pub fn parse(query: &str) -> Result<Self, ASTError> {
         let pairs = LangParser::parse(Rule::query, query)
-            .map_err(|e| ASTError::ParsingError(e.to_string()))?;
+            .map_err(|e| ASTError::ParsingError(format!("Algebra parsing error {e}")))?;
 
         let query = pairs.into_iter().next().unwrap();
         let algebra_query = query
@@ -127,8 +140,10 @@ impl AlgebraAST {
     }
 
     fn build_ast(query: Pair<'_, Rule>, algebra: &mut Vec<Algebra>) -> Result<(), ASTError> {
-        let mut current = Ref(0);
+        let mut current = Ref(1);
         for operation in query.into_inner().rev() {
+            dbg!(current);
+            dbg!(&operation);
             current = Self::build_algebra(operation, current, algebra)?;
         }
         Ok(())
@@ -187,12 +202,15 @@ impl AlgebraAST {
                 }
             }
             Rule::project => {
-                let mut inner = pair.into_inner();
-                let expr_ast = ExpressionAST::parse_pair(inner.next().unwrap())?;
+                let mut expressions = Vec::new();
+                for inner in pair.into_inner().into_iter() {
+                    let expr_ast = ExpressionAST::parse_pair(inner)?;
+                    expressions.push(expr_ast);
+                }
 
                 Algebra::Unary {
                     alg: UnaryAlgebra::Project(Project {
-                        expression: expr_ast,
+                        expression: expressions,
                     }),
                     input: input,
                 }
@@ -200,8 +218,8 @@ impl AlgebraAST {
             _ => return Err(ASTError::UnexpectedRule(pair.as_rule())),
         };
 
-        let index = algebra.len();
         algebra.push(alg);
+        let index = algebra.len() + 1;
 
         Ok(Ref(index))
     }
@@ -318,7 +336,7 @@ impl ExpressionAST {
 }
 
 impl AlgebraAST {
-    pub fn accept_algebra<F: AlgebraFold>(&self, folder: &mut F) -> Result<F::Output, F::Error> {
+    pub fn fold<F: AlgebraFold>(&self, folder: &mut F) -> Result<F::Output, F::Error> {
         self.fold_algebra(self.root, folder)
     }
 

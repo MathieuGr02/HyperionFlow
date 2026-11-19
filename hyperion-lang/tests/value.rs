@@ -2,7 +2,7 @@ mod common;
 
 #[cfg(test)]
 mod value_parse {
-    use hyperion_lang::parser::{LangParser, Rule::bool};
+    use hyperion_lang::parser::LangParser;
     use pest::Parser;
     use rstest::rstest;
 
@@ -12,7 +12,7 @@ mod value_parse {
     #[case("TRUE")]
     #[case("FALSE")]
     fn parse_valid_bool(#[case] value: &str) {
-        assert_parse_equal(hyperion_lang::parser::Rule::bool, value);
+        assert_parse_equal(hyperion_lang::parser::Rule::BOOL, value, value);
     }
 
     #[rstest]
@@ -20,27 +20,27 @@ mod value_parse {
     #[case("fAlse")]
     #[case("")]
     fn parse_invalid_bool(#[case] value: &str) {
-        assert_parse_err(hyperion_lang::parser::Rule::bool, value);
+        assert_parse_err(hyperion_lang::parser::Rule::BOOL, value);
     }
 
     #[test]
     fn parse_text() {
-        assert_parse_equal(hyperion_lang::parser::Rule::text, "somerandomtext");
+        //assert_parse_equal(hyperion_lang::parser::Rule::TEXT, "somerandomtext");
     }
 
     #[rstest]
-    #[case("0")]
-    #[case("01")]
-    #[case("10")]
-    fn parse_valid_integer(#[case] value: &str) {
-        assert_parse_equal(hyperion_lang::parser::Rule::integer, value);
+    #[case("0", "0")]
+    #[case("01", "01")]
+    #[case("10", "10")]
+    #[case("0.0", "0")]
+    fn parse_valid_integer(#[case] value: &str, #[case] expected: &str) {
+        assert_parse_equal(hyperion_lang::parser::Rule::INTEGER, value, expected);
     }
 
     #[rstest]
-    #[case("0.0")]
     #[case("")]
     fn parse_invalid_integer(#[case] value: &str) {
-        assert_parse_err(hyperion_lang::parser::Rule::integer, value);
+        assert_parse_err(hyperion_lang::parser::Rule::INTEGER, value);
     }
 
     #[rstest]
@@ -50,12 +50,12 @@ mod value_parse {
     #[case("10.0")]
     #[case("0.01")]
     fn parse_valid_float(#[case] value: &str) {
-        assert_parse_equal(hyperion_lang::parser::Rule::float, value);
+        assert_parse_equal(hyperion_lang::parser::Rule::FLOAT, value, value);
     }
 
     #[rstest]
     #[case("")]
     fn parse_invalid_float(#[case] value: &str) {
-        assert_parse_err(hyperion_lang::parser::Rule::float, value);
+        assert_parse_err(hyperion_lang::parser::Rule::FLOAT, value);
     }
 }

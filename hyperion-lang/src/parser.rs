@@ -1,5 +1,5 @@
 use pest_derive::Parser;
 
 #[derive(Debug, Parser)]
-#[grammar = "lang.pest"]
+#[grammar = "language/lang.pest"]
 pub struct LangParser {}

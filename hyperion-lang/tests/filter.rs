@@ -9,6 +9,6 @@ mod filter_parse {
     #[rstest]
     #[case("FILTER SQL(BETWEEN 0 AND 1)")]
     fn parse_filter(#[case] value: &str) {
-        assert_parse_equal(hyperion_lang::parser::Rule::filter, value);
+        assert_parse_equal(hyperion_lang::parser::Rule::filter, value, value);
     }
 }

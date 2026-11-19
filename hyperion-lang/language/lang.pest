@@ -1,0 +1,119 @@
+/**************************
+CONSTANT DEFINITIONS
+**************************/
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }
+
+SQL_IDENTIFIER = @{ "SQL" }
+MQL_IDENTIFIER = @{ "MQL" }
+CYPHER_IDENTIFIER = @{ "CYPHER" }
+IDENTIFIER = _{ SQL_IDENTIFIER | MQL_IDENTIFIER | CYPHER_IDENTIFIER }
+
+/// Target type. Allows for the definition of a target of a valid format.
+/// This can be fields, table / collections names etc.
+/// A target can for example have the format `_users` or `something_0`
+TARGET = @{ "_"* ~ ASCII_ALPHA+ ~ ( ASCII_ALPHANUMERIC | "_" )* }
+
+/// Integer type
+INTEGER = @{ ASCII_DIGIT+ }
+
+/// Float type
+FLOAT = @{ INTEGER ~ "." ~ INTEGER }
+
+/// Bool type
+BOOL = @{ "TRUE" | "FALSE" }
+
+/// Text type
+TEXT = { "\"" ~ (ASCII_ALPHA | WHITE_SPACE)* ~ "\""  }
+
+NUMBER = { INTEGER | FLOAT }
+VALUE = { INTEGER | FLOAT | BOOL | TEXT }
+
+/**************************
+ALGEBRAIC DEFINITIONS
+**************************/
+
+/// The query. Main entrypoint of the algebra definition of the operations
+query = { SOI ~ algebra ~ EOI }
+
+/// The algebra. Defines the sequence of algebraic operations.
+/// The sequence is always initiated by a `FROM` clause and terminated by an `INTO` clause
+algebra = { from ~ (project | filter)* ~ into }
+
+// Algebra operations
+
+/// The into operation. Allows for the definition of where the algebraic operations should output to.
+///
+/// Example: `INTO SQL(person)`
+into = { "INTO" ~ IDENTIFIER ~ "(" ~ TARGET ~ ")" }
+
+/// The FROM operation. Allows for the defintion of where data, following algebraic operations operate on, should come from.
+///
+/// Example: `FROM SQL(users)`
+from = { "FROM" ~ IDENTIFIER ~ "(" ~ TARGET ~ ")" }
+
+/// The project operation. Allows for the projection of data.
+/// Can be escaped by the store identifiers (SQL, MQL, CYPHER)
+/// Fields are specified by the name, seperated by commas
+///
+/// Example: `PROJECT (name, age)`
+project = { "PROJECT" ~ (escaper | "(" ~ TARGET ~ ("," ~ TARGET)* ~ ")" ) }
+
+/// The filter operation. Allows for the filtering of data
+///
+/// Example: `FILTER SQL(age > 25)`
+filter = { "FILTER" ~ (escaper | expr) }
+
+/**************************
+EXPRESSION DEFINITIONS
+**************************/
+
+expr = { math_functions | boolean_functions | unary_math_functions }
+
+// Boolean operations
+boolean_functions = { (VALUE | TARGET) ~ (comparison ~ (VALUE | TARGET))+ }
+
+comparison = _{ le | leq | ge | geq | eq | neq }
+le = { "<" }
+leq = { "=<" }
+ge = { ">" }
+geq = { ">=" }
+eq = { "==" }
+neq = { "!=" }
+and = { "AND" }
+or = { "OR" }
+
+// Math operations
+math_functions = { (NUMBER | TARGET ) ~ (math_primitive ~ (NUMBER | TARGET))+ }
+
+math_primitive = _{ add | sub | div | mul }
+add = { "+" }
+sub = { "-" }
+div = { "/" }
+mul = { "*" }
+
+unary_callable = { "ABS" | "AVG" | "CEILING" | "COUNT" | "EXP" | "FLOOR" | "MAX" | "MIN" | "SIGN" | "SQRT" | "SQUARE" | "SUM" }
+
+unary_math_functions = @{ unary_callable ~ "(" ~ (TARGET | NUMBER) ~ ")" }
+
+/**************************
+ESCAPER DEFINITIONS
+**************************/
+
+// Escapers
+// Allow for the definition of language based operations bypassing the normal hyperion-lang definitions
+escaper = _{ sql | mql | cypher }
+
+/// SQL escaper. Allows for the definition of raw SQL queries
+///
+/// Example: `SQL(age > 25)`
+sql = @{ SQL_IDENTIFIER ~ "(" ~ sql_content ~ ")" }
+sql_content = _{ ( !("(" | ")") ~ ANY | "(" ~ sql_content ~ ")" )* }
+
+/// MQL escaper. Allows for the definition of raw MQL queries
+mql = @{ MQL_IDENTIFIER ~ "(" ~ mql_content ~ ")" }
+mql_content = _{ ( !("{" | "}") ~ ANY | "{" ~ mql_content ~ "}" )* }
+
+/// Cypher escaper. Allows for the definition of raw Cypher queries
+cypher = @{ CYPHER_IDENTIFIER ~ "(" ~ cypher_content ~ ")" }
+cypher_content = _{ ( !("(" | ")") ~ ANY | "(" ~ sql_content ~ ")" )* }

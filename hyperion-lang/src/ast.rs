@@ -4,6 +4,7 @@ use thiserror::Error;
 use crate::algebra::{
     CypherPrint, CypherScan, MQLPrint, MQLScan, SQLPrint, SQLScan, StorePrint, StoreScan,
 };
+use crate::expression::{BinExpOp, UnExpOp};
 use crate::{
     algebra::{AlgRef, Algebra, Filter, Project, UnaryAlgebra},
     expression::{ExprRef, Expression},
@@ -68,27 +69,6 @@ impl AST {
         for operation in query.into_inner().rev() {
             current = Self::build_algebra(operation, current, algebra, expressions)?;
         }
-
-        /*
-                let mut operations = Vec::new();
-                let mut scan = None;
-                for inner in query.into_inner() {
-                    match inner.as_rule() {
-                        Rule::from => scan = Some(inner),
-                        _ => operations.push(inner),
-                    }
-                }
-
-                let scan = scan.ok_or(ASTError::MissingRule(Rule::from))?;
-                let scan = Algebra::Scan(Self::build_scan(scan)?);
-
-                let mut index = algebra.len();
-                algebra.push(scan);
-
-                for operation in operations.into_iter() {
-                    index = Self::build_algebra(operation, index, algebra, expressions)?;
-                }
-        */
         Ok(())
     }
 
@@ -106,9 +86,9 @@ impl AST {
                 let target = inner.next().unwrap().as_str().to_string();
 
                 let print = match identifier.as_rule() {
-                    Rule::sql_identifier => StorePrint::SQLPrint(SQLPrint { table: target }),
-                    Rule::mql_identifier => StorePrint::MQLPrint(MQLPrint { collection: target }),
-                    Rule::cypher_identifier => {
+                    Rule::SQL_IDENTIFIER => StorePrint::SQLPrint(SQLPrint { table: target }),
+                    Rule::MQL_IDENTIFIER => StorePrint::MQLPrint(MQLPrint { collection: target }),
+                    Rule::CYPHER_IDENTIFIER => {
                         StorePrint::CypherPrint(CypherPrint { graph: target })
                     }
                     _ => {
@@ -124,9 +104,9 @@ impl AST {
                 let target = inner.next().unwrap().as_str().to_string();
 
                 let scan = match identifier.as_rule() {
-                    Rule::sql_identifier => StoreScan::SQLScan(SQLScan { table: target }),
-                    Rule::mql_identifier => StoreScan::MQLScan(MQLScan { collection: target }),
-                    Rule::cypher_identifier => StoreScan::CypherScan(CypherScan { graph: target }),
+                    Rule::SQL_IDENTIFIER => StoreScan::SQLScan(SQLScan { table: target }),
+                    Rule::MQL_IDENTIFIER => StoreScan::MQLScan(MQLScan { collection: target }),
+                    Rule::CYPHER_IDENTIFIER => StoreScan::CypherScan(CypherScan { graph: target }),
                     _ => {
                         return Err(ASTError::UnexpectedRule(identifier.as_rule()));
                     }
@@ -170,6 +150,7 @@ impl AST {
         expressions: &mut Vec<Expression>,
     ) -> Result<ExprRef, ASTError> {
         let expr = match expr.as_rule() {
+            // Escaper sequences
             Rule::sql => {
                 let sql_str = expr.as_str();
                 Expression::Escape(sql_str.to_string())
@@ -182,19 +163,20 @@ impl AST {
                 let cypher_str = expr.as_str();
                 Expression::Escape(cypher_str.to_string())
             }
-            Rule::float => Expression::Literal(Value::Float(Float::from(
+            // Primitive types
+            Rule::FLOAT => Expression::Literal(Value::Float(Float::from(
                 expr.as_str().parse::<f64>().unwrap(),
             ))),
-            Rule::integer => Expression::Literal(Value::Integer(Integer::from(
+            Rule::INTEGER => Expression::Literal(Value::Integer(Integer::from(
                 expr.as_str().parse::<i64>().unwrap(),
             ))),
-            Rule::bool => match expr.as_str() {
+            Rule::BOOL => match expr.as_str() {
                 "TRUE" => Expression::Literal(Value::Boolean(true)),
                 "FALSE" => Expression::Literal(Value::Boolean(false)),
                 _ => return Err(ASTError::UnexpectedRule(expr.as_rule())),
             },
-            Rule::text => Expression::Literal(Value::String(expr.as_str().to_string())),
-            Rule::value => {
+            Rule::TEXT => Expression::Literal(Value::String(expr.as_str().to_string())),
+            Rule::VALUE => {
                 let value = Value::from_pair(expr)?;
                 Expression::Literal(value)
             }
@@ -209,18 +191,18 @@ impl AST {
 impl<'i> FromPair<'i> for Value {
     fn from_pair(pair: Pair<'i, Rule>) -> Result<Self, ASTError> {
         match pair.as_rule() {
-            Rule::float => Ok(Value::Float(Float::from(
+            Rule::FLOAT => Ok(Value::Float(Float::from(
                 pair.as_str().parse::<f64>().unwrap(),
             ))),
-            Rule::integer => Ok(Value::Integer(Integer::from(
+            Rule::INTEGER => Ok(Value::Integer(Integer::from(
                 pair.as_str().parse::<i64>().unwrap(),
             ))),
-            Rule::bool => match pair.as_str() {
+            Rule::BOOL => match pair.as_str() {
                 "TRUE" => Ok(Value::Boolean(true)),
                 "FALSE" => Ok(Value::Boolean(false)),
                 _ => Err(ASTError::UnexpectedRule(pair.as_rule())),
             },
-            Rule::text => Ok(Value::String(pair.as_str().to_string())),
+            Rule::TEXT => Ok(Value::String(pair.as_str().to_string())),
             _ => Err(ASTError::UnexpectedRule(pair.as_rule())),
         }
     }
@@ -271,19 +253,20 @@ pub trait ExpressionFold {
 
     fn fold_unary_expression(
         &mut self,
-        binary: &Expression,
+        op: &UnExpOp,
         input: Self::Output,
     ) -> Result<Self::Output, Self::Error>;
 
     fn fold_binary_expression(
         &mut self,
-        binary: &Expression,
-        input: Self::Output,
+        op: &BinExpOp,
+        input_left: Self::Output,
+        input_right: Self::Output,
     ) -> Result<Self::Output, Self::Error>;
 }
 
 impl AST {
-    pub fn accept_expression<E: ExpressionFold>(
+    pub fn fold_expression<E: ExpressionFold>(
         &self,
         index: ExprRef,
         folder: &mut E,
@@ -293,11 +276,13 @@ impl AST {
                 Expression::Literal(literal) => folder.fold_literal(literal),
                 Expression::Escape(escape) => folder.fold_escape(escape),
                 Expression::UnaryExpression { op, value } => {
-                    let inner = self.f
-                    folder.fold_unary_expression(binary, input)
+                    let inner = self.fold_expression(*value, folder)?;
+                    folder.fold_unary_expression(op, inner)
                 }
                 Expression::BinaryExpression { op, left, right } => {
-                    folder.fold_binary_expression(binary, input)
+                    let inner_left = self.fold_expression(*left, folder)?;
+                    let inner_right = self.fold_expression(*right, folder)?;
+                    folder.fold_binary_expression(op, inner_left, inner_right)
                 }
             }
         } else {

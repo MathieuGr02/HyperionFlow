@@ -10,6 +10,5 @@ mod ast_parse {
         if let Err(e) = ast {
             panic!("{}", e);
         }
-        panic!("{:?}", ast);
     }
 }

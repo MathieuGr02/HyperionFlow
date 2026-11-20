@@ -83,6 +83,8 @@ mod expression_folder {
         }
         let query = query.unwrap();
 
+        dbg!(&query);
+
         let s = query.build();
         assert_eq!(s, "SELECT age FROM users WHERE age > 25");
     }

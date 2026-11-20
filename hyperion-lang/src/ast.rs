@@ -57,19 +57,28 @@ impl ExpressionAST {
         Ok(Self { root, expressions })
     }
 
-    fn add_expression(expr: Expression, expressions: &mut Vec<Expression>) -> Ref {}
+    fn add_expression(expr: Expression, expressions: &mut Vec<Expression>) -> Ref {
+        let index = expressions.len();
+        expressions.push(expr);
+        Ref(index)
+    }
 
     fn build_expression(
         expr: Pair<'_, Rule>,
         expressions: &mut Vec<Expression>,
     ) -> Result<Ref, ASTError> {
-        let expr = match expr.as_rule() {
-            Rule::expr => Self::build_expression(expr, expressions)?,
+        let expr_ref = match expr.as_rule() {
+            Rule::expr => {
+                let mut inner = expr.into_inner();
+                Self::build_expression(inner.next().unwrap(), expressions)?
+            }
+
             Rule::escaper => {
                 let mut inner = expr.into_inner();
                 let _identifier = inner.next().unwrap();
                 let content = inner.next().unwrap().as_str();
-                Expression::Escape(content.to_owned())
+                let escape = Expression::Escape(content.to_owned());
+                Self::add_expression(escape, expressions)
             }
             Rule::unary_math_functions => {
                 let mut inner = expr.into_inner();
@@ -79,33 +88,48 @@ impl ExpressionAST {
                 let content = inner.next().unwrap();
                 let content = Self::build_expression(content, expressions)?;
 
-                Expression::UnaryExpression { op, value: content }
+                let unary = Expression::UnaryExpression { op, value: content };
+                Self::add_expression(unary, expressions)
             }
-            Rule::TARGET => Expression::Target(expr.as_str().to_string()),
+            Rule::TARGET => {
+                let target = Expression::Target(expr.as_str().to_string());
+                Self::add_expression(target, expressions)
+            }
             // Primitive types
-            Rule::FLOAT => Expression::Literal(Value::Float(Float::from(
-                expr.as_str().parse::<f64>().unwrap(),
-            ))),
-            Rule::INTEGER => Expression::Literal(Value::Integer(Integer::from(
-                expr.as_str().parse::<i64>().unwrap(),
-            ))),
-            Rule::BOOL => match expr.as_str() {
-                "TRUE" => Expression::Literal(Value::Boolean(true)),
-                "FALSE" => Expression::Literal(Value::Boolean(false)),
-                _ => return Err(ASTError::UnexpectedRule(expr.as_rule())),
-            },
-            Rule::TEXT => Expression::Literal(Value::String(expr.as_str().to_string())),
+            Rule::FLOAT => {
+                let literal = Expression::Literal(Value::Float(Float::from(
+                    expr.as_str().parse::<f64>().unwrap(),
+                )));
+                Self::add_expression(literal, expressions)
+            }
+            Rule::INTEGER => {
+                let literal = Expression::Literal(Value::Integer(Integer::from(
+                    expr.as_str().parse::<i64>().unwrap(),
+                )));
+                Self::add_expression(literal, expressions)
+            }
+            Rule::BOOL => {
+                let literal = match expr.as_str() {
+                    "TRUE" => Expression::Literal(Value::Boolean(true)),
+                    "FALSE" => Expression::Literal(Value::Boolean(false)),
+                    _ => return Err(ASTError::UnexpectedRule(expr.as_rule())),
+                };
+
+                Self::add_expression(literal, expressions)
+            }
+            Rule::TEXT => {
+                let literal = Expression::Literal(Value::String(expr.as_str().to_string()));
+                Self::add_expression(literal, expressions)
+            }
             Rule::VALUE => {
                 let value = Value::from_pair(expr)?;
-                Expression::Literal(value)
+                let literal = Expression::Literal(value);
+                Self::add_expression(literal, expressions)
             }
             _ => return Err(ASTError::UnexpectedRule(expr.as_rule())),
         };
 
-        let index = expressions.len();
-        expressions.push(expr);
-
-        Ok(Ref(index))
+        Ok(expr_ref)
     }
 }
 

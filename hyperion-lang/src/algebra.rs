@@ -18,6 +18,8 @@
 }
 */
 
+use hyperion_value::Integer;
+
 use crate::ast::{ExpressionAST, Ref};
 
 ///
@@ -25,6 +27,18 @@ use crate::ast::{ExpressionAST, Ref};
 pub enum UnaryAlgebra {
     Filter(Filter),
     Project(Project),
+    Window(Window),
+}
+
+#[derive(Debug)]
+pub enum Window {
+    CountWindow {
+        size: Integer,
+    },
+    TumbleWindow {
+        column: Option<String>,
+        size: Integer,
+    },
 }
 
 #[derive(Debug)]
@@ -35,6 +49,17 @@ pub struct Filter {
 #[derive(Debug)]
 pub struct Project {
     pub expression: Vec<ExpressionAST>,
+}
+
+#[derive(Debug)]
+pub struct CountWindow {
+    size: Integer,
+}
+
+#[derive(Debug)]
+pub struct TumbleWindow {
+    column: Option<String>,
+    size: Integer,
 }
 
 #[derive(Debug)]

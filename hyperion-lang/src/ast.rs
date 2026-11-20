@@ -2,7 +2,7 @@ use pest::{Parser, iterators::Pair};
 use thiserror::Error;
 
 use crate::algebra::{
-    CypherPrint, CypherScan, MQLPrint, MQLScan, SQLPrint, SQLScan, StorePrint, StoreScan,
+    CypherPrint, CypherScan, MQLPrint, MQLScan, SQLPrint, SQLScan, StorePrint, StoreScan, Window,
 };
 use crate::expression::{BinExpOp, UnExpOp};
 use crate::{
@@ -42,8 +42,6 @@ impl ExpressionAST {
             .map_err(|e| ASTError::ParsingError(format!("Expression parsing error {e}")))?;
 
         let pair = pairs.into_iter().next().unwrap();
-
-        dbg!(&pair);
 
         Self::parse_pair(pair)
     }
@@ -151,8 +149,6 @@ impl AlgebraAST {
             .find(|p| p.as_rule() == Rule::algebra)
             .ok_or(ASTError::MissingRule(Rule::algebra))?;
 
-        dbg!(&algebra_query);
-
         let mut algebra = Vec::new();
 
         Self::build_ast(algebra_query, &mut algebra)?;
@@ -166,8 +162,6 @@ impl AlgebraAST {
     fn build_ast(query: Pair<'_, Rule>, algebra: &mut Vec<Algebra>) -> Result<(), ASTError> {
         let mut current = Ref(1);
         for operation in query.into_inner().rev() {
-            dbg!(current);
-            dbg!(&operation);
             current = Self::build_algebra(operation, current, algebra)?;
         }
         Ok(())
@@ -239,6 +233,28 @@ impl AlgebraAST {
                     input: input,
                 }
             }
+            Rule::count_window => {
+                let mut inner = pair.into_inner();
+                let size = inner.next().unwrap().as_str().replace("size=", "");
+                let size = Integer::from(size.parse::<i64>().unwrap());
+                Algebra::Unary {
+                    alg: UnaryAlgebra::Window(Window::CountWindow { size }),
+                    input,
+                }
+            }
+            Rule::tumble_window => {
+                let mut inner = pair.into_inner();
+                let column = inner.next().unwrap().as_str().to_string();
+                let size = inner.next().unwrap().as_str().replace("size=", "");
+                let size = Integer::from(size.parse::<i64>().unwrap());
+                Algebra::Unary {
+                    alg: UnaryAlgebra::Window(Window::TumbleWindow {
+                        column: Some(column),
+                        size,
+                    }),
+                    input,
+                }
+            }
             _ => return Err(ASTError::UnexpectedRule(pair.as_rule())),
         };
 
@@ -300,6 +316,12 @@ pub trait AlgebraFold {
     fn fold_filter(
         &mut self,
         filter: &Filter,
+        input: Self::Output,
+    ) -> Result<Self::Output, Self::Error>;
+
+    fn fold_window(
+        &mut self,
+        window: &Window,
         input: Self::Output,
     ) -> Result<Self::Output, Self::Error>;
 }
@@ -382,6 +404,7 @@ impl AlgebraAST {
                     match alg {
                         UnaryAlgebra::Filter(filter) => folder.fold_filter(filter, inner),
                         UnaryAlgebra::Project(project) => folder.fold_project(project, inner),
+                        UnaryAlgebra::Window(window) => folder.fold_window(window, inner),
                     }
                 }
                 // Tree node

@@ -44,7 +44,7 @@ query = { SOI ~ algebra ~ EOI }
 algebra = {
     from
     ~
-    (project | filter)*
+    (project | filter | window)*
     ~
     into
 }
@@ -73,6 +73,11 @@ project = { "PROJECT" ~ expr ~ ("," ~ expr)* }
 /// Example: `FILTER SQL(age > 25)`
 filter = { "FILTER" ~ expr }
 
+window = _{ count_window | tumble_window }
+count_window = { "COUNT_WINDOW(" ~ ("size=" ~ INTEGER) ~ ")" }
+tumble_window = { "TUMBLE_WINDOW(" ~ ("col=" ~ TARGET )? ~ ("size=" ~ INTEGER) ~ ")" }
+
+
 /**************************
 EXPRESSION DEFINITIONS
 **************************/
@@ -82,7 +87,8 @@ expr = { escaper | unary_math_functions | math_functions | boolean_functions | V
 // Boolean operations
 boolean_functions = { (VALUE | TARGET) ~ (comparison ~ (VALUE | TARGET))+ }
 
-comparison = _{ le | leq | ge | geq | eq | neq | and | or }
+comparison = _{ le | leq | ge | geq | eq | neq }
+combiner = _{ and | or }
 le = { "<" }
 leq = { "=<" }
 ge = { ">" }
@@ -91,6 +97,7 @@ eq = { "==" }
 neq = { "!=" }
 and = { "AND" }
 or = { "OR" }
+neg = { "-" }
 
 // Math operations
 math_functions = { (NUMBER | TARGET ) ~ (math_primitive ~ (NUMBER | TARGET))+ }

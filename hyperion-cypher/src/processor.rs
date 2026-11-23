@@ -1,3 +1,9 @@
+/*
+ * Result from graph query is document / table
+ * Result just as node in the graph specially annotated
+ * Append-only read query is processing query
+ */
+
 use hyperion_core::{
     components::store::{error::StoreError, processor::StoreProcessor},
     message::process::{ProcessMessage, Range},
@@ -45,7 +51,7 @@ impl Neo4jProcessor {
 
 impl StoreProcessor<Range> for Neo4jProcessor {
     fn process(&mut self, _: ProcessMessage<Range>) -> Result<(), StoreError> {
-        self.client.execute(self.query.clone(), , param)
+        //self.client.execute(self.query.clone(), , param)
         todo!()
     }
 }

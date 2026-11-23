@@ -2,7 +2,7 @@ use serde::{Serialize, ser::SerializeMap};
 
 use crate::{Integer, Map, Value};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Node {
     pub id: Integer,
     pub labels: Vec<String>,

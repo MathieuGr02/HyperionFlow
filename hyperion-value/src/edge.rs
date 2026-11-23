@@ -2,7 +2,7 @@ use serde::{Serialize, ser::SerializeMap};
 
 use crate::{Integer, Map, Value};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeReference {
     pub id: Integer,
     pub label: String,
@@ -38,7 +38,7 @@ impl TryFrom<Map> for NodeReference {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Edge {
     pub from: NodeReference,
     pub to: NodeReference,

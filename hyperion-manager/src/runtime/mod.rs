@@ -1,5 +1,6 @@
 pub mod engine;
 pub mod runnable;
+pub mod runtime_compiler;
 pub mod sink;
 pub mod source;
 pub mod task;

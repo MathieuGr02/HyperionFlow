@@ -1,0 +1,147 @@
+/**************************
+CONSTANT DEFINITIONS
+**************************/
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }
+
+SQL_IDENTIFIER = @{ "SQL" }
+MQL_IDENTIFIER = @{ "MQL" }
+CYPHER_IDENTIFIER = @{ "CYPHER" }
+IDENTIFIER = _{ SQL_IDENTIFIER | MQL_IDENTIFIER | CYPHER_IDENTIFIER }
+
+/// Target type. Allows for the definition of a target of a valid format.
+/// This can be fields, table / collections names etc.
+/// A target can for example have the format `_users` or `something_0`
+TARGET = @{ "_"* ~ ASCII_ALPHA+ ~ ( ASCII_ALPHANUMERIC | "_" )* }
+
+/// Integer type
+INTEGER = @{ ASCII_DIGIT+ }
+
+/// Float type
+FLOAT = @{ INTEGER ~ "." ~ INTEGER }
+
+/// Bool type
+BOOL = @{ "TRUE" | "FALSE" }
+
+/// Text type
+TEXT = { "\"" ~ (ASCII_ALPHA | WHITE_SPACE)* ~ "\""  }
+
+// Helper to allow integer or floats
+NUMBER = { INTEGER | FLOAT }
+
+// Helper to allow all value types
+VALUE = _{ INTEGER | FLOAT | BOOL | TEXT }
+
+/**************************
+ALGEBRAIC DEFINITIONS
+**************************/
+
+/// The query. Main entrypoint of the algebra definition of the operations
+query = { SOI ~ algebra ~ EOI }
+
+/// The algebra. Defines the sequence of algebraic operations.
+/// The sequence is always initiated by a `FROM` clause and terminated by an `INTO` clause
+algebra = {
+    from
+    ~
+    (project | filter | window)*
+    ~
+    into
+}
+
+// Algebra operations
+
+/// The into operation. Allows for the definition of where the algebraic operations should output to.
+///
+/// Example: `INTO SQL(person)`
+into = { "INTO" ~ IDENTIFIER ~ "(" ~ TARGET ~ ")" }
+
+/// The FROM operation. Allows for the defintion of where data, following algebraic operations operate on, should come from.
+///
+/// Example: `FROM SQL(users)`
+from = { "FROM" ~ IDENTIFIER ~ "(" ~ TARGET ~ ")" }
+
+/// The project operation. Allows for the projection of data.
+/// Can be escaped by the store identifiers (SQL, MQL, CYPHER)
+/// Fields are specified by the name, seperated by commas
+///
+/// Example: `PROJECT name, age`
+project = { "PROJECT" ~ expr ~ ("," ~ expr)* }
+
+/// The filter operation. Allows for the filtering of data
+///
+/// Example: `FILTER SQL(age > 25)`
+filter = { "FILTER" ~ expr }
+
+window = _{ count_window | tumble_window }
+count_window = { "COUNT_WINDOW(" ~ ("size=" ~ INTEGER) ~ ")" }
+tumble_window = { "TUMBLE_WINDOW(" ~ ("col=" ~ TARGET )? ~ ("size=" ~ INTEGER) ~ ")" }
+
+
+/**************************
+EXPRESSION DEFINITIONS
+**************************/
+
+expr = { escaper | unary_math_functions | math_functions | boolean_functions | VALUE | TARGET }
+
+// Boolean operations
+boolean_functions = { (VALUE | TARGET) ~ (comparison ~ (VALUE | TARGET))+ }
+
+comparison = _{ le | leq | ge | geq | eq | neq }
+combiner = _{ and | or }
+le = { "<" }
+leq = { "=<" }
+ge = { ">" }
+geq = { ">=" }
+eq = { "==" }
+neq = { "!=" }
+and = { "AND" }
+or = { "OR" }
+neg = { "-" }
+
+// Math operations
+math_functions = { (NUMBER | TARGET ) ~ (math_primitive ~ (NUMBER | TARGET))+ }
+
+math_primitive = _{ add | sub | div | mul }
+add = { "+" }
+sub = { "-" }
+div = { "/" }
+mul = { "*" }
+
+unary_callable = @{
+    "ABS"
+    | "AVG"
+    | "CEILING"
+    | "COUNT"
+    | "EXP"
+    | "FLOOR"
+    | "MAX"
+    | "MIN"
+    | "SIGN"
+    | "SQRT"
+    | "SQUARE"
+    | "SUM"
+}
+unary_math_functions = { unary_callable ~ "(" ~ expr ~ ")" }
+
+/**************************
+ESCAPER DEFINITIONS
+**************************/
+
+// Escapers
+// Allow for the definition of language based operations bypassing the normal hyperion-lang definitions
+escaper = { sql | mql | cypher }
+
+/// SQL escaper. Allows for the definition of raw SQL queries
+///
+/// Example: `SQL(age > 25)`
+sql = _{ SQL_IDENTIFIER ~ "(" ~ sql_content ~ ")" }
+sql_content = { ( !("(" | ")") ~ ANY | "(" ~ sql_content ~ ")" )* }
+
+/// MQL escaper. Allows for the definition of raw MQL queries
+mql = _{ MQL_IDENTIFIER ~ "(" ~ mql_content ~ ")" }
+mql_content = { ( !("{" | "}") ~ ANY | "{" ~ mql_content ~ "}" )* }
+
+/// Cypher escaper. Allows for the definition of raw Cypher queries
+cypher = _{ CYPHER_IDENTIFIER ~ "(" ~ cypher_content ~ ")" }
+cypher_content = { ( !("(" | ")") ~ ANY | "(" ~ sql_content ~ ")" )* }

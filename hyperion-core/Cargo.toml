@@ -11,4 +11,5 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 time = { workspace = true }
 
+hyperion-lang = { path = "../hyperion-lang" }
 hyperion-value = { path = "../hyperion-value" }

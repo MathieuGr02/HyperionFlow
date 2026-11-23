@@ -7,10 +7,44 @@ use serde::{
 
 use crate::{Bytes, Float, Integer, Map, Timestamp};
 
-#[cfg(feature = "graph")]
 use crate::{Edge, Node};
 
 #[derive(Debug)]
+pub enum ValueType {
+    Null,
+    Boolean,
+    Bytes,
+    Integer,
+    Float,
+    String,
+    Timestamp,
+    Array,
+    Map,
+    Node,
+    Edge,
+}
+
+impl std::fmt::Display for ValueType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            ValueType::Null => "Null",
+            ValueType::Boolean => "Boolean",
+            ValueType::Bytes => "Bytes",
+            ValueType::Integer => "Integer",
+            ValueType::Float => "Float",
+            ValueType::String => "String",
+            ValueType::Timestamp => "Timestamp",
+            ValueType::Array => "Array",
+            ValueType::Map => "Map",
+            ValueType::Node => "Node",
+            ValueType::Edge => "Edge",
+        };
+
+        write!(f, "{}", s)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Value {
     Null,
     Boolean(bool),
@@ -21,9 +55,7 @@ pub enum Value {
     Timestamp(Timestamp),
     Array(Vec<Value>),
     Map(Map),
-    #[cfg(feature = "graph")]
     Node(Node),
-    #[cfg(feature = "graph")]
     Edge(Edge),
 }
 
@@ -62,6 +94,22 @@ impl From<Vec<u8>> for Value {
 }
 
 impl Value {
+    pub fn get_type(&self) -> ValueType {
+        match self {
+            Value::Null => ValueType::Null,
+            Value::Boolean(_) => ValueType::Boolean,
+            Value::Bytes(_) => ValueType::Bytes,
+            Value::Integer(_) => ValueType::Integer,
+            Value::Float(_) => ValueType::Float,
+            Value::String(_) => ValueType::String,
+            Value::Timestamp(_) => ValueType::Timestamp,
+            Value::Array(_) => ValueType::Array,
+            Value::Map(_) => ValueType::Map,
+            Value::Node(_) => ValueType::Node,
+            Value::Edge(_) => ValueType::Edge,
+        }
+    }
+
     pub fn take(&mut self) -> Value {
         mem::replace(self, Value::Null)
     }
@@ -277,12 +325,10 @@ impl<'de> Deserialize<'de> for Value {
                 if hashmap.contains_key(Value::FIELD_TYPE) {
                     let t = hashmap.get(Value::FIELD_TYPE).unwrap().as_str().unwrap();
                     let val = match t {
-                        #[cfg(feature = "graph")]
                         Node::FIELD_IDENTIFIER => Value::Node(
                             Node::try_from(hashmap)
                                 .map_err(|_| de::Error::custom("Unable to parse to node"))?,
                         ),
-                        #[cfg(feature = "graph")]
                         Edge::FIELD_IDENTIFIER => Value::Edge(
                             Edge::try_from(hashmap)
                                 .map_err(|_| de::Error::custom("Unable to parse to edge"))?,
@@ -316,9 +362,7 @@ impl Serialize for Value {
             Value::Timestamp(timestamp) => serializer.serialize_i64(timestamp.as_i64()),
             Value::Array(array) => array.serialize(serializer),
             Value::Map(map) => map.serialize(serializer),
-            #[cfg(feature = "graph")]
             Value::Node(node) => node.serialize(serializer),
-            #[cfg(feature = "graph")]
             Value::Edge(edge) => edge.serialize(serializer),
         }
     }

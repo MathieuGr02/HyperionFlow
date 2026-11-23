@@ -49,10 +49,8 @@ impl MongoDBProcessor {
         let database = client.mgclient.database(&database);
         let collection = database.collection(&collection);
 
-        dbg!(&query);
         let json: serde_json::Value =
             serde_json::from_str(&query).map_err(|e| MongoDBError::MQLError(e.to_string()))?;
-        dbg!(&json);
         let res = bson::to_document(&json).map_err(|e| MongoDBError::MQLError(e.to_string()))?;
 
         Ok(MongoDBProcessor {

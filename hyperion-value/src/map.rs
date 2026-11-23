@@ -7,12 +7,13 @@ use std::{
     hash::Hash,
 };
 
-use delegate::delegate;
 use serde::{Serialize, ser::SerializeMap};
 
-use crate::Value;
+use delegate::delegate;
 
-#[derive(Debug)]
+use crate::value::Value;
+
+#[derive(Debug, Clone)]
 pub struct Map {
     inner: HashMap<String, Value>,
 }

@@ -1,4 +1,5 @@
 use ::bytes::Bytes;
+use hyperion_lang::ast::ASTError;
 use hyperion_value::Value;
 use neo4rs::{
     BoltBoolean, BoltBytes, BoltFloat, BoltInteger, BoltMap, BoltNull, BoltString, BoltType,
@@ -7,6 +8,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum CypherError {
+    #[error("{0}")]
+    ASTError(#[from] ASTError),
     #[error("{0}")]
     Unsupported(String),
     #[error("{0}")]

@@ -31,12 +31,12 @@ pub enum ASTError {
 pub struct Ref(usize);
 
 #[derive(Debug)]
-pub struct ExpressionAST {
+pub struct LogicalExpression {
     root: Ref,
     expressions: Vec<Expression>,
 }
 
-impl ExpressionAST {
+impl LogicalExpression {
     pub fn parse(expr: &str) -> Result<Self, ASTError> {
         let pairs = LangParser::parse(Rule::expr, expr)
             .map_err(|e| ASTError::ParsingError(format!("Expression parsing error {e}")))?;
@@ -132,12 +132,12 @@ impl ExpressionAST {
 }
 
 #[derive(Debug)]
-pub struct AlgebraAST {
+pub struct LogicalPlan {
     root: Ref,
     algebra: Vec<Algebra>,
 }
 
-impl AlgebraAST {
+impl LogicalPlan {
     pub fn parse(query: &str) -> Result<Self, ASTError> {
         let pairs = LangParser::parse(Rule::query, query)
             .map_err(|e| ASTError::ParsingError(format!("Algebra parsing error {e}")))?;
@@ -153,7 +153,7 @@ impl AlgebraAST {
 
         Self::build_ast(algebra_query, &mut algebra)?;
 
-        Ok(AlgebraAST {
+        Ok(LogicalPlan {
             root: Ref(0),
             algebra,
         })
@@ -210,7 +210,7 @@ impl AlgebraAST {
             }
             Rule::filter => {
                 let mut inner = pair.into_inner();
-                let expr_ast = ExpressionAST::parse_pair(inner.next().unwrap())?;
+                let expr_ast = LogicalExpression::parse_pair(inner.next().unwrap())?;
 
                 Algebra::Unary {
                     alg: UnaryAlgebra::Filter(Filter {
@@ -222,7 +222,7 @@ impl AlgebraAST {
             Rule::project => {
                 let mut expressions = Vec::new();
                 for inner in pair.into_inner().into_iter() {
-                    let expr_ast = ExpressionAST::parse_pair(inner)?;
+                    let expr_ast = LogicalExpression::parse_pair(inner)?;
                     expressions.push(expr_ast);
                 }
 
@@ -350,7 +350,7 @@ pub trait ExpressionFold {
     ) -> Result<Self::Output, Self::Error>;
 }
 
-impl ExpressionAST {
+impl LogicalExpression {
     pub fn fold<E: ExpressionFold>(&self, folder: &mut E) -> Result<E::Output, E::Error> {
         self.fold_expression(self.root, folder)
     }
@@ -381,7 +381,7 @@ impl ExpressionAST {
     }
 }
 
-impl AlgebraAST {
+impl LogicalPlan {
     pub fn fold<F: AlgebraFold>(&self, folder: &mut F) -> Result<F::Output, F::Error> {
         self.fold_algebra(self.root, folder)
     }

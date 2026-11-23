@@ -89,6 +89,14 @@ impl AlgebraFold for SQLQueryCompiler {
         input.filter = Some(expr);
         Ok(input)
     }
+
+    fn fold_window(
+        &mut self,
+        window: &hyperion_lang::algebra::Window,
+        input: Self::Output,
+    ) -> Result<Self::Output, Self::Error> {
+        todo!()
+    }
 }
 
 #[derive(Debug)]

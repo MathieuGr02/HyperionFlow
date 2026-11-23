@@ -1,8 +1,13 @@
 use hyperion_core::components::store::error::StoreError;
+use hyperion_lang::ast::ASTError;
 use thiserror::Error;
+
+use crate::compiler::MQLError;
 
 #[derive(Debug, Error)]
 pub enum MongoDBError {
+    #[error("{0}")]
+    MQLE(#[from] MQLError),
     #[error("{0}")]
     MQLError(String),
     #[error("{0}")]
@@ -18,6 +23,7 @@ pub enum MongoDBError {
 impl Into<StoreError> for MongoDBError {
     fn into(self) -> StoreError {
         match self {
+            MongoDBError::MQLE(error) => StoreError::Custom(error.to_string()),
             MongoDBError::MQLError(error) => StoreError::Custom(error),
             MongoDBError::AggregateError(error) => StoreError::Custom(error),
             MongoDBError::ConnectionError(error) => StoreError::ConnectionError(error),

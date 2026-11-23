@@ -4,10 +4,7 @@ use hyperion_lang::{
 };
 
 use crate::{
-    config::trigger::{
-        CountTrigger,
-        TriggerType::{self, CountTrigger},
-    },
+    config::trigger::{CountTrigger, TriggerType},
     runtime::engine::EngineError,
 };
 

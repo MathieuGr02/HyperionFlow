@@ -4,12 +4,13 @@ use hyperion_core::{
     components::log::checkpoint::Checkpoint,
     validatable::{Validatable, ValidationError},
 };
+use hyperion_lang::ast::LogicalPlan;
 use serde::Deserialize;
 
 use crate::{
     config::{
         comm::{EventChannelReceiver, EventChannelSender},
-        processor::{Processor, ProcessorConfig},
+        processor::{Processor, ProcessorConfig, ProcessorConfigType},
         trigger::TriggerType,
     },
     runtime::{engine::EngineError, task::RuntimeTask},
@@ -44,21 +45,22 @@ impl TaskConfig {
         checkpoint_path: &PathBuf,
         receiver: EventChannelReceiver,
         sender: EventChannelSender,
+        plan: LogicalPlan,
     ) -> Result<(String, RuntimeTask), EngineError> {
-        let operator = match self.processor {
+        let operator = match self.processor.config_type {
             #[cfg(feature = "sql")]
-            ProcessorConfig::Postgres(config) => Processor::Postgres(
-                PostgreSQLProcessor::connect(config)
+            ProcessorConfigType::Postgres(config) => Processor::Postgres(
+                PostgreSQLProcessor::connect(config, plan)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
             #[cfg(feature = "mql")]
-            ProcessorConfig::Mongodb(config) => Processor::Mongodb(
-                MongoDBProcessor::connect(config)
+            ProcessorConfigType::Mongodb(config) => Processor::Mongodb(
+                MongoDBProcessor::connect(config, plan)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
             #[cfg(feature = "cypher")]
-            ProcessorConfig::Neo4j(config) => Processor::Neo4j(
-                Neo4jProcessor::connect(config)
+            ProcessorConfigType::Neo4j(config) => Processor::Neo4j(
+                Neo4jProcessor::connect(config, plan)
                     .map_err(|e| EngineError::ConnectionError(e.to_string()))?,
             ),
         };

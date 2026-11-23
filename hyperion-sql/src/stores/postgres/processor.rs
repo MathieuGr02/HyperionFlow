@@ -3,11 +3,13 @@ use hyperion_core::{
     message::process::{ProcessMessage, Range},
     validatable::Validatable,
 };
+use hyperion_lang::ast::LogicalPlan;
 use postgres::Statement;
 use serde::Deserialize;
 use tracing::trace;
 
 use crate::{
+    compiler::SQLQueryCompiler,
     query::QueryBuilder,
     stores::postgres::{
         client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
@@ -20,7 +22,6 @@ pub struct PostgreSQLProcessorConfiguration {
     #[serde(flatten)]
     client_config: PostgreSQLConfiguration,
     table: Table,
-    query: String,
     #[serde(default)]
     output_name: String,
 }
@@ -28,7 +29,6 @@ pub struct PostgreSQLProcessorConfiguration {
 impl Validatable for PostgreSQLProcessorConfiguration {
     fn validate(&self) -> Result<(), hyperion_core::validatable::ValidationError> {
         self.client_config.validate()?;
-        Self::field_string_empty("query", &self.query)?;
         Ok(())
     }
 }
@@ -42,13 +42,17 @@ pub struct PostgreSQLProcessor {
 }
 
 impl PostgreSQLProcessor {
-    pub fn connect(config: PostgreSQLProcessorConfiguration) -> Result<Self, PostgreSQLError> {
+    pub fn connect(
+        config: PostgreSQLProcessorConfiguration,
+        plan: LogicalPlan,
+    ) -> Result<Self, PostgreSQLError> {
         let PostgreSQLProcessorConfiguration {
             client_config,
             mut table,
-            query,
             output_name,
         } = config;
+
+        let query = plan.fold(&mut SQLQueryCompiler)?.build();
 
         let mut client = PostgreSQLClient::connect(client_config)?;
         Self::extend_table(&mut table)?;

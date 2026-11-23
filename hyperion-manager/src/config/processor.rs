@@ -16,9 +16,25 @@ use hyperion_sql::stores::postgres::processor::{
 };
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "type", content = "config")]
 #[serde(deny_unknown_fields)]
-pub enum ProcessorConfig {
+pub struct ProcessorConfig {
+    pub query: String,
+    #[serde(rename = "config")]
+    pub config_type: ProcessorConfigType,
+}
+
+impl Validatable for ProcessorConfig {
+    fn validate(&self) -> Result<(), ValidationError> {
+        Self::field_string_empty("query", &self.query)?;
+        self.config_type.validate()?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "type")]
+#[serde(deny_unknown_fields)]
+pub enum ProcessorConfigType {
     #[cfg(feature = "sql")]
     Postgres(PostgreSQLProcessorConfiguration),
     #[cfg(feature = "mql")]
@@ -27,15 +43,15 @@ pub enum ProcessorConfig {
     Neo4j(Neo4jProcessorConfiguration),
 }
 
-impl Validatable for ProcessorConfig {
+impl Validatable for ProcessorConfigType {
     fn validate(&self) -> Result<(), ValidationError> {
         match self {
             #[cfg(feature = "sql")]
-            ProcessorConfig::Postgres(postgres) => postgres.validate(),
+            ProcessorConfigType::Postgres(postgres) => postgres.validate(),
             #[cfg(feature = "mql")]
-            ProcessorConfig::Mongodb(mongodb) => mongodb.validate(),
+            ProcessorConfigType::Mongodb(mongodb) => mongodb.validate(),
             #[cfg(feature = "cypher")]
-            ProcessorConfig::Neo4j(neo4j) => neo4j.validate(),
+            ProcessorConfigType::Neo4j(neo4j) => neo4j.validate(),
         }
     }
 }

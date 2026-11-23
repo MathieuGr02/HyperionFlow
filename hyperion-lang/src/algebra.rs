@@ -20,7 +20,7 @@
 
 use hyperion_value::Integer;
 
-use crate::ast::{ExpressionAST, Ref};
+use crate::ast::{LogicalExpression, Ref};
 
 ///
 #[derive(Debug)]
@@ -43,12 +43,12 @@ pub enum Window {
 
 #[derive(Debug)]
 pub struct Filter {
-    pub expression: ExpressionAST,
+    pub expression: LogicalExpression,
 }
 
 #[derive(Debug)]
 pub struct Project {
-    pub expression: Vec<ExpressionAST>,
+    pub expression: Vec<LogicalExpression>,
 }
 
 #[derive(Debug)]

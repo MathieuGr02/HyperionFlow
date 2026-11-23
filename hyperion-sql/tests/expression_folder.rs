@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod expression_folder {
-    use hyperion_lang::ast::{AlgebraAST, ExpressionAST};
+    use hyperion_lang::ast::{LogicalExpression, LogicalPlan};
     use hyperion_sql::compiler::{SQLExpressionCompiler, SQLQueryCompiler};
     use rstest::rstest;
 
@@ -19,7 +19,7 @@ mod expression_folder {
     #[case("SUM")]
     fn query_unary_function(#[case] f: &str) {
         let query = format!("FROM SQL(users) PROJECT {f}(age) INTO SQL(people)");
-        let ast = AlgebraAST::parse(query.as_str());
+        let ast = LogicalPlan::parse(query.as_str());
         if let Err(e) = ast {
             panic!("{}", e)
         }
@@ -42,7 +42,7 @@ mod expression_folder {
     #[case("name, FLOOR(age), country")]
     fn query_projection(#[case] columns: &str) {
         let query = format!("FROM SQL(users) PROJECT {columns} INTO SQL(people)");
-        let ast = AlgebraAST::parse(query.as_str());
+        let ast = LogicalPlan::parse(query.as_str());
         if let Err(e) = ast {
             panic!("{}", e)
         }
@@ -63,7 +63,7 @@ mod expression_folder {
     #[case("EXP(EXP(age))")]
     fn query_filter(#[case] filter: &str) {
         let query = format!("FROM SQL(users) PROJECT age FILTER {filter} INTO SQL(people)");
-        let ast = AlgebraAST::parse(query.as_str());
+        let ast = LogicalPlan::parse(query.as_str());
         if let Err(e) = ast {
             panic!("{}", e)
         }

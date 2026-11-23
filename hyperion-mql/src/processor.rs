@@ -3,13 +3,17 @@ use hyperion_core::{
     message::process::{ProcessMessage, Range},
     validatable::{Validatable, ValidationError},
 };
+use hyperion_lang::ast::LogicalPlan;
 use mongodb::{
     bson::{self, Document, doc},
     sync::Collection,
 };
 use serde::Deserialize;
 
-use crate::{client::MongoDBClient, config::MongoDBConfiguration, error::MongoDBError};
+use crate::{
+    client::MongoDBClient, compiler::MQLQueryCompiler, config::MongoDBConfiguration,
+    error::MongoDBError,
+};
 
 #[derive(Debug, Deserialize)]
 pub struct MongoDBProcessorConfiguration {
@@ -17,7 +21,6 @@ pub struct MongoDBProcessorConfiguration {
     client_config: MongoDBConfiguration,
     database: String,
     collection: String,
-    query: String,
 }
 
 impl Validatable for MongoDBProcessorConfiguration {
@@ -36,12 +39,14 @@ pub struct MongoDBProcessor {
 }
 
 impl MongoDBProcessor {
-    pub fn connect(config: MongoDBProcessorConfiguration) -> Result<Self, MongoDBError> {
+    pub fn connect(
+        config: MongoDBProcessorConfiguration,
+        plan: LogicalPlan,
+    ) -> Result<Self, MongoDBError> {
         let MongoDBProcessorConfiguration {
             client_config,
             database,
             collection,
-            query,
         } = config;
 
         let client = MongoDBClient::connect(client_config)?;
@@ -49,14 +54,12 @@ impl MongoDBProcessor {
         let database = client.mgclient.database(&database);
         let collection = database.collection(&collection);
 
-        let json: serde_json::Value =
-            serde_json::from_str(&query).map_err(|e| MongoDBError::MQLError(e.to_string()))?;
-        let res = bson::to_document(&json).map_err(|e| MongoDBError::MQLError(e.to_string()))?;
+        let query = plan.fold(&mut MQLQueryCompiler)?.build();
 
         Ok(MongoDBProcessor {
             client,
             collection,
-            query: res,
+            query,
         })
     }
 }

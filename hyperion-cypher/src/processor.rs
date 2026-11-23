@@ -9,22 +9,24 @@ use hyperion_core::{
     message::process::{ProcessMessage, Range},
     validatable::{Validatable, ValidationError},
 };
+use hyperion_lang::ast::LogicalPlan;
 use neo4rs::Query;
 use serde::Deserialize;
 
-use crate::{client::Neo4jClient, config::Neo4jConfiguration, error::Neo4jError};
+use crate::{
+    client::Neo4jClient, compiler::CypherQueryCompiler, config::Neo4jConfiguration,
+    error::Neo4jError,
+};
 
 #[derive(Debug, Deserialize)]
 pub struct Neo4jProcessorConfiguration {
     #[serde(flatten)]
     client_config: Neo4jConfiguration,
-    query: String,
 }
 
 impl Validatable for Neo4jProcessorConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         self.client_config.validate()?;
-        Self::field_string_empty("query", &self.query)?;
         Ok(())
     }
 }
@@ -35,17 +37,17 @@ pub struct Neo4jProcessor {
 }
 
 impl Neo4jProcessor {
-    pub fn connect(config: Neo4jProcessorConfiguration) -> Result<Self, Neo4jError> {
-        let Neo4jProcessorConfiguration {
-            client_config,
-            query,
-        } = config;
+    pub fn connect(
+        config: Neo4jProcessorConfiguration,
+        plan: LogicalPlan,
+    ) -> Result<Self, Neo4jError> {
+        let Neo4jProcessorConfiguration { client_config } = config;
 
         let client = Neo4jClient::connect(client_config)?;
 
-        let q = Query::new(query);
+        let query = plan.fold(&mut CypherQueryCompiler)?.build();
 
-        Ok(Neo4jProcessor { client, query: q })
+        Ok(Neo4jProcessor { client, query })
     }
 }
 

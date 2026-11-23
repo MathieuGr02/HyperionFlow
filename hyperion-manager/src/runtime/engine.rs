@@ -4,6 +4,7 @@ use hyperion_core::{
     components::{sink::SinkError, source::SourceError, task::TaskError},
     validatable::{Validatable, ValidationError},
 };
+use hyperion_lang::ast::{ASTError, LogicalPlan};
 use thiserror::Error;
 use tracing::debug;
 
@@ -13,7 +14,10 @@ use crate::{
         engine::EngineConfig,
         pipeline::PipelineConfig,
     },
-    runtime::thread_manager::{ThreadManager, ThreadManagerError},
+    runtime::{
+        runtime_compiler::RuntimeCompiler,
+        thread_manager::{ThreadManager, ThreadManagerError},
+    },
 };
 
 /// The [Engine] type if the main runner of the manager.
@@ -40,6 +44,8 @@ pub enum EngineError {
     ConnectionError(String),
     #[error("Thread manager error: {0}")]
     ThreadManagerError(#[from] ThreadManagerError),
+    #[error("Query error: {0}")]
+    ASTError(#[from] ASTError),
     #[error("{0}")]
     Custom(String),
 }
@@ -95,10 +101,17 @@ impl Engine {
 
         debug!("Building task configuration: {}", config.task.name);
 
-        let (task_name, task) =
-            config
-                .task
-                .build(&self.config.checkpoint_path, task_receiver, task_sender)?;
+        let plan = LogicalPlan::parse(&config.task.processor.query)
+            .map_err(|e| EngineError::Custom(e.to_string()))?;
+
+        let res = plan.fold(&mut RuntimeCompiler)?;
+
+        let (task_name, task) = config.task.build(
+            &self.config.checkpoint_path,
+            task_receiver,
+            task_sender,
+            plan,
+        )?;
 
         debug!("Building sink configuration: {}", config.sink.name);
 

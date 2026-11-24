@@ -75,7 +75,7 @@ filter = { "FILTER" ~ expr }
 
 window = _{ count_window | tumble_window }
 count_window = { "COUNT_WINDOW(" ~ ("size=" ~ INTEGER) ~ ")" }
-tumble_window = { "TUMBLE_WINDOW(" ~ ("col=" ~ TARGET )? ~ ("size=" ~ INTEGER) ~ ")" }
+tumble_window = { "TUMBLE_WINDOW(" ~ ("col=" ~ TARGET )? ~ "," ~ ("size=" ~ INTEGER) ~ ")" }
 
 
 /**************************

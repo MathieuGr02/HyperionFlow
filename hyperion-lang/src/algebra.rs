@@ -32,9 +32,17 @@ pub enum UnaryAlgebra {
 
 #[derive(Debug)]
 pub enum Window {
+    /// `column`: Target time column to define select events
+    /// Not set by the lang, responsiblity of the caller to set
+    ///
+    /// `size`: Number of events per window
     CountWindow {
+        column: Option<String>,
         size: Integer,
     },
+    /// `column`: Target time column
+    ///
+    /// `size`: Time interval size of window
     TumbleWindow {
         column: Option<String>,
         size: Integer,
@@ -49,17 +57,6 @@ pub struct Filter {
 #[derive(Debug)]
 pub struct Project {
     pub expression: Vec<LogicalExpression>,
-}
-
-#[derive(Debug)]
-pub struct CountWindow {
-    size: Integer,
-}
-
-#[derive(Debug)]
-pub struct TumbleWindow {
-    column: Option<String>,
-    size: Integer,
 }
 
 #[derive(Debug)]

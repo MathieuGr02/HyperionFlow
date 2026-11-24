@@ -5,6 +5,7 @@ use crate::algebra::{
     CypherPrint, CypherScan, MQLPrint, MQLScan, SQLPrint, SQLScan, StorePrint, StoreScan, Window,
 };
 use crate::expression::{BinExpOp, UnExpOp};
+use crate::folder::{AlgebraFolder, ExpressionFolder};
 use crate::{
     algebra::{Algebra, Filter, Project, UnaryAlgebra},
     expression::Expression,
@@ -238,7 +239,7 @@ impl LogicalPlan {
                 let size = inner.next().unwrap().as_str().replace("size=", "");
                 let size = Integer::from(size.parse::<i64>().unwrap());
                 Algebra::Unary {
-                    alg: UnaryAlgebra::Window(Window::CountWindow { size }),
+                    alg: UnaryAlgebra::Window(Window::CountWindow { column: None, size }),
                     input,
                 }
             }
@@ -295,67 +296,12 @@ pub trait AlgebraVisitor {
     fn visit_filter(&mut self, filter: &Filter) -> Result<Self::Output, Self::Error>;
 }
 
-pub trait AlgebraFold {
-    type Output;
-    type Error: From<ASTError>;
-
-    fn fold_scan(&mut self, scan: &StoreScan) -> Result<Self::Output, Self::Error>;
-
-    fn fold_print(
-        &mut self,
-        print: &StorePrint,
-        input: Self::Output,
-    ) -> Result<Self::Output, Self::Error>;
-
-    fn fold_project(
-        &mut self,
-        project: &Project,
-        input: Self::Output,
-    ) -> Result<Self::Output, Self::Error>;
-
-    fn fold_filter(
-        &mut self,
-        filter: &Filter,
-        input: Self::Output,
-    ) -> Result<Self::Output, Self::Error>;
-
-    fn fold_window(
-        &mut self,
-        window: &Window,
-        input: Self::Output,
-    ) -> Result<Self::Output, Self::Error>;
-}
-
-pub trait ExpressionFold {
-    type Output;
-    type Error: From<ASTError>;
-
-    fn fold_escape(&mut self, escape: &String) -> Result<Self::Output, Self::Error>;
-
-    fn fold_literal(&mut self, literal: &Value) -> Result<Self::Output, Self::Error>;
-
-    fn fold_target(&mut self, target: &String) -> Result<Self::Output, Self::Error>;
-
-    fn fold_unary_expression(
-        &mut self,
-        op: &UnExpOp,
-        input: Self::Output,
-    ) -> Result<Self::Output, Self::Error>;
-
-    fn fold_binary_expression(
-        &mut self,
-        op: &BinExpOp,
-        input_left: Self::Output,
-        input_right: Self::Output,
-    ) -> Result<Self::Output, Self::Error>;
-}
-
 impl LogicalExpression {
-    pub fn fold<E: ExpressionFold>(&self, folder: &mut E) -> Result<E::Output, E::Error> {
+    pub fn fold<E: ExpressionFolder>(&self, folder: &mut E) -> Result<E::Output, E::Error> {
         self.fold_expression(self.root, folder)
     }
 
-    fn fold_expression<E: ExpressionFold>(
+    fn fold_expression<E: ExpressionFolder>(
         &self,
         index: Ref,
         folder: &mut E,
@@ -382,11 +328,11 @@ impl LogicalExpression {
 }
 
 impl LogicalPlan {
-    pub fn fold<F: AlgebraFold>(&self, folder: &mut F) -> Result<F::Output, F::Error> {
+    pub fn fold<F: AlgebraFolder>(&self, folder: &mut F) -> Result<F::Output, F::Error> {
         self.fold_algebra(self.root, folder)
     }
 
-    fn fold_algebra<F: AlgebraFold>(
+    fn fold_algebra<F: AlgebraFolder>(
         &self,
         index: Ref,
         folder: &mut F,

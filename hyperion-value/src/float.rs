@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::value::Value;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -28,5 +30,11 @@ impl Into<Value> for Float {
 impl Float {
     pub fn as_f64(&self) -> f64 {
         self.inner
+    }
+}
+
+impl Display for Float {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.inner)
     }
 }

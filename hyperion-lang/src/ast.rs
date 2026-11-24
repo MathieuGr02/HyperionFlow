@@ -6,6 +6,7 @@ use crate::algebra::{
 };
 use crate::expression::{BinExpOp, UnExpOp};
 use crate::folder::{AlgebraFolder, ExpressionFolder};
+use crate::visitor::{AlgebraMutVisitor, AlgebraVisitor};
 use crate::{
     algebra::{Algebra, Filter, Project, UnaryAlgebra},
     expression::Expression,
@@ -286,16 +287,6 @@ impl<'i> FromPair<'i> for Value {
     }
 }
 
-pub trait AlgebraVisitor {
-    type Output;
-    type Error: From<ASTError>;
-
-    fn visit_scan(&mut self, scan: &StoreScan) -> Result<Self::Output, Self::Error>;
-    fn visit_print(&mut self, print: &StorePrint) -> Result<Self::Output, Self::Error>;
-    fn visit_project(&mut self, project: &Project) -> Result<Self::Output, Self::Error>;
-    fn visit_filter(&mut self, filter: &Filter) -> Result<Self::Output, Self::Error>;
-}
-
 impl LogicalExpression {
     pub fn fold<E: ExpressionFolder>(&self, folder: &mut E) -> Result<E::Output, E::Error> {
         self.fold_expression(self.root, folder)
@@ -328,6 +319,84 @@ impl LogicalExpression {
 }
 
 impl LogicalPlan {
+    pub fn accept<V: AlgebraVisitor>(&self, visitor: &mut V) -> Result<V::Output, V::Error> {
+        self.visit_algebra(self.root, visitor)
+    }
+
+    pub fn visit_algebra<V: AlgebraVisitor>(
+        &self,
+        index: Ref,
+        visitor: &mut V,
+    ) -> Result<V::Output, V::Error> {
+        if let Some(alg) = self.algebra.get(index.0) {
+            match alg {
+                Algebra::Print { print, input } => {
+                    self.visit_algebra(*input, visitor)?;
+                    visitor.visit_print(print)
+                }
+                Algebra::Scan(store_scan) => visitor.visit_scan(store_scan),
+                Algebra::Unary { alg, input } => {
+                    self.visit_algebra(*input, visitor)?;
+                    match alg {
+                        UnaryAlgebra::Filter(filter) => visitor.visit_filter(filter),
+                        UnaryAlgebra::Project(project) => visitor.visit_project(project),
+                        UnaryAlgebra::Window(window) => visitor.visit_window(window),
+                    }
+                }
+                Algebra::Binary { alg, left, right } => todo!(),
+            }
+        } else {
+            Err(ASTError::ParsingError(format!("Invalid index {}", index.0)).into())
+        }
+    }
+
+    pub fn accept_mut<V: AlgebraMutVisitor>(
+        &mut self,
+        visitor: &mut V,
+    ) -> Result<V::Output, V::Error> {
+        self.visit_algebra_mut(self.root, visitor)
+    }
+
+    fn visit_algebra_mut<V: AlgebraMutVisitor>(
+        &mut self,
+        index: Ref,
+        visitor: &mut V,
+    ) -> Result<V::Output, V::Error> {
+        let refs = match self.algebra.get(index.0) {
+            Some(Algebra::Print { print: _, input }) => {
+                vec![input.clone()]
+            }
+            Some(Algebra::Scan(_)) => vec![],
+            Some(Algebra::Unary { alg: _, input }) => vec![input.clone()],
+            Some(Algebra::Binary {
+                alg: _,
+                left,
+                right,
+            }) => vec![left.clone(), right.clone()],
+            None => return Err(ASTError::ParsingError(format!("Invalid index {}", index.0)).into()),
+        };
+
+        for ref_i in refs {
+            self.visit_algebra_mut(ref_i, visitor)?;
+        }
+
+        match self.algebra.get_mut(index.0) {
+            Some(Algebra::Print { print, input: _ }) => visitor.visit_print_mut(print),
+            Some(Algebra::Scan(store_scan)) => visitor.visit_scan_mut(store_scan),
+            Some(Algebra::Unary { alg, input: _ }) => match alg {
+                UnaryAlgebra::Filter(filter) => visitor.visit_filter_mut(filter),
+                UnaryAlgebra::Project(project) => visitor.visit_project_mut(project),
+                UnaryAlgebra::Window(window) => visitor.visit_window_mut(window),
+            },
+            Some(Algebra::Binary {
+                alg,
+                left: _,
+                right: _,
+            }) => todo!(),
+            None => todo!(),
+        }
+    }
+
     pub fn fold<F: AlgebraFolder>(&self, folder: &mut F) -> Result<F::Output, F::Error> {
         self.fold_algebra(self.root, folder)
     }
@@ -365,7 +434,7 @@ impl LogicalPlan {
                 Algebra::Scan(scan) => folder.fold_scan(scan),
             }
         } else {
-            Err(ASTError::ParsingError("Index doesn't exist".to_string()).into())
+            Err(ASTError::ParsingError(format!("Invalid index {}", index.0)).into())
         }
     }
 }

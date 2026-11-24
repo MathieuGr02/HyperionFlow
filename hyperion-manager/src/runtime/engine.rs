@@ -16,6 +16,7 @@ use crate::{
     },
     runtime::{
         runtime_compiler::RuntimeCompiler,
+        runtime_visitor::RuntimeVisitor,
         thread_manager::{ThreadManager, ThreadManagerError},
     },
 };
@@ -103,6 +104,10 @@ impl Engine {
 
         let plan = LogicalPlan::parse(&config.task.processor.query)
             .map_err(|e| EngineError::Custom(e.to_string()))?;
+
+        plan.accept_mut(&mut RuntimeVisitor {
+            default_time_column: String::from("_processing_time"),
+        });
 
         let (task_name, task) = config.task.build(
             &self.config.checkpoint_path,

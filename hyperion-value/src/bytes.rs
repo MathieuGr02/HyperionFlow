@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use crate::value::Value;
@@ -34,5 +36,17 @@ impl Bytes {
 
     pub fn as_array(&self) -> &[u8] {
         self.inner.as_ref()
+    }
+}
+
+impl Display for Bytes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = self
+            .inner
+            .iter()
+            .map(|b| format!("{:b}", b))
+            .collect::<Vec<String>>()
+            .join("");
+        write!(f, "{}", s)
     }
 }

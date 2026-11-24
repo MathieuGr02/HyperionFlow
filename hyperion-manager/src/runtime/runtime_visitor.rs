@@ -33,12 +33,12 @@ impl AlgebraMutVisitor for RuntimeVisitor {
         match window {
             Window::CountWindow { column, size } => {
                 if column.is_none() {
-                    column.replace(self.default_time_column);
+                    column.replace(self.default_time_column.clone());
                 }
             }
             Window::TumbleWindow { column, size } => {
                 if column.is_none() {
-                    column.replace(self.default_time_column);
+                    column.replace(self.default_time_column.clone());
                 }
             }
         }

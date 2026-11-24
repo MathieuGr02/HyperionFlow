@@ -1,7 +1,8 @@
 use hyperion_lang::{
     algebra::{Filter, Project, StorePrint, StoreScan, Window},
-    ast::{ASTError, AlgebraFold, ExpressionFold},
+    ast::ASTError,
     expression::{BinExpOp, UnExpOp},
+    folder::{AlgebraFolder, ExpressionFolder},
 };
 use hyperion_value::Value;
 use mongodb::bson::Document;
@@ -23,7 +24,7 @@ impl MQLQuery {
 
 pub struct MQLQueryCompiler;
 
-impl AlgebraFold for MQLQueryCompiler {
+impl AlgebraFolder for MQLQueryCompiler {
     type Output = MQLQuery;
     type Error = MQLError;
 
@@ -68,7 +69,7 @@ pub struct MQLExpression;
 
 pub struct MQLExpressionCompiler;
 
-impl ExpressionFold for MQLExpressionCompiler {
+impl ExpressionFolder for MQLExpressionCompiler {
     type Output = MQLExpression;
     type Error = MQLError;
 

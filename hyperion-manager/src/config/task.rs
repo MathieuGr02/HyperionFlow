@@ -45,7 +45,7 @@ impl TaskConfig {
         checkpoint_path: &PathBuf,
         receiver: EventChannelReceiver,
         sender: EventChannelSender,
-        plan: LogicalPlan,
+        plan: &LogicalPlan,
     ) -> Result<(String, RuntimeTask), EngineError> {
         let operator = match self.processor.config_type {
             #[cfg(feature = "sql")]

@@ -1,7 +1,7 @@
 use hyperion_lang::{
     algebra::{Filter, Project, StorePrint, StoreScan, Window},
-    ast::{AlgebraFold, ExpressionFold},
     expression::{BinExpOp, UnExpOp},
+    folder::{AlgebraFolder, ExpressionFolder},
 };
 use hyperion_value::Value;
 use neo4rs::Query;
@@ -18,7 +18,7 @@ impl CypherQuery {
     }
 }
 
-impl AlgebraFold for CypherQueryCompiler {
+impl AlgebraFolder for CypherQueryCompiler {
     type Output = CypherQuery;
     type Error = CypherError;
 
@@ -63,7 +63,7 @@ pub struct CypherExpressionCompiler;
 
 pub struct CypherExpression;
 
-impl ExpressionFold for CypherExpressionCompiler {
+impl ExpressionFolder for CypherExpressionCompiler {
     type Output = CypherExpression;
     type Error = CypherError;
 

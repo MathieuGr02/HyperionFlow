@@ -1,6 +1,6 @@
 use hyperion_lang::{
     algebra::{Filter, Project, StorePrint, StoreScan, Window},
-    ast::AlgebraFold,
+    folder::AlgebraFolder,
 };
 
 use crate::{
@@ -14,7 +14,7 @@ pub struct RuntimeAlgebra {
     trigger_type: Option<TriggerType>,
 }
 
-impl AlgebraFold for RuntimeCompiler {
+impl AlgebraFolder for RuntimeCompiler {
     type Output = RuntimeAlgebra;
     type Error = EngineError;
 
@@ -52,7 +52,7 @@ impl AlgebraFold for RuntimeCompiler {
         mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
         let trigger = match window {
-            Window::CountWindow { size } => {
+            Window::CountWindow { size, column: _ } => {
                 TriggerType::CountTrigger(CountTrigger::new(size.as_i64() as usize))
             }
             Window::TumbleWindow { column, size } => todo!(),

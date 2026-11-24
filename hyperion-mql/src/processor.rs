@@ -41,7 +41,7 @@ pub struct MongoDBProcessor {
 impl MongoDBProcessor {
     pub fn connect(
         config: MongoDBProcessorConfiguration,
-        plan: LogicalPlan,
+        plan: &LogicalPlan,
     ) -> Result<Self, MongoDBError> {
         let MongoDBProcessorConfiguration {
             client_config,

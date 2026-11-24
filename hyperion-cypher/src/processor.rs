@@ -39,7 +39,7 @@ pub struct Neo4jProcessor {
 impl Neo4jProcessor {
     pub fn connect(
         config: Neo4jProcessorConfiguration,
-        plan: LogicalPlan,
+        plan: &LogicalPlan,
     ) -> Result<Self, Neo4jError> {
         let Neo4jProcessorConfiguration { client_config } = config;
 

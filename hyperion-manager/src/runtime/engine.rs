@@ -1,4 +1,4 @@
-use std::{fs, sync::mpsc};
+use std::{fs, process::exit, sync::mpsc};
 
 use hyperion_core::{
     components::{sink::SinkError, source::SourceError, task::TaskError},
@@ -6,7 +6,7 @@ use hyperion_core::{
 };
 use hyperion_lang::ast::{ASTError, LogicalPlan};
 use thiserror::Error;
-use tracing::debug;
+use tracing::{debug, error};
 
 use crate::{
     config::{
@@ -15,7 +15,6 @@ use crate::{
         pipeline::PipelineConfig,
     },
     runtime::{
-        runtime_compiler::RuntimeCompiler,
         runtime_visitor::RuntimeVisitor,
         thread_manager::{ThreadManager, ThreadManagerError},
     },
@@ -102,18 +101,22 @@ impl Engine {
 
         debug!("Building task configuration: {}", config.task.name);
 
-        let plan = LogicalPlan::parse(&config.task.processor.query)
+        let mut plan = LogicalPlan::parse(&config.task.processor.query)
             .map_err(|e| EngineError::Custom(e.to_string()))?;
 
-        plan.accept_mut(&mut RuntimeVisitor {
+        let res = plan.accept_mut(&mut RuntimeVisitor {
             default_time_column: String::from("_processing_time"),
         });
+        if let Err(e) = res {
+            error!(error = %e, "Unable to mutate logical plan");
+            exit(1);
+        }
 
         let (task_name, task) = config.task.build(
             &self.config.checkpoint_path,
             task_receiver,
             task_sender,
-            plan,
+            &plan,
         )?;
 
         debug!("Building sink configuration: {}", config.sink.name);

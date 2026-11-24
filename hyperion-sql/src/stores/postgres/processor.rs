@@ -45,7 +45,7 @@ pub struct PostgreSQLProcessor {
 impl PostgreSQLProcessor {
     pub fn connect(
         config: PostgreSQLProcessorConfiguration,
-        plan: LogicalPlan,
+        plan: &LogicalPlan,
     ) -> Result<Self, PostgreSQLError> {
         let PostgreSQLProcessorConfiguration {
             client_config,

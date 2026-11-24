@@ -8,18 +8,12 @@ use postgres::Statement;
 use serde::Deserialize;
 use tracing::trace;
 
-pub struct PostgreSQL;
-impl DatabaseType for PostgreSQL {
-    const NAME: &str = "PostgreSQL";
-    const PLACEHOLDER: &str = "$1";
-}
-
 use crate::{
     compiler::SQLQueryCompiler,
-    database_type::DatabaseType,
     query::QueryBuilder,
     stores::postgres::{
-        client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
+        client::PostgreSQLClient, config::PostgreSQLConfiguration, database::PostgreSQL,
+        error::PostgreSQLError,
     },
     table::{Column, Table},
 };

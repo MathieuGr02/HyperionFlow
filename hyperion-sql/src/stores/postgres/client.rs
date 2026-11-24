@@ -3,6 +3,7 @@ use tracing::trace;
 
 use crate::stores::postgres::{config::PostgreSQLConfiguration, error::PostgreSQLError};
 
+/// The PostgreSQL client
 pub struct PostgreSQLClient {
     pub config: PostgreSQLConfiguration,
     pub pgclient: Client,

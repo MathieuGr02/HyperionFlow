@@ -1,14 +1,12 @@
 use hyperion_lang::{
     algebra::{Filter, Project, StorePrint, StoreScan, Window},
-    ast::{AlgebraFold, ExpressionFold},
     expression::{BinExpOp, UnExpOp},
+    folder::{AlgebraFolder, ExpressionFolder},
 };
 use hyperion_value::Value;
+use tracing::warn;
 
-use crate::{
-    compiler::SQLExpression::PlaceHolder, database_type::DatabaseType,
-    stores::postgres::util::SQLError,
-};
+use crate::{database_type::DatabaseType, stores::postgres::util::SQLError};
 
 #[derive(Debug)]
 pub struct SQLQuery {
@@ -45,7 +43,7 @@ pub struct SQLSource {
 
 pub struct SQLQueryCompiler;
 
-impl AlgebraFold for SQLQueryCompiler {
+impl AlgebraFolder for SQLQueryCompiler {
     type Output = SQLQuery;
     type Error = SQLError;
 
@@ -100,24 +98,85 @@ impl AlgebraFold for SQLQueryCompiler {
         mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
         let expr = match window {
-            Window::CountWindow { size: _ } => return Ok(input),
-            Window::TumbleWindow { column: _, size: _ } => SQLExpression::Binary {
-                op: String::from("BETWEEN"),
-                left: PlaceHolder.into(),
-                right: PlaceHolder.into(),
-            },
+            // Count window only important for the runtime
+            Window::CountWindow {
+                column: opt_column,
+                size: _,
+            } => {
+                if let Some(column) = opt_column {
+                    // column >= X1
+                    let left = SQLExpression::Binary {
+                        op: String::from(">="),
+                        left: SQLExpression::Identifier(column.to_owned()).into(),
+                        right: SQLExpression::PlaceHolder(1).into(),
+                    };
+                    // column <= X2
+                    let right = SQLExpression::Binary {
+                        op: String::from("<="),
+                        left: SQLExpression::Identifier(column.to_owned()).into(),
+                        right: SQLExpression::PlaceHolder(2).into(),
+                    };
+                    // column >= X1 AND column <= X2 => column in range [X1, X2]
+                    SQLExpression::Binary {
+                        op: String::from("AND"),
+                        left: left.into(),
+                        right: right.into(),
+                    }
+                } else {
+                    warn!("No column set for count window. Skipping parsing of count window.");
+                    return Ok(input);
+                }
+            }
+            // Tumble window translated into range query
+            Window::TumbleWindow {
+                column: opt_column,
+                size: _,
+            } => {
+                if let Some(column) = opt_column {
+                    // column >= X1
+                    let left = SQLExpression::Binary {
+                        op: String::from(">="),
+                        left: SQLExpression::Identifier(column.to_owned()).into(),
+                        right: SQLExpression::PlaceHolder(1).into(),
+                    };
+                    // column <= X2
+                    let right = SQLExpression::Binary {
+                        op: String::from("<="),
+                        left: SQLExpression::Identifier(column.to_owned()).into(),
+                        right: SQLExpression::PlaceHolder(2).into(),
+                    };
+                    // column >= X1 AND column <= X2 => column in range [X1, X2]
+                    SQLExpression::Binary {
+                        op: String::from("AND"),
+                        left: left.into(),
+                        right: right.into(),
+                    }
+                } else {
+                    warn!("No column set for tumble window. Skipping parsing of tumble window.");
+                    return Ok(input);
+                }
+            }
         };
-        input.filter = Some(expr);
+        // Swap root sql expression by combining former root with window through AND clause
+        if let Some(filter) = input.filter.take() {
+            let binary = SQLExpression::Binary {
+                op: String::from("AND"),
+                left: SQLExpression::Parentheses(filter.into()).into(),
+                right: SQLExpression::Parentheses(expr.into()).into(),
+            };
+            input.filter = Some(binary)
+        }
         Ok(input)
     }
 }
 
 #[derive(Debug)]
 pub enum SQLExpression {
-    PlaceHolder,
+    PlaceHolder(usize),
     Raw(String),
     Literal(Value),
     Identifier(String),
+    Parentheses(Box<SQLExpression>),
     Unary {
         op: String,
         input: Box<SQLExpression>,
@@ -132,9 +191,29 @@ pub enum SQLExpression {
 impl SQLExpression {
     pub fn build<DB: DatabaseType>(&self, db: &DB) -> String {
         match self {
-            SQLExpression::PlaceHolder => DB::PLACEHOLDER.to_owned(),
+            SQLExpression::PlaceHolder(counter) => format!("{}{}", DB::PLACEHOLDER, counter),
             SQLExpression::Raw(string) => string.to_owned(),
-            SQLExpression::Literal(value) => todo!(),
+            SQLExpression::Literal(value) => match value {
+                Value::Null => "NULL".to_string(),
+                Value::Boolean(bool) => match bool {
+                    true => "TRUE".to_string(),
+                    false => "FALSE".to_string(),
+                },
+                Value::Bytes(bytes) => format!("B'{bytes}'"),
+                Value::Integer(integer) => format!("{integer}"),
+                Value::Float(float) => format!("{float}"),
+                Value::String(string) => format!("\"{string}\""),
+                // Unsupported currently
+                Value::Timestamp(timestamp) => format!(""),
+                Value::Array(values) => format!(""),
+                Value::Map(map) => format!(""),
+                Value::Node(node) => format!(""),
+                Value::Edge(edge) => format!(""),
+            },
+            SQLExpression::Parentheses(expr) => {
+                let inner = expr.build(db);
+                format!("({inner})")
+            }
             SQLExpression::Identifier(identifier) => identifier.to_owned(),
             SQLExpression::Unary { op, input } => {
                 let inner = input.build(db);
@@ -152,7 +231,7 @@ impl SQLExpression {
 #[derive(Debug)]
 pub struct SQLExpressionCompiler;
 
-impl ExpressionFold for SQLExpressionCompiler {
+impl ExpressionFolder for SQLExpressionCompiler {
     type Output = SQLExpression;
     type Error = SQLError;
 

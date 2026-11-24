@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod expression_folder {
-    use hyperion_lang::ast::{LogicalExpression, LogicalPlan};
-    use hyperion_sql::compiler::{SQLExpressionCompiler, SQLQueryCompiler};
+    use hyperion_lang::ast::LogicalPlan;
+    use hyperion_sql::{compiler::SQLQueryCompiler, stores::postgres::database::PostgreSQL};
     use rstest::rstest;
 
     #[rstest]
@@ -31,7 +31,7 @@ mod expression_folder {
         }
         let query = query.unwrap();
 
-        let s = query.build();
+        let s = query.build(&PostgreSQL);
         assert_eq!(s, format!("SELECT {f}(age) FROM users"))
     }
 
@@ -54,7 +54,7 @@ mod expression_folder {
         }
         let query = query.unwrap();
 
-        let s = query.build();
+        let s = query.build(&PostgreSQL);
         assert_eq!(s, format!("SELECT {columns} FROM users"))
     }
 
@@ -75,9 +75,60 @@ mod expression_folder {
         }
         let query = query.unwrap();
 
-        dbg!(&query);
-
-        let s = query.build();
+        let s = query.build(&PostgreSQL);
         assert_eq!(s, format!("SELECT age FROM users WHERE {filter}"));
+    }
+
+    #[test]
+    fn query_tumble_window() {
+        let query = format!(
+            "FROM SQL(users) PROJECT age FILTER EXP(age) TUMBLE_WINDOW(col=_processing_time, size=10) INTO SQL(people)"
+        );
+
+        let ast = LogicalPlan::parse(&query);
+        if let Err(e) = ast {
+            panic!("{}", e)
+        }
+
+        let ast = ast.unwrap();
+
+        let query = ast.fold(&mut SQLQueryCompiler);
+        if let Err(e) = query {
+            panic!("{}", e)
+        }
+
+        let query = query.unwrap();
+
+        let s = query.build(&PostgreSQL);
+        assert_eq!(
+            s,
+            format!(
+                "SELECT age FROM users WHERE (EXP(age)) AND (_processing_time >= $1 AND _processing_time <= $2)"
+            )
+        )
+    }
+
+    #[test]
+    fn query_count_window() {
+        let query = format!(
+            "FROM SQL(users) PROJECT age FILTER EXP(age) COUNT_WINDOW(size=10) INTO SQL(people)"
+        );
+
+        let ast = LogicalPlan::parse(&query);
+        if let Err(e) = ast {
+            panic!("{}", e)
+        }
+
+        let ast = ast.unwrap();
+
+        let query = ast.fold(&mut SQLQueryCompiler);
+        if let Err(e) = query {
+            panic!("{}", e)
+        }
+
+        let query = query.unwrap();
+
+        let s = query.build(&PostgreSQL);
+        assert_eq!(s, format!("SELECT age FROM users WHERE EXP(age)"))
     }
 }

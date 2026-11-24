@@ -1,4 +1,5 @@
 pub mod compiler;
+pub mod database_type;
 pub mod query;
 pub mod record;
 pub mod row_decoder;

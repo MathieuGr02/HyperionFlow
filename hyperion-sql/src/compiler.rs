@@ -1,22 +1,26 @@
 use hyperion_lang::{
-    algebra::{Filter, Project, StorePrint, StoreScan},
+    algebra::{Filter, Project, StorePrint, StoreScan, Window},
     ast::{AlgebraFold, ExpressionFold},
     expression::{BinExpOp, UnExpOp},
 };
 use hyperion_value::Value;
 
-use crate::stores::postgres::util::SQLError;
+use crate::{
+    compiler::SQLExpression::PlaceHolder, database_type::DatabaseType,
+    stores::postgres::util::SQLError,
+};
 
 #[derive(Debug)]
 pub struct SQLQuery {
     pub project: Vec<SQLExpression>,
+    // TODO: alter to vector or provide method to combine expressions
     pub filter: Option<SQLExpression>,
     pub source: SQLSource,
 }
 
 impl SQLQuery {
-    pub fn build(&self) -> String {
-        let rows: Vec<String> = self.project.iter().map(SQLExpression::build).collect();
+    pub fn build<DB: DatabaseType>(&self, db: &DB) -> String {
+        let rows: Vec<String> = self.project.iter().map(|p| p.build(db)).collect();
         let rows = rows.join(", ");
         let select_clause = format!("SELECT {rows}");
 
@@ -24,7 +28,7 @@ impl SQLQuery {
 
         let mut where_clause = String::new();
         if let Some(filter) = self.filter.as_ref() {
-            let filter = filter.build();
+            let filter = filter.build(db);
             where_clause = format!("WHERE {filter}");
         }
 
@@ -92,15 +96,25 @@ impl AlgebraFold for SQLQueryCompiler {
 
     fn fold_window(
         &mut self,
-        window: &hyperion_lang::algebra::Window,
-        input: Self::Output,
+        window: &Window,
+        mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-        todo!()
+        let expr = match window {
+            Window::CountWindow { size: _ } => return Ok(input),
+            Window::TumbleWindow { column: _, size: _ } => SQLExpression::Binary {
+                op: String::from("BETWEEN"),
+                left: PlaceHolder.into(),
+                right: PlaceHolder.into(),
+            },
+        };
+        input.filter = Some(expr);
+        Ok(input)
     }
 }
 
 #[derive(Debug)]
 pub enum SQLExpression {
+    PlaceHolder,
     Raw(String),
     Literal(Value),
     Identifier(String),
@@ -116,19 +130,20 @@ pub enum SQLExpression {
 }
 
 impl SQLExpression {
-    pub fn build(&self) -> String {
+    pub fn build<DB: DatabaseType>(&self, db: &DB) -> String {
         match self {
+            SQLExpression::PlaceHolder => DB::PLACEHOLDER.to_owned(),
             SQLExpression::Raw(string) => string.to_owned(),
             SQLExpression::Literal(value) => todo!(),
             SQLExpression::Identifier(identifier) => identifier.to_owned(),
             SQLExpression::Unary { op, input } => {
-                let inner = input.build();
+                let inner = input.build(db);
                 format!("{op}({inner})")
             }
             SQLExpression::Binary { op, left, right } => {
-                let left_expr = left.build();
-                let right_expr = right.build();
-                todo!()
+                let left_expr = left.build(db);
+                let right_expr = right.build(db);
+                format!("{left_expr} {op} {right_expr}")
             }
         }
     }

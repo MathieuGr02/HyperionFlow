@@ -8,8 +8,15 @@ use postgres::Statement;
 use serde::Deserialize;
 use tracing::trace;
 
+pub struct PostgreSQL;
+impl DatabaseType for PostgreSQL {
+    const NAME: &str = "PostgreSQL";
+    const PLACEHOLDER: &str = "$1";
+}
+
 use crate::{
     compiler::SQLQueryCompiler,
+    database_type::DatabaseType,
     query::QueryBuilder,
     stores::postgres::{
         client::PostgreSQLClient, config::PostgreSQLConfiguration, error::PostgreSQLError,
@@ -52,9 +59,9 @@ impl PostgreSQLProcessor {
             output_name,
         } = config;
 
-        let query = plan.fold(&mut SQLQueryCompiler)?.build();
-
         let mut client = PostgreSQLClient::connect(client_config)?;
+        let query = plan.fold(&mut SQLQueryCompiler)?.build(&PostgreSQL);
+
         Self::extend_table(&mut table)?;
         Self::create_table(&mut client, &table)?;
         let statement = client.prepare_statement(&query)?;

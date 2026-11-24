@@ -71,4 +71,5 @@ pub enum BinExpOp {
     Eq,
     Geq,
     Leq,
+    Between,
 }

@@ -104,8 +104,6 @@ impl Engine {
         let plan = LogicalPlan::parse(&config.task.processor.query)
             .map_err(|e| EngineError::Custom(e.to_string()))?;
 
-        let res = plan.fold(&mut RuntimeCompiler)?;
-
         let (task_name, task) = config.task.build(
             &self.config.checkpoint_path,
             task_receiver,

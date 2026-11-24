@@ -1,11 +1,10 @@
 use hyperion_lang::{
     algebra::{Filter, Project, StorePrint, StoreScan, Window},
-    ast::{ASTError, AlgebraFold, ExpressionFold},
+    ast::{AlgebraFold, ExpressionFold},
     expression::{BinExpOp, UnExpOp},
 };
 use hyperion_value::Value;
 use neo4rs::Query;
-use thiserror::Error;
 
 use crate::value::CypherError;
 

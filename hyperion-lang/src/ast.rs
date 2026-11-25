@@ -91,6 +91,21 @@ impl LogicalExpression {
                 let unary = Expression::UnaryExpression { op, value: content };
                 Self::add_expression(unary, expressions)
             }
+            Rule::project_rename => {
+                let mut inner = expr.into_inner();
+                let project_expr = inner.next().unwrap();
+                let target = inner.next().unwrap();
+
+                let project_expr = Self::build_expression(project_expr, expressions)?;
+                let target = Self::build_expression(target, expressions)?;
+
+                let binary = Expression::BinaryExpression {
+                    op: BinExpOp::Rename,
+                    left: project_expr,
+                    right: target,
+                };
+                Self::add_expression(binary, expressions)
+            }
             Rule::TARGET => {
                 let target = Expression::Target(expr.as_str().to_string());
                 Self::add_expression(target, expressions)

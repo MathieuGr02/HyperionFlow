@@ -66,7 +66,9 @@ from = { "FROM" ~ IDENTIFIER ~ "(" ~ TARGET ~ ")" }
 /// Fields are specified by the name, seperated by commas
 ///
 /// Example: `PROJECT name, age`
-project = { "PROJECT" ~ expr ~ ("," ~ expr)* }
+project = { "PROJECT" ~ project_clause ~ ("," ~ project_clause)* }
+project_clause = { project_rename |  TARGET }
+project_rename = { expr ~ "AS" ~ TARGET }
 
 /// The filter operation. Allows for the filtering of data
 ///

@@ -68,6 +68,8 @@ impl<'i> FromPair<'i> for UnExpOp {
 
 #[derive(Debug)]
 pub enum BinExpOp {
+    Rename,
+    // Boolean expressions
     Eq,
     Geq,
     Leq,

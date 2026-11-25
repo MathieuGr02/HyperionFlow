@@ -85,10 +85,13 @@ impl LogicalExpression {
 
                 let callable = inner.next().unwrap();
                 let op = UnExpOp::from_pair(callable)?;
-                let content = inner.next().unwrap();
-                let content = Self::build_expression(content, expressions)?;
+                let inner_expr = inner.next().unwrap();
+                let inner_expr = Self::build_expression(inner_expr, expressions)?;
 
-                let unary = Expression::UnaryExpression { op, value: content };
+                let unary = Expression::UnaryExpression {
+                    op,
+                    value: inner_expr,
+                };
                 Self::add_expression(unary, expressions)
             }
             Rule::project_rename => {

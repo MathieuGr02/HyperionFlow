@@ -28,7 +28,7 @@ dbname = "postgres"
 password = "postgres"
 
 [pipelines.source.writer.config.table]
-name = "test_source"
+name = "raw"
 columns = [
     { "name" = "id", "data_type" = "integer", nullable = false },
     { "name" = "value", "data_type" = "float", nullable = false }
@@ -36,7 +36,6 @@ columns = [
 
 [pipelines.source.deserializer]
 type = "json"
-config = { }
 
 ###################
 # task
@@ -46,15 +45,14 @@ name = "test_task"
 
 [pipelines.task.processor]
 query = """
-    FROM SQL(users)
-    PROJECT age
+    FROM SQL(raw)
+    PROJECT id, EXP(value) AS value
     COUNT_WINDOW(size=10)
-    INTO SQL(people)
+    INTO SQL(processed)
     """
 
 [pipelines.task.processor.config]
 type = "postgres"
-
 host = "postgres"
 port = 5432
 user = "postgres"
@@ -62,7 +60,7 @@ dbname = "postgres"
 password = "postgres"
 
 [pipelines.task.processor.config.table]
-name = "test_process"
+name = "processed"
 columns = [
     { "name" = "id", "data_type" = "integer", nullable = false },
     { "name" = "value", "data_type" = "float", nullable = false },
@@ -80,7 +78,6 @@ name = "test_sink"
 
 [pipelines.sink.serializer]
 type = "json"
-config = { }
 
 [pipelines.sink.reader]
 type = "postgres"
@@ -91,7 +88,7 @@ port = 5432
 user = "postgres"
 dbname = "postgres"
 password = "postgres"
-query = "SELECT id, value, _processing_time FROM test_process WHERE _processing_time > $1"
+query = "SELECT id, value, _processing_time FROM processed WHERE _processing_time > $1"
 
 [pipelines.sink.producer]
 type = "kafka"

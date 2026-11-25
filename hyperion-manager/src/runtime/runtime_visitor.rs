@@ -31,12 +31,12 @@ impl AlgebraMutVisitor for RuntimeVisitor {
 
     fn visit_window_mut(&mut self, window: &mut Window) -> Result<Self::Output, Self::Error> {
         match window {
-            Window::CountWindow { column, size } => {
+            Window::CountWindow { column, size: _ } => {
                 if column.is_none() {
                     column.replace(self.default_time_column.clone());
                 }
             }
-            Window::TumbleWindow { column, size } => {
+            Window::TumbleWindow { column, size: _ } => {
                 if column.is_none() {
                     column.replace(self.default_time_column.clone());
                 }

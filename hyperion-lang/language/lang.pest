@@ -67,7 +67,7 @@ from = { "FROM" ~ IDENTIFIER ~ "(" ~ TARGET ~ ")" }
 ///
 /// Example: `PROJECT name, age`
 project = { "PROJECT" ~ project_clause ~ ("," ~ project_clause)* }
-project_clause = { project_rename |  TARGET }
+project_clause = { project_rename | TARGET }
 project_rename = { expr ~ "AS" ~ TARGET }
 
 /// The filter operation. Allows for the filtering of data

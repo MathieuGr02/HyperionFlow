@@ -6,7 +6,7 @@ use hyperion_core::{
 use hyperion_lang::ast::LogicalPlan;
 use postgres::Statement;
 use serde::Deserialize;
-use tracing::trace;
+use tracing::{debug, trace};
 
 use crate::{
     compiler::SQLQueryCompiler,
@@ -54,10 +54,14 @@ impl PostgreSQLProcessor {
         } = config;
 
         let mut client = PostgreSQLClient::connect(client_config)?;
+
+        debug!("Compiling SQL query");
         let query = plan.fold(&mut SQLQueryCompiler)?.build(&PostgreSQL);
 
         Self::extend_table(&mut table)?;
         Self::create_table(&mut client, &table)?;
+
+        trace!("Preparing SQL statement for query {query}");
         let statement = client.prepare_statement(&query)?;
 
         Ok(PostgreSQLProcessor {

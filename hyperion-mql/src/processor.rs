@@ -4,10 +4,7 @@ use hyperion_core::{
     validatable::{Validatable, ValidationError},
 };
 use hyperion_lang::ast::LogicalPlan;
-use mongodb::{
-    bson::{self, Document, doc},
-    sync::Collection,
-};
+use mongodb::{bson::Document, sync::Collection};
 use serde::Deserialize;
 
 use crate::{
@@ -35,7 +32,7 @@ impl Validatable for MongoDBProcessorConfiguration {
 pub struct MongoDBProcessor {
     client: MongoDBClient,
     collection: Collection<serde_json::Value>,
-    query: Document,
+    aggregate: Vec<Document>,
 }
 
 impl MongoDBProcessor {
@@ -51,15 +48,15 @@ impl MongoDBProcessor {
 
         let client = MongoDBClient::connect(client_config)?;
 
-        let database = client.mgclient.database(&database);
-        let collection = database.collection(&collection);
+        let (collection_name, aggregate) = plan.fold(&mut MQLQueryCompiler)?.build();
 
-        let query = plan.fold(&mut MQLQueryCompiler)?.build();
+        let database = client.mgclient.database(&database);
+        let collection = database.collection(&collection_name);
 
         Ok(MongoDBProcessor {
             client,
             collection,
-            query,
+            aggregate,
         })
     }
 }
@@ -69,14 +66,14 @@ impl StoreProcessor<Range> for MongoDBProcessor {
         let from = m.data.lower();
         let to = m.data.upper();
 
-        let pipeline = vec![
+        /*let pipeline = vec![
             doc! { "$match": { "_processing_time": { "$gte": from.as_i64_ref(), "$lte": to.as_i64_ref() } } },
-            self.query.clone(),
+            self.aggregate.clone(),
             doc! { "$merge": { "into": "test_out", "on": "_id" } },
-        ];
+        ];*/
 
         self.collection
-            .aggregate(pipeline)
+            .aggregate(self.aggregate.clone())
             .run()
             .map_err(|e| MongoDBError::AggregateError(e.to_string()).into())?;
         Ok(())

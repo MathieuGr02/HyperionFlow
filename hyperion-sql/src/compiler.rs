@@ -151,6 +151,7 @@ impl AlgebraFolder for SQLQueryCompiler {
         window: &Window,
         mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
+        dbg!(&window);
         let expr = match window {
             // Count window only important for the runtime
             Window::CountWindow {
@@ -219,6 +220,8 @@ impl AlgebraFolder for SQLQueryCompiler {
                 right: SQLExpression::Parentheses(expr.into()).into(),
             };
             input.filter = Some(binary)
+        } else {
+            input.filter = Some(expr);
         }
         Ok(input)
     }

@@ -1,24 +1,74 @@
 use hyperion_lang::{
     algebra::{Filter, Project, StorePrint, StoreScan, Window},
-    ast::ASTError,
+    arena_tree::{ArenaTree, Ref},
+    ast::{ASTError, LogicalExpression},
     expression::{BinExpOp, UnExpOp},
     folder::{AlgebraFolder, ExpressionFolder},
 };
 use hyperion_value::Value;
-use mongodb::bson::Document;
+use mongodb::bson::{self, Binary, Bson, Document, doc};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum MQLError {
     #[error("{0}")]
     ASTError(#[from] ASTError),
+    #[error("{0}")]
+    Custom(String),
 }
 
-pub struct MQLQuery;
+#[derive(Debug)]
+pub struct ParameterisedMQLQuery {
+    left: Vec<Document>,
+    parameterised: Document,
+    right: Vec<Document>,
+}
+
+impl ParameterisedMQLQuery {
+    pub fn set(&self) -> Vec<Document> {
+        let resolved_document = Document::new();
+        let mut left = self.left.clone();
+        left.push(resolved_document);
+        left.append(&mut self.right.clone());
+        left
+    }
+}
+
+#[derive(Debug)]
+pub struct MQLQuery {
+    target: Option<MQLTarget>,
+    project: Vec<MQLExpression>,
+    filter: Option<ParameterisedMQLExpression>,
+    source: MQLSource,
+}
+
+#[derive(Debug)]
+pub struct MQLTarget {
+    collection: String,
+}
+
+#[derive(Debug)]
+pub struct MQLSource {
+    collection: String,
+}
 
 impl MQLQuery {
-    pub fn build(&self) -> Document {
-        Document::new()
+    /// Build the MQL query into an aggregate pipeline query.
+    /// Returns the source collection and the aggregate pipeline
+    pub fn build(&self) -> (String, Vec<Document>) {
+        let mut pipeline = Vec::new();
+
+        for p in self.project.iter() {
+            let x = p.build();
+        }
+
+        if let Some(target) = self.target.as_ref() {
+            let collection = &target.collection;
+            let d = doc! { "$merge": { "into": collection } };
+            pipeline.push(d);
+        }
+
+        (self.source.collection.clone(), pipeline)
     }
 }
 
@@ -29,31 +79,58 @@ impl AlgebraFolder for MQLQueryCompiler {
     type Error = MQLError;
 
     fn fold_scan(&mut self, scan: &StoreScan) -> Result<Self::Output, Self::Error> {
-        todo!()
+        match scan {
+            StoreScan::MQLScan(mqlscan) => Ok(MQLQuery {
+                target: None,
+                filter: None,
+                project: Vec::new(),
+                source: MQLSource {
+                    collection: mqlscan.collection.clone(),
+                },
+            }),
+            _ => Err(MQLError::Custom("Invalid scan".to_string())),
+        }
     }
 
     fn fold_print(
         &mut self,
         print: &StorePrint,
-        input: Self::Output,
+        mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-        todo!()
+        match print {
+            StorePrint::MQLPrint(mqlprint) => {
+                let target = MQLTarget {
+                    collection: mqlprint.collection.clone(),
+                };
+                input.target = Some(target);
+                Ok(input)
+            }
+            _ => Err(MQLError::Custom("Invalid print".to_string())),
+        }
     }
 
     fn fold_project(
         &mut self,
         project: &Project,
-        input: Self::Output,
+        mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-        todo!()
+        for expr in project.expression.iter() {
+            let expr_res = expr.fold(&mut MQLExpressionCompiler)?;
+            input.project.push(expr_res);
+        }
+        Ok(input)
     }
 
     fn fold_filter(
         &mut self,
         filter: &Filter,
-        input: Self::Output,
+        mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-        todo!()
+        let mut compiler = MQLExpressionCompiler::new();
+        compiler.compile(&filter.expression)?;
+        let expr = compiler.to_parameterised_expression();
+        input.filter = Some(expr);
+        Ok(input)
     }
 
     fn fold_window(
@@ -65,24 +142,122 @@ impl AlgebraFolder for MQLQueryCompiler {
     }
 }
 
-pub struct MQLExpression;
+#[derive(Debug)]
+pub enum MQLExpression {
+    Raw(Document),
+    Literal(Bson),
+    Identifier(String),
+    PlaceHolder(usize),
+    Unary { op: String, input: Ref },
+    Binary { op: String, left: Ref, right: Ref },
+}
 
-pub struct MQLExpressionCompiler;
+#[derive(Debug)]
+pub struct ParameterisedMQLExpression {
+    tree: ArenaTree<MQLExpression>,
+    placeholders: Vec<Ref>,
+}
+
+impl ParameterisedMQLExpression {
+    pub fn new() -> Self {
+        Self {
+            tree: ArenaTree::new(),
+            placeholders: Vec::new(),
+        }
+    }
+
+    pub fn set(&mut self, index: Ref, expr: MQLExpression) {
+        if let Some(expr) = self.tree.get(index) {
+            drop(expr)
+        }
+    }
+}
+
+impl MQLExpression {
+    pub fn build(&self) -> Bson {
+        match self {
+            MQLExpression::Raw(document) => Bson::Document(document.to_owned()),
+            MQLExpression::Unary { op, input } => {
+                let inner = input.build();
+                let key = format!("${op}");
+                Bson::Document(doc! { key: inner })
+            }
+            MQLExpression::Binary { op, left, right } => {
+                let inner_left = left.build();
+                let inner_right = right.build();
+                let key = format!("${op}");
+                Bson::Document(doc! { key: [ inner_left, inner_right ] })
+            }
+            MQLExpression::Literal(bson) => bson.to_owned(),
+            MQLExpression::Identifier(identifier) => Bson::String(identifier.to_owned()),
+            MQLExpression::PlaceHolder(_) => todo!(),
+        }
+    }
+}
+
+pub struct MQLExpressionCompiler {
+    expr: ParameterisedMQLExpression,
+}
+
+impl MQLExpressionCompiler {
+    pub fn new() -> Self {
+        Self {
+            expr: ParameterisedMQLExpression::new(),
+        }
+    }
+
+    pub fn compile(&mut self, expression: &LogicalExpression) -> Result<(), MQLError> {
+        let root = expression.fold(self)?;
+        self.expr.tree.set_root(root);
+        Ok(())
+    }
+
+    pub fn to_parameterised_expression(self) -> ParameterisedMQLExpression {
+        self.expr
+    }
+}
 
 impl ExpressionFolder for MQLExpressionCompiler {
-    type Output = MQLExpression;
+    type Output = Ref;
     type Error = MQLError;
 
     fn fold_escape(&mut self, escape: &String) -> Result<Self::Output, Self::Error> {
-        todo!()
+        let doc = bson::to_document(escape).map_err(|e| MQLError::Custom(e.to_string()))?;
+        let expr = MQLExpression::Raw(doc);
+        let index = self.expr.tree.add(expr);
+
+        Ok(index)
     }
 
     fn fold_literal(&mut self, literal: &Value) -> Result<Self::Output, Self::Error> {
-        todo!()
+        let b = match literal {
+            Value::Null => Bson::Null,
+            Value::Boolean(boolean) => Bson::Boolean(*boolean),
+            Value::Bytes(bytes) => Bson::Binary(Binary {
+                subtype: bson::spec::BinarySubtype::Generic,
+                bytes: bytes.to_owned().as_vec(),
+            }),
+            Value::Integer(integer) => Bson::Int64(integer.as_i64()),
+            Value::Float(float) => Bson::Double(float.as_f64()),
+            Value::String(string) => Bson::String(string.to_owned()),
+            Value::Timestamp(timestamp) => todo!(),
+            Value::Array(values) => todo!(),
+            Value::Map(map) => todo!(),
+            Value::Node(node) => todo!(),
+            Value::Edge(edge) => todo!(),
+        };
+
+        let expr = MQLExpression::Literal(b);
+        let index = self.expr.tree.add(expr);
+
+        Ok(index)
     }
 
     fn fold_target(&mut self, target: &String) -> Result<Self::Output, Self::Error> {
-        todo!()
+        let expr = MQLExpression::Identifier(target.to_owned());
+        let index = self.expr.tree.add(expr);
+
+        Ok(index)
     }
 
     fn fold_unary_expression(
@@ -90,7 +265,28 @@ impl ExpressionFolder for MQLExpressionCompiler {
         op: &UnExpOp,
         input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-        todo!()
+        let op_str = match op {
+            UnExpOp::Abs => "abs",
+            UnExpOp::Avg => "avg",
+            UnExpOp::Ceiling => "ceil",
+            UnExpOp::Count => todo!(),
+            UnExpOp::Exp => "exp",
+            UnExpOp::Floor => "floor",
+            UnExpOp::Max => "max",
+            UnExpOp::Min => "min",
+            UnExpOp::Sign => todo!(),
+            UnExpOp::Sqrt => "sqrt",
+            UnExpOp::Square => todo!(),
+            UnExpOp::Sum => "sum",
+        };
+
+        let expr = MQLExpression::Unary {
+            op: op_str.to_string(),
+            input,
+        };
+        let index = self.expr.tree.add(expr);
+
+        Ok(index)
     }
 
     fn fold_binary_expression(
@@ -99,6 +295,21 @@ impl ExpressionFolder for MQLExpressionCompiler {
         input_left: Self::Output,
         input_right: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-        todo!()
+        let op_str = match op {
+            BinExpOp::Rename => todo!(),
+            BinExpOp::Eq => "eq",
+            BinExpOp::Geq => "gte",
+            BinExpOp::Leq => "lte",
+            BinExpOp::Between => todo!(),
+        };
+
+        let expr = MQLExpression::Binary {
+            op: op_str.to_string(),
+            left: input_left,
+            right: input_right,
+        };
+        let index = self.expr.tree.add(expr);
+
+        Ok(index)
     }
 }

@@ -106,7 +106,7 @@ impl Engine {
             .map_err(|e| EngineError::Custom(e.to_string()))?;
 
         let res = plan.accept_mut(&mut RuntimeVisitor {
-            default_time_column: String::from("_processing_time"),
+            default_time_column: String::from("_ingestion_time"),
         });
 
         let runtime = plan.fold(&mut RuntimeCompiler)?;

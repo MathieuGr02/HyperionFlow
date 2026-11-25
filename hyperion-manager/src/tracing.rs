@@ -1,4 +1,4 @@
-use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{EnvFilter, Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 pub fn init_tracing() {
     // Default to 'info', but allow overrides via RUST_LOG (e.g., RUST_LOG=debug cargo run)
@@ -11,15 +11,24 @@ pub fn init_tracing() {
     // Check if we want JSON logs (good for production) or pretty logs (good for local dev)
     let use_json = std::env::var("LOG_FORMAT").unwrap_or_default() == "json";
 
-    if use_json {
-        tracing_subscriber::registry()
-            .with(env_filter)
-            .with(tracing_subscriber::fmt::layer().json())
-            .init();
+    let fmt_layer = if use_json {
+        tracing_subscriber::fmt::layer()
+            .json()
+            .with_target(false)
+            .with_file(false)
+            .with_line_number(false)
+            .boxed()
     } else {
-        tracing_subscriber::registry()
-            .with(env_filter)
-            .with(tracing_subscriber::fmt::layer().pretty())
-            .init();
-    }
+        tracing_subscriber::fmt::layer()
+            .compact()
+            .with_target(false)
+            .with_file(false)
+            .with_line_number(false)
+            .boxed()
+    };
+
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(fmt_layer)
+        .init();
 }

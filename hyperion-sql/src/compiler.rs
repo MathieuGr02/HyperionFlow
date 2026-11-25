@@ -10,15 +10,44 @@ use crate::{database_type::DatabaseType, stores::postgres::util::SQLError};
 
 #[derive(Debug)]
 pub struct SQLQuery {
-    pub project: Vec<SQLExpression>,
-    // TODO: alter to vector or provide method to combine expressions
+    pub insert: Option<SQLTarget>,
+    pub project: SQLProject,
     pub filter: Option<SQLExpression>,
     pub source: SQLSource,
 }
 
+#[derive(Debug)]
+pub struct SQLProject {
+    expressions: Vec<SQLExpression>,
+}
+
+impl SQLProject {
+    pub fn get_target_columns(&self) -> Vec<String> {
+        let mut columns = Vec::new();
+        for expr in self.expressions.iter() {
+            // Either project has just an identifier or a rename as binary
+            match expr {
+                SQLExpression::Identifier(identifier) => columns.push(identifier.to_owned()),
+                SQLExpression::Binary { op, left, right } => match right.as_ref() {
+                    SQLExpression::Identifier(identifier) => columns.push(identifier.to_owned()),
+                    _ => (),
+                },
+                _ => (),
+            }
+        }
+
+        columns
+    }
+}
+
 impl SQLQuery {
     pub fn build<DB: DatabaseType>(&self, db: &DB) -> String {
-        let rows: Vec<String> = self.project.iter().map(|p| p.build(db)).collect();
+        let rows: Vec<String> = self
+            .project
+            .expressions
+            .iter()
+            .map(|p| p.build(db))
+            .collect();
         let rows = rows.join(", ");
         let select_clause = format!("SELECT {rows}");
 
@@ -30,7 +59,13 @@ impl SQLQuery {
             where_clause = format!("WHERE {filter}");
         }
 
-        format!("{select_clause} {from_clause} {where_clause}")
+        let mut insert_clause = String::new();
+        if let Some(target) = self.insert.as_ref() {
+            let values = target.columns.join(", ");
+            insert_clause = format!("INSERT INTO {} ({})", target.table, values);
+        }
+
+        format!("{insert_clause} {select_clause} {from_clause} {where_clause}")
             .trim()
             .to_string()
     }
@@ -39,6 +74,12 @@ impl SQLQuery {
 #[derive(Debug)]
 pub struct SQLSource {
     table: String,
+}
+
+#[derive(Debug)]
+pub struct SQLTarget {
+    table: String,
+    columns: Vec<String>,
 }
 
 pub struct SQLQueryCompiler;
@@ -50,7 +91,10 @@ impl AlgebraFolder for SQLQueryCompiler {
     fn fold_scan(&mut self, scan: &StoreScan) -> Result<Self::Output, Self::Error> {
         match scan {
             StoreScan::SQLScan(sql_scan) => Ok(SQLQuery {
-                project: Vec::new(),
+                insert: None,
+                project: SQLProject {
+                    expressions: Vec::new(),
+                },
                 filter: None,
                 source: SQLSource {
                     table: sql_scan.table.to_owned(),
@@ -63,10 +107,20 @@ impl AlgebraFolder for SQLQueryCompiler {
     fn fold_print(
         &mut self,
         print: &StorePrint,
-        input: Self::Output,
+        mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-        Ok(input)
-        //todo!()
+        let columns = input.project.get_target_columns();
+        match print {
+            StorePrint::SQLPrint(sql_print) => {
+                let target = SQLTarget {
+                    table: sql_print.table.clone(),
+                    columns,
+                };
+                input.insert = Some(target);
+                Ok(input)
+            }
+            _ => Err(SQLError::UnsupportedType("Invalid print".to_string())),
+        }
     }
 
     fn fold_project(
@@ -77,7 +131,7 @@ impl AlgebraFolder for SQLQueryCompiler {
         let mut expr_compiler = SQLExpressionCompiler;
         for expr in project.expression.iter() {
             let expr_res = expr.fold(&mut expr_compiler)?;
-            input.project.push(expr_res);
+            input.project.expressions.push(expr_res);
         }
         Ok(input)
     }
@@ -279,6 +333,18 @@ impl ExpressionFolder for SQLExpressionCompiler {
         input_left: Self::Output,
         input_right: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-        todo!()
+        let op_str = match op {
+            BinExpOp::Rename => "AS",
+            BinExpOp::Eq => "==",
+            BinExpOp::Geq => ">=",
+            BinExpOp::Leq => "<=",
+            BinExpOp::Between => todo!(),
+        };
+
+        Ok(SQLExpression::Binary {
+            op: op_str.to_string(),
+            left: Box::new(input_left),
+            right: Box::new(input_right),
+        })
     }
 }

@@ -42,6 +42,6 @@ impl AlgebraMutVisitor for RuntimeVisitor {
                 }
             }
         }
-        todo!()
+        Ok(())
     }
 }

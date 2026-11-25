@@ -27,14 +27,12 @@ use hyperion_sql::stores::postgres::processor::PostgreSQLProcessor;
 pub struct TaskConfig {
     pub name: String,
     pub processor: ProcessorConfig,
-    pub trigger: TriggerType,
 }
 
 impl Validatable for TaskConfig {
     fn validate(&self) -> Result<(), ValidationError> {
         Self::field_string_empty("name", &self.name)?;
         self.processor.validate()?;
-        self.trigger.validate()?;
         Ok(())
     }
 }
@@ -45,6 +43,7 @@ impl TaskConfig {
         checkpoint_path: &PathBuf,
         receiver: EventChannelReceiver,
         sender: EventChannelSender,
+        trigger: TriggerType,
         plan: &LogicalPlan,
     ) -> Result<(String, RuntimeTask), EngineError> {
         let operator = match self.processor.config_type {
@@ -65,7 +64,7 @@ impl TaskConfig {
             ),
         };
         let checkpoint = Checkpoint::new(checkpoint_path, self.name.clone());
-        let task = RuntimeTask::new(operator, sender, receiver, self.trigger, checkpoint)
+        let task = RuntimeTask::new(operator, sender, receiver, trigger, checkpoint)
             .map_err(|_| EngineError::ConnectionError("Error building runtime task".to_string()))?;
 
         Ok((self.name, task))

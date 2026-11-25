@@ -11,7 +11,7 @@ use crate::{
 pub struct RuntimeCompiler;
 
 pub struct RuntimeAlgebra {
-    trigger_type: Option<TriggerType>,
+    pub trigger_type: Option<TriggerType>,
 }
 
 impl AlgebraFolder for RuntimeCompiler {

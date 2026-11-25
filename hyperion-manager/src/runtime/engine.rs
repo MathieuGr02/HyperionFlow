@@ -15,6 +15,7 @@ use crate::{
         pipeline::PipelineConfig,
     },
     runtime::{
+        runtime_compiler::RuntimeCompiler,
         runtime_visitor::RuntimeVisitor,
         thread_manager::{ThreadManager, ThreadManagerError},
     },
@@ -107,6 +108,9 @@ impl Engine {
         let res = plan.accept_mut(&mut RuntimeVisitor {
             default_time_column: String::from("_processing_time"),
         });
+
+        let runtime = plan.fold(&mut RuntimeCompiler)?;
+
         if let Err(e) = res {
             error!(error = %e, "Unable to mutate logical plan");
             exit(1);
@@ -116,6 +120,7 @@ impl Engine {
             &self.config.checkpoint_path,
             task_receiver,
             task_sender,
+            runtime.trigger_type.unwrap(),
             &plan,
         )?;
 

@@ -3,14 +3,20 @@ FROM rust:1.99 AS builder
 
 WORKDIR /hyperion
 
+# Main hyperion crates
+COPY Cargo.toml .
 COPY hyperion-core ./hyperion-core
 COPY hyperion-value ./hyperion-value
-COPY hyperion-kafka ./hyperion-kafka
+COPY hyperion-lang ./hyperion-lang
 COPY hyperion-manager ./hyperion-manager
+
+# Event crates
+COPY hyperion-kafka ./hyperion-kafka
+
+# Store crates
 COPY hyperion-sql ./hyperion-sql
 COPY hyperion-mql ./hyperion-mql
 COPY hyperion-cypher ./hyperion-cypher
-COPY Cargo.toml .
 
 # Hyperion features. Features are seperated by commas (FEATURES=...,...,...>)
 ARG FEATURES=all

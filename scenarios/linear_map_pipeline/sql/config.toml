@@ -45,10 +45,16 @@ config = { }
 name = "test_task"
 
 [pipelines.task.processor]
-type = "postgres"
+query = """
+    FROM SQL(users)
+    PROJECT age
+    COUNT_WINDOW(size=10)
+    INTO SQL(people)
+    """
 
 [pipelines.task.processor.config]
-query = "INSERT INTO test_process (id, value) SELECT id, EXP(value) FROM test_source WHERE _ingestion_time >= $1 AND _ingestion_time <= $2"
+type = "postgres"
+
 host = "postgres"
 port = 5432
 user = "postgres"

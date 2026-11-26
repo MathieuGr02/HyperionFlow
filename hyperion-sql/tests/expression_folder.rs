@@ -32,6 +32,13 @@ mod expression_folder {
         let query = query.unwrap();
 
         let s = query.build(&PostgreSQL);
+
+        if let Err(e) = s {
+            panic!("{e}")
+        }
+
+        let s = s.unwrap();
+
         assert_eq!(
             s,
             format!("INSERT INTO people (age) SELECT {f}(age) AS age FROM users")
@@ -52,11 +59,18 @@ mod expression_folder {
 
         let query = ast.fold(&mut SQLQueryCompiler);
         if let Err(e) = query {
-            panic!("{}", e)
+            panic!("{e}")
         }
         let query = query.unwrap();
 
         let s = query.build(&PostgreSQL);
+
+        if let Err(e) = s {
+            panic!("{e}")
+        }
+
+        let s = s.unwrap();
+
         assert_eq!(
             s,
             format!("INSERT INTO people ({columns}) SELECT {columns} FROM users")
@@ -81,6 +95,13 @@ mod expression_folder {
         let query = query.unwrap();
 
         let s = query.build(&PostgreSQL);
+
+        if let Err(e) = s {
+            panic!("{e}")
+        }
+
+        let s = s.unwrap();
+
         assert_eq!(
             s,
             format!("INSERT INTO people (age) SELECT age FROM users WHERE {filter}")
@@ -108,6 +129,13 @@ mod expression_folder {
         let query = query.unwrap();
 
         let s = query.build(&PostgreSQL);
+
+        if let Err(e) = s {
+            panic!("{e}")
+        }
+
+        let s = s.unwrap();
+
         assert_eq!(
             s,
             format!(

@@ -1,5 +1,5 @@
 use hyperion_lang::{
-    algebra::{Filter, Project, StorePrint, StoreScan, Window},
+    algebra::{Filter, Project, ProjectExpression, StorePrint, StoreScan, Window},
     expression::{BinExpOp, UnExpOp},
     folder::{AlgebraFolder, ExpressionFolder},
 };
@@ -11,28 +11,27 @@ use crate::{database_type::DatabaseType, stores::postgres::util::SQLError};
 #[derive(Debug)]
 pub struct SQLQuery {
     pub insert: Option<SQLTarget>,
-    pub project: SQLProject,
+    pub project: Vec<SQLProject>,
     pub filter: Option<SQLExpression>,
     pub source: SQLSource,
 }
 
 #[derive(Debug)]
 pub struct SQLProject {
-    expressions: Vec<SQLExpression>,
+    expr: SQLExpression,
+    alias: Option<String>,
 }
 
-impl SQLProject {
+impl SQLQuery {
     pub fn get_target_columns(&self) -> Vec<String> {
         let mut columns = Vec::new();
-        for expr in self.expressions.iter() {
-            // Either project has just an identifier or a rename as binary
-            match expr {
-                SQLExpression::Identifier(identifier) => columns.push(identifier.to_owned()),
-                SQLExpression::Binary { op, left, right } => match right.as_ref() {
+        for project_expr in self.project.iter() {
+            match project_expr.alias.as_ref() {
+                Some(alias) => columns.push(alias.to_owned()),
+                None => match &project_expr.expr {
                     SQLExpression::Identifier(identifier) => columns.push(identifier.to_owned()),
-                    _ => (),
+                    _ => (), //return Err(SQLError::Custom("Project expression not identifier")),
                 },
-                _ => (),
             }
         }
 
@@ -41,14 +40,25 @@ impl SQLProject {
 }
 
 impl SQLQuery {
-    pub fn build<DB: DatabaseType>(&self, db: &DB) -> String {
+    pub fn build<DB: DatabaseType>(&self, db: &DB) -> Result<String, SQLError> {
         let rows: Vec<String> = self
             .project
-            .expressions
             .iter()
-            .map(|p| p.build(db))
+            .map(|p| {
+                let expr = p.expr.build(db);
+                if let Some(alias) = p.alias.as_ref() {
+                    format!("{} AS {}", expr, alias)
+                } else {
+                    format!("{expr}")
+                }
+            })
             .collect();
         let rows = rows.join(", ");
+        let rows = rows.trim();
+        if rows.is_empty() {
+            return Err(SQLError::Custom("Empty select clause".to_string()));
+        }
+
         let select_clause = format!("SELECT {rows}");
 
         let from_clause = format!("FROM {}", self.source.table);
@@ -65,9 +75,11 @@ impl SQLQuery {
             insert_clause = format!("INSERT INTO {} ({})", target.table, values);
         }
 
-        format!("{insert_clause} {select_clause} {from_clause} {where_clause}")
-            .trim()
-            .to_string()
+        Ok(
+            format!("{insert_clause} {select_clause} {from_clause} {where_clause}")
+                .trim()
+                .to_string(),
+        )
     }
 }
 
@@ -92,9 +104,7 @@ impl AlgebraFolder for SQLQueryCompiler {
         match scan {
             StoreScan::SQLScan(sql_scan) => Ok(SQLQuery {
                 insert: None,
-                project: SQLProject {
-                    expressions: Vec::new(),
-                },
+                project: Vec::new(),
                 filter: None,
                 source: SQLSource {
                     table: sql_scan.table.to_owned(),
@@ -109,7 +119,7 @@ impl AlgebraFolder for SQLQueryCompiler {
         print: &StorePrint,
         mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-        let columns = input.project.get_target_columns();
+        let columns = input.get_target_columns();
         match print {
             StorePrint::SQLPrint(sql_print) => {
                 let target = SQLTarget {
@@ -129,10 +139,16 @@ impl AlgebraFolder for SQLQueryCompiler {
         mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
         let mut expr_compiler = SQLExpressionCompiler;
+        dbg!(&project);
         for expr in project.expression.iter() {
-            let expr_res = expr.fold(&mut expr_compiler)?;
-            input.project.expressions.push(expr_res);
+            let expr_res = expr.expression.fold(&mut expr_compiler)?;
+            let project_expr = SQLProject {
+                expr: expr_res,
+                alias: expr.alias.clone(),
+            };
+            input.project.push(project_expr);
         }
+        dbg!(&input);
         Ok(input)
     }
 

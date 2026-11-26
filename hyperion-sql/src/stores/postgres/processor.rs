@@ -56,7 +56,7 @@ impl PostgreSQLProcessor {
         let mut client = PostgreSQLClient::connect(client_config)?;
 
         debug!("Compiling SQL query");
-        let query = plan.fold(&mut SQLQueryCompiler)?.build(&PostgreSQL);
+        let query = plan.fold(&mut SQLQueryCompiler)?.build(&PostgreSQL)?;
 
         Self::extend_table(&mut table)?;
         Self::create_table(&mut client, &table)?;

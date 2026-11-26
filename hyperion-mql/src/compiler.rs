@@ -37,9 +37,15 @@ impl ParameterisedMQLQuery {
 #[derive(Debug)]
 pub struct MQLQuery {
     target: Option<MQLTarget>,
-    project: Vec<MQLExpression>,
+    project: Vec<MQLProject>,
     filter: Option<ParameterisedMQLExpression>,
     source: MQLSource,
+}
+
+#[derive(Debug)]
+pub struct MQLProject {
+    pub field: String,
+    pub expr: ParameterisedMQLExpression
 }
 
 #[derive(Debug)]
@@ -115,8 +121,9 @@ impl AlgebraFolder for MQLQueryCompiler {
         mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
         for expr in project.expression.iter() {
-            let expr_res = expr.fold(&mut MQLExpressionCompiler)?;
-            input.project.push(expr_res);
+            let param_expr = MQLExpressionCompiler::compile(expr)?;
+            param_expr.
+            input.project.push(param_expr);
         }
         Ok(input)
     }
@@ -126,9 +133,7 @@ impl AlgebraFolder for MQLQueryCompiler {
         filter: &Filter,
         mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-        let mut compiler = MQLExpressionCompiler::new();
-        compiler.compile(&filter.expression)?;
-        let expr = compiler.to_parameterised_expression();
+        let expr = MQLExpressionCompiler::compile(&filter.expression)?;
         input.filter = Some(expr);
         Ok(input)
     }
@@ -152,6 +157,8 @@ pub enum MQLExpression {
     Binary { op: String, left: Ref, right: Ref },
 }
 
+/// The Parameterised MQL expression.
+/// Holds a MQL compiled expression with references to the [`MQLExpression::PlaceHolder`] fields
 #[derive(Debug)]
 pub struct ParameterisedMQLExpression {
     tree: ArenaTree<MQLExpression>,
@@ -166,25 +173,42 @@ impl ParameterisedMQLExpression {
         }
     }
 
-    pub fn set(&mut self, index: Ref, expr: MQLExpression) {
-        if let Some(expr) = self.tree.get(index) {
-            drop(expr)
+    /// Set the expression at the specific placeholder value
+    pub fn set(&mut self, index: usize, expr: MQLExpression) {
+        let placeholder_ref = self.placeholders.remove(index);
+        self.tree.replace(placeholder_ref, expr);
+    }
+
+    /// If the expression has any placeholder values in its definition.
+    pub fn has_args(&self) -> bool {
+        self.placeholders.len() != 0
+    }
+
+    pub fn build(&self) -> Bson {
+        if self.has_args() {
+            panic!(
+                "Cannot build Parameterised MQL expression as it still has placeholder expressions"
+            );
+        }
+
+        if let Some(root) = self.tree.get_root() {
+            self.build_recurse(*root)
+        } else {
+            panic!("No root for tree");
         }
     }
-}
 
-impl MQLExpression {
-    pub fn build(&self) -> Bson {
-        match self {
+    fn build_recurse(&self, index: Ref) -> Bson {
+        match self.tree.get_unchecked(index) {
             MQLExpression::Raw(document) => Bson::Document(document.to_owned()),
             MQLExpression::Unary { op, input } => {
-                let inner = input.build();
+                let inner = self.build_recurse(*input);
                 let key = format!("${op}");
                 Bson::Document(doc! { key: inner })
             }
             MQLExpression::Binary { op, left, right } => {
-                let inner_left = left.build();
-                let inner_right = right.build();
+                let inner_left = self.build_recurse(*left);
+                let inner_right = self.build_recurse(*right);
                 let key = format!("${op}");
                 Bson::Document(doc! { key: [ inner_left, inner_right ] })
             }
@@ -195,25 +219,22 @@ impl MQLExpression {
     }
 }
 
+/// The MQL expression compiler.
+/// Is a stateful compiler holding a [`ParameterisedMQLExpression`], mutating it during the folding of the expression.
 pub struct MQLExpressionCompiler {
     expr: ParameterisedMQLExpression,
 }
 
 impl MQLExpressionCompiler {
-    pub fn new() -> Self {
-        Self {
+    /// Compile a [`LogicalExpression`] into a [`ParameterisedMQLExpression`]
+    pub fn compile(expr: &LogicalExpression) -> Result<ParameterisedMQLExpression, MQLError> {
+        let mut compiler = Self {
             expr: ParameterisedMQLExpression::new(),
-        }
-    }
+        };
+        let root = expr.fold(&mut compiler)?;
+        compiler.expr.tree.set_root(root);
 
-    pub fn compile(&mut self, expression: &LogicalExpression) -> Result<(), MQLError> {
-        let root = expression.fold(self)?;
-        self.expr.tree.set_root(root);
-        Ok(())
-    }
-
-    pub fn to_parameterised_expression(self) -> ParameterisedMQLExpression {
-        self.expr
+        Ok(compiler.expr)
     }
 }
 
@@ -296,7 +317,7 @@ impl ExpressionFolder for MQLExpressionCompiler {
         input_right: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
         let op_str = match op {
-            BinExpOp::Rename => todo!(),
+            BinExpOp::Rename => ,
             BinExpOp::Eq => "eq",
             BinExpOp::Geq => "gte",
             BinExpOp::Leq => "lte",

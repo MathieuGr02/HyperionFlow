@@ -20,7 +20,7 @@
 
 use hyperion_value::Integer;
 
-use crate::ast::{LogicalExpression, Ref};
+use crate::{arena_tree::Ref, ast::LogicalExpression};
 
 ///
 #[derive(Debug)]
@@ -56,7 +56,13 @@ pub struct Filter {
 
 #[derive(Debug)]
 pub struct Project {
-    pub expression: Vec<LogicalExpression>,
+    pub expression: Vec<ProjectExpression>,
+}
+
+#[derive(Debug)]
+pub struct ProjectExpression {
+    pub expression: LogicalExpression,
+    pub alias: Option<String>,
 }
 
 #[derive(Debug)]

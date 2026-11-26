@@ -2,9 +2,11 @@ use pest::{Parser, iterators::Pair};
 use thiserror::Error;
 
 use crate::algebra::{
-    CypherPrint, CypherScan, MQLPrint, MQLScan, SQLPrint, SQLScan, StorePrint, StoreScan, Window,
+    CypherPrint, CypherScan, MQLPrint, MQLScan, ProjectExpression, SQLPrint, SQLScan, StorePrint,
+    StoreScan, Window,
 };
-use crate::expression::{BinExpOp, UnExpOp};
+use crate::arena_tree::{ArenaTree, Ref};
+use crate::expression::UnExpOp;
 use crate::folder::{AlgebraFolder, ExpressionFolder};
 use crate::visitor::{AlgebraMutVisitor, AlgebraVisitor};
 use crate::{
@@ -29,16 +31,14 @@ pub enum ASTError {
     UnexpectedRule(Rule),
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct Ref(usize);
-
 #[derive(Debug)]
 pub struct LogicalExpression {
-    root: Ref,
-    expressions: Vec<Expression>,
+    tree: ArenaTree<Expression>,
 }
 
 impl LogicalExpression {
+    /// Parse logical expression as a query into a [`LogicalExpression`] type
+    /// The expression is internally represented by an arena AST
     pub fn parse(expr: &str) -> Result<Self, ASTError> {
         let pairs = LangParser::parse(Rule::expr, expr)
             .map_err(|e| ASTError::ParsingError(format!("Expression parsing error {e}")))?;
@@ -49,28 +49,24 @@ impl LogicalExpression {
     }
 
     pub fn parse_pair(pair: Pair<'_, Rule>) -> Result<Self, ASTError> {
-        let mut expressions = Vec::new();
+        let mut logical_expr = Self {
+            tree: ArenaTree::new(),
+        };
 
-        let expr = pair.into_inner().next().unwrap();
-        let root = Self::build_expression(expr, &mut expressions)?;
+        let root = logical_expr.build_expression(pair)?;
+        logical_expr.tree.set_root(root);
 
-        Ok(Self { root, expressions })
+        Ok(logical_expr)
     }
 
-    fn add_expression(expr: Expression, expressions: &mut Vec<Expression>) -> Ref {
-        let index = expressions.len();
-        expressions.push(expr);
-        Ref(index)
-    }
-
-    fn build_expression(
-        expr: Pair<'_, Rule>,
-        expressions: &mut Vec<Expression>,
-    ) -> Result<Ref, ASTError> {
+    /// Internal recursion function to recursively build the expression tree.
+    /// The tree is build bottom up by having the top expressions recurse to the leaf nodes
+    /// The leaf nodes are then build into [`Expression`], returing their tree node refernce for the parent
+    fn build_expression(&mut self, expr: Pair<'_, Rule>) -> Result<Ref, ASTError> {
         let expr_ref = match expr.as_rule() {
             Rule::expr => {
                 let mut inner = expr.into_inner();
-                Self::build_expression(inner.next().unwrap(), expressions)?
+                self.build_expression(inner.next().unwrap())?
             }
 
             Rule::escaper => {
@@ -78,7 +74,7 @@ impl LogicalExpression {
                 let _identifier = inner.next().unwrap();
                 let content = inner.next().unwrap().as_str();
                 let escape = Expression::Escape(content.to_owned());
-                Self::add_expression(escape, expressions)
+                self.tree.add(escape)
             }
             Rule::unary_math_functions => {
                 let mut inner = expr.into_inner();
@@ -86,45 +82,30 @@ impl LogicalExpression {
                 let callable = inner.next().unwrap();
                 let op = UnExpOp::from_pair(callable)?;
                 let inner_expr = inner.next().unwrap();
-                let inner_expr = Self::build_expression(inner_expr, expressions)?;
+                let inner_expr = self.build_expression(inner_expr)?;
 
                 let unary = Expression::UnaryExpression {
                     op,
                     value: inner_expr,
                 };
-                Self::add_expression(unary, expressions)
-            }
-            Rule::project_rename => {
-                let mut inner = expr.into_inner();
-                let project_expr = inner.next().unwrap();
-                let target = inner.next().unwrap();
-
-                let project_expr = Self::build_expression(project_expr, expressions)?;
-                let target = Self::build_expression(target, expressions)?;
-
-                let binary = Expression::BinaryExpression {
-                    op: BinExpOp::Rename,
-                    left: project_expr,
-                    right: target,
-                };
-                Self::add_expression(binary, expressions)
+                self.tree.add(unary)
             }
             Rule::TARGET => {
                 let target = Expression::Target(expr.as_str().to_string());
-                Self::add_expression(target, expressions)
+                self.tree.add(target)
             }
             // Primitive types
             Rule::FLOAT => {
                 let literal = Expression::Literal(Value::Float(Float::from(
                     expr.as_str().parse::<f64>().unwrap(),
                 )));
-                Self::add_expression(literal, expressions)
+                self.tree.add(literal)
             }
             Rule::INTEGER => {
                 let literal = Expression::Literal(Value::Integer(Integer::from(
                     expr.as_str().parse::<i64>().unwrap(),
                 )));
-                Self::add_expression(literal, expressions)
+                self.tree.add(literal)
             }
             Rule::BOOL => {
                 let literal = match expr.as_str() {
@@ -132,17 +113,16 @@ impl LogicalExpression {
                     "FALSE" => Expression::Literal(Value::Boolean(false)),
                     _ => return Err(ASTError::UnexpectedRule(expr.as_rule())),
                 };
-
-                Self::add_expression(literal, expressions)
+                self.tree.add(literal)
             }
             Rule::TEXT => {
                 let literal = Expression::Literal(Value::String(expr.as_str().to_string()));
-                Self::add_expression(literal, expressions)
+                self.tree.add(literal)
             }
             Rule::VALUE => {
                 let value = Value::from_pair(expr)?;
                 let literal = Expression::Literal(value);
-                Self::add_expression(literal, expressions)
+                self.tree.add(literal)
             }
             _ => return Err(ASTError::UnexpectedRule(expr.as_rule())),
         };
@@ -153,11 +133,12 @@ impl LogicalExpression {
 
 #[derive(Debug)]
 pub struct LogicalPlan {
-    root: Ref,
-    algebra: Vec<Algebra>,
+    tree: ArenaTree<Algebra>,
 }
 
 impl LogicalPlan {
+    /// Parse a query into a [`LogicalPlan`] type
+    /// The plan is internally represented by an arena AST
     pub fn parse(query: &str) -> Result<Self, ASTError> {
         let pairs = LangParser::parse(Rule::query, query)
             .map_err(|e| ASTError::ParsingError(format!("Algebra parsing error {e}")))?;
@@ -169,29 +150,27 @@ impl LogicalPlan {
             .find(|p| p.as_rule() == Rule::algebra)
             .ok_or(ASTError::MissingRule(Rule::algebra))?;
 
-        let mut algebra = Vec::new();
+        let mut logical_plan = Self {
+            tree: ArenaTree::new(),
+        };
 
-        Self::build_ast(algebra_query, &mut algebra)?;
+        logical_plan.build_ast(algebra_query)?;
 
-        Ok(LogicalPlan {
-            root: Ref(0),
-            algebra,
-        })
+        Ok(logical_plan)
     }
 
-    fn build_ast(query: Pair<'_, Rule>, algebra: &mut Vec<Algebra>) -> Result<(), ASTError> {
-        let mut current = Ref(1);
-        for operation in query.into_inner().rev() {
-            current = Self::build_algebra(operation, current, algebra)?;
+    fn build_ast(&mut self, query: Pair<'_, Rule>) -> Result<(), ASTError> {
+        let mut current = Ref::zero();
+        for operation in query.into_inner() {
+            current = self.build_algebra(operation, current)?;
         }
+
+        self.tree.set_root(current);
+
         Ok(())
     }
 
-    fn build_algebra(
-        pair: Pair<'_, Rule>,
-        input: Ref,
-        algebra: &mut Vec<Algebra>,
-    ) -> Result<Ref, ASTError> {
+    fn build_algebra(&mut self, pair: Pair<'_, Rule>, input: Ref) -> Result<Ref, ASTError> {
         let alg = match pair.as_rule() {
             Rule::into => {
                 let mut inner = pair.into_inner();
@@ -240,15 +219,39 @@ impl LogicalPlan {
                 }
             }
             Rule::project => {
-                let mut expressions = Vec::new();
+                let mut project_expressions = Vec::new();
                 for inner in pair.into_inner().into_iter() {
-                    let expr_ast = LogicalExpression::parse_pair(inner)?;
-                    expressions.push(expr_ast);
+                    let pair = inner.into_inner().next().unwrap();
+                    let project_expr = match pair.as_rule() {
+                        Rule::TARGET => {
+                            let expr_ast = LogicalExpression::parse_pair(pair)?;
+                            ProjectExpression {
+                                expression: expr_ast,
+                                alias: None,
+                            }
+                        }
+                        Rule::project_rename => {
+                            let mut rename_inner = pair.into_inner();
+                            let project_expr = rename_inner.next().unwrap();
+                            let target = rename_inner.next().unwrap();
+
+                            let project_expr = LogicalExpression::parse_pair(project_expr)?;
+                            let target = target.as_str();
+
+                            ProjectExpression {
+                                expression: project_expr,
+                                alias: Some(target.to_string()),
+                            }
+                        }
+                        _ => return Err(ASTError::UnexpectedRule(pair.as_rule())),
+                    };
+
+                    project_expressions.push(project_expr);
                 }
 
                 Algebra::Unary {
                     alg: UnaryAlgebra::Project(Project {
-                        expression: expressions,
+                        expression: project_expressions,
                     }),
                     input: input,
                 }
@@ -278,10 +281,8 @@ impl LogicalPlan {
             _ => return Err(ASTError::UnexpectedRule(pair.as_rule())),
         };
 
-        algebra.push(alg);
-        let index = algebra.len() + 1;
-
-        Ok(Ref(index))
+        let index = self.tree.add(alg);
+        Ok(index)
     }
 }
 
@@ -306,16 +307,23 @@ impl<'i> FromPair<'i> for Value {
 }
 
 impl LogicalExpression {
+    /// Fold [`LogicalExpression`] using the provided `folder`
     pub fn fold<E: ExpressionFolder>(&self, folder: &mut E) -> Result<E::Output, E::Error> {
-        self.fold_expression(self.root, folder)
+        if let Some(root) = self.tree.get_root() {
+            self.fold_expression(*root, folder)
+        } else {
+            Err(ASTError::ParsingError(String::from("No root node set for expression tree")).into())
+        }
     }
 
+    /// Internal recurse function to recursively fold the [`LogicalExpression`] tree.
+    /// The folding occurs bottom up.
     fn fold_expression<E: ExpressionFolder>(
         &self,
         index: Ref,
         folder: &mut E,
     ) -> Result<E::Output, E::Error> {
-        if let Some(expr) = self.expressions.get(index.0) {
+        if let Some(expr) = self.tree.get(index) {
             match expr {
                 Expression::Literal(literal) => folder.fold_literal(literal),
                 Expression::Escape(escape) => folder.fold_escape(escape),
@@ -338,7 +346,11 @@ impl LogicalExpression {
 
 impl LogicalPlan {
     pub fn accept<V: AlgebraVisitor>(&self, visitor: &mut V) -> Result<V::Output, V::Error> {
-        self.visit_algebra(self.root, visitor)
+        if let Some(root) = self.tree.get_root() {
+            self.visit_algebra(*root, visitor)
+        } else {
+            Err(ASTError::ParsingError(String::from("No root node set for algebra tree")).into())
+        }
     }
 
     pub fn visit_algebra<V: AlgebraVisitor>(
@@ -346,7 +358,7 @@ impl LogicalPlan {
         index: Ref,
         visitor: &mut V,
     ) -> Result<V::Output, V::Error> {
-        if let Some(alg) = self.algebra.get(index.0) {
+        if let Some(alg) = self.tree.get(index) {
             match alg {
                 Algebra::Print { print, input } => {
                     self.visit_algebra(*input, visitor)?;
@@ -364,7 +376,7 @@ impl LogicalPlan {
                 Algebra::Binary { alg, left, right } => todo!(),
             }
         } else {
-            Err(ASTError::ParsingError(format!("Invalid index {}", index.0)).into())
+            Err(ASTError::ParsingError(format!("Invalid index {}", index)).into())
         }
     }
 
@@ -372,7 +384,11 @@ impl LogicalPlan {
         &mut self,
         visitor: &mut V,
     ) -> Result<V::Output, V::Error> {
-        self.visit_algebra_mut(self.root, visitor)
+        if let Some(root) = self.tree.get_root() {
+            self.visit_algebra_mut(*root, visitor)
+        } else {
+            Err(ASTError::ParsingError(String::from("No root node set for algebra tree")).into())
+        }
     }
 
     fn visit_algebra_mut<V: AlgebraMutVisitor>(
@@ -380,7 +396,7 @@ impl LogicalPlan {
         index: Ref,
         visitor: &mut V,
     ) -> Result<V::Output, V::Error> {
-        let refs = match self.algebra.get(index.0) {
+        let refs = match self.tree.get(index) {
             Some(Algebra::Print { print: _, input }) => {
                 vec![input.clone()]
             }
@@ -391,14 +407,14 @@ impl LogicalPlan {
                 left,
                 right,
             }) => vec![left.clone(), right.clone()],
-            None => return Err(ASTError::ParsingError(format!("Invalid index {}", index.0)).into()),
+            None => return Err(ASTError::ParsingError(format!("Invalid index {}", index)).into()),
         };
 
         for ref_i in refs {
             self.visit_algebra_mut(ref_i, visitor)?;
         }
 
-        match self.algebra.get_mut(index.0) {
+        match self.tree.get_mut(index) {
             Some(Algebra::Print { print, input: _ }) => visitor.visit_print_mut(print),
             Some(Algebra::Scan(store_scan)) => visitor.visit_scan_mut(store_scan),
             Some(Algebra::Unary { alg, input: _ }) => match alg {
@@ -416,7 +432,11 @@ impl LogicalPlan {
     }
 
     pub fn fold<F: AlgebraFolder>(&self, folder: &mut F) -> Result<F::Output, F::Error> {
-        self.fold_algebra(self.root, folder)
+        if let Some(root) = self.tree.get_root() {
+            self.fold_algebra(*root, folder)
+        } else {
+            Err(ASTError::ParsingError(String::from("No root node set for algebra tree")).into())
+        }
     }
 
     fn fold_algebra<F: AlgebraFolder>(
@@ -424,7 +444,7 @@ impl LogicalPlan {
         index: Ref,
         folder: &mut F,
     ) -> Result<F::Output, F::Error> {
-        if let Some(alg) = self.algebra.get(index.0) {
+        if let Some(alg) = self.tree.get(index) {
             match alg {
                 // Root node
                 Algebra::Print { print, input } => {
@@ -452,7 +472,7 @@ impl LogicalPlan {
                 Algebra::Scan(scan) => folder.fold_scan(scan),
             }
         } else {
-            Err(ASTError::ParsingError(format!("Invalid index {}", index.0)).into())
+            Err(ASTError::ParsingError(format!("Invalid index {}", index)).into())
         }
     }
 }

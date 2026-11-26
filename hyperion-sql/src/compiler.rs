@@ -353,7 +353,6 @@ impl ExpressionFolder for SQLExpressionCompiler {
         input_right: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
         let op_str = match op {
-            BinExpOp::Rename => "AS",
             BinExpOp::Eq => "==",
             BinExpOp::Geq => ">=",
             BinExpOp::Leq => "<=",

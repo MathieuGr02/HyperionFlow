@@ -44,8 +44,8 @@ pub struct MQLQuery {
 
 #[derive(Debug)]
 pub struct MQLProject {
-    pub field: String,
-    pub expr: ParameterisedMQLExpression
+    pub field: Option<String>,
+    pub expr: ParameterisedMQLExpression,
 }
 
 #[derive(Debug)]
@@ -64,9 +64,20 @@ impl MQLQuery {
     pub fn build(&self) -> (String, Vec<Document>) {
         let mut pipeline = Vec::new();
 
+        let mut document = Document::new();
         for p in self.project.iter() {
-            let x = p.build();
+            if let Some(field) = p.field.as_ref() {
+                document.insert(field.clone(), p.expr.build());
+            } else {
+                let s = p.expr.build();
+                dbg!(&s);
+                let s = s.as_str().unwrap(); //.to_string();
+                let s = s.replace("$", "");
+                document.insert(s, 1);
+            };
         }
+        let project = doc! { "$project" : document };
+        pipeline.push(project);
 
         if let Some(target) = self.target.as_ref() {
             let collection = &target.collection;
@@ -121,9 +132,12 @@ impl AlgebraFolder for MQLQueryCompiler {
         mut input: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
         for expr in project.expression.iter() {
-            let param_expr = MQLExpressionCompiler::compile(expr)?;
-            param_expr.
-            input.project.push(param_expr);
+            let param_expr = MQLExpressionCompiler::compile(&expr.expression)?;
+            let project_expr = MQLProject {
+                field: expr.alias.clone(),
+                expr: param_expr,
+            };
+            input.project.push(project_expr);
         }
         Ok(input)
     }
@@ -213,7 +227,7 @@ impl ParameterisedMQLExpression {
                 Bson::Document(doc! { key: [ inner_left, inner_right ] })
             }
             MQLExpression::Literal(bson) => bson.to_owned(),
-            MQLExpression::Identifier(identifier) => Bson::String(identifier.to_owned()),
+            MQLExpression::Identifier(identifier) => Bson::String(format!("${identifier}")),
             MQLExpression::PlaceHolder(_) => todo!(),
         }
     }
@@ -317,7 +331,6 @@ impl ExpressionFolder for MQLExpressionCompiler {
         input_right: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
         let op_str = match op {
-            BinExpOp::Rename => ,
             BinExpOp::Eq => "eq",
             BinExpOp::Geq => "gte",
             BinExpOp::Leq => "lte",

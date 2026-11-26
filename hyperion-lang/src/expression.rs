@@ -105,7 +105,6 @@ impl<'i> FromPair<'i> for UnExpOp {
 
 #[derive(Debug)]
 pub enum BinExpOp {
-    Rename,
     // Boolean expressions
     Eq,
     Geq,
@@ -116,7 +115,6 @@ pub enum BinExpOp {
 impl Display for BinExpOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            BinExpOp::Rename => "RENAME",
             BinExpOp::Eq => "EQ",
             BinExpOp::Geq => "GEQ",
             BinExpOp::Leq => "LEQ",
